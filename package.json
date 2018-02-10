@@ -22,10 +22,15 @@
   },
   "homepage": "https://github.com/mcollina/fastify-http-proxy#readme",
   "devDependencies": {
-    "fastify": "^0.37.0",
+    "fastify": "^1.0.0-rc.1",
+    "got": "^8.0.3",
     "pre-commit": "^1.2.2",
+    "simple-get": "^2.7.0",
     "snazzy": "^7.0.0",
     "standard": "^10.0.3",
     "tap": "^11.0.1"
+  },
+  "dependencies": {
+    "fastify-reply-from": "^0.1.0"
   }
 }
