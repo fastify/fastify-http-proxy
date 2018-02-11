@@ -19,6 +19,7 @@ module.exports = async function (fastify, opts) {
   fastify.all('/*', reply)
 
   function reply (request, reply) {
-    reply.from()
+    const dest = request.req.url.replace(this.basePath, '')
+    reply.from(dest)
   }
 }

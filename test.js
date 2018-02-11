@@ -47,6 +47,23 @@ async function start () {
     }
     t.fail()
   })
+
+  test('prefixed proxy', async (t) => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/my-prefix'
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    const resultRoot = await got(`http://localhost:${server.server.address().port}/my-prefix/`)
+    t.equal(resultRoot.body, 'this is root')
+
+    const resultA = await got(`http://localhost:${server.server.address().port}/my-prefix/a`)
+    t.equal(resultA.body, 'this is a')
+  })
 }
 
 start()
