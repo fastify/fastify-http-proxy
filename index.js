@@ -7,6 +7,8 @@ module.exports = async function (fastify, opts) {
     throw new Error('upstream must be specified')
   }
 
+  const beforeHandler = opts.beforeHandler
+
   fastify.register(From, {
     base: opts.upstream
   })
@@ -15,8 +17,8 @@ module.exports = async function (fastify, opts) {
     done(null, req)
   })
 
-  fastify.all('/', reply)
-  fastify.all('/*', reply)
+  fastify.all('/', { beforeHandler }, reply)
+  fastify.all('/*', { beforeHandler }, reply)
 
   function reply (request, reply) {
     const dest = request.req.url.replace(this.basePath, '')

@@ -2,8 +2,7 @@
 
 Proxy your http requests to another server, with hooks.
 This [`fastify`](https://www.fastify.io) plugin forward all the request
-received with a given prefix (or none) to an upstream. All Fastify hooks
-are still applied.
+received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
 
 `fastify-http-proxy` is built on top of
 [`fastify-reply-from`](http://npm.im/fastify-reply-from), which enables
@@ -45,9 +44,15 @@ The target server to use for proxying
 
 The prefix to mount this plugin on. This is provided by fastify itself.
 
+### beforeHandler
+
+A `beforeHandler` to be applied on all routes. Useful for performing
+authentication.
+
 ## TODO
 
 * [ ] Generate unique request ids and implement request tracking
+* [ ] Perform validations for incoming data
 
 ## License
 

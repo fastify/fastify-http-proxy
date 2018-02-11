@@ -1,10 +1,10 @@
 'use strict'
 
-const t = require('tap')
-const test = t.test
+const { tearDown, test } = require('tap')
 const Fastify = require('fastify')
 const proxy = require('.')
 const got = require('got')
+const { Unauthorized } = require('http-errors')
 
 async function run () {
   const origin = Fastify()
@@ -25,7 +25,7 @@ async function run () {
 
   await origin.listen(0)
 
-  t.tearDown(origin.close.bind(origin))
+  tearDown(origin.close.bind(origin))
 
   test('basic proxy', async (t) => {
     const server = Fastify()
@@ -86,6 +86,37 @@ async function run () {
       json: true
     })
     t.deepEqual(resultRoot.body, { something: 'posted' })
+  })
+
+  test('beforeHandler', async (t) => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      async beforeHandler (request, reply) {
+        throw new Unauthorized()
+      }
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    var errored = false
+    try {
+      await got(`http://localhost:${server.server.address().port}`)
+    } catch (err) {
+      t.equal(err.statusCode, 401)
+      errored = true
+    }
+    t.ok(errored)
+
+    errored = false
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`)
+    } catch (err) {
+      t.equal(err.statusCode, 401)
+      errored = true
+    }
+    t.ok(errored)
   })
 }
 

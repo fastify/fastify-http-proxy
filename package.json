@@ -24,6 +24,7 @@
   "devDependencies": {
     "fastify": "^1.0.0-rc.1",
     "got": "^8.0.3",
+    "http-errors": "^1.6.2",
     "make-promises-safe": "^1.1.0",
     "pre-commit": "^1.2.2",
     "simple-get": "^2.7.0",
