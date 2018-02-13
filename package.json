@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mcollina/fastify-http-proxy.git"
+    "url": "git+https://github.com/fastify/fastify-http-proxy.git"
   },
   "keywords": [
     "fastify",
@@ -18,9 +18,9 @@
   "author": "Matteo Collina <hello@matteocollina.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mcollina/fastify-http-proxy/issues"
+    "url": "https://github.com/fastify/fastify-http-proxy/issues"
   },
-  "homepage": "https://github.com/mcollina/fastify-http-proxy#readme",
+  "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
     "fastify": "^1.0.0-rc.1",
     "got": "^8.0.3",
