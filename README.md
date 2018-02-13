@@ -1,5 +1,7 @@
 # fastify-http-proxy
 
+[![Build Status](https://travis-ci.org/fastify/fastify-http-proxy.svg?branch=master)](https://travis-ci.org/fastify/fastify-http-proxy)
+
 Proxy your http requests to another server, with hooks.
 This [`fastify`](https://www.fastify.io) plugin forward all the request
 received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
