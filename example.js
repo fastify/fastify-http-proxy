@@ -33,6 +33,7 @@ async function startProxy (upstream) {
   })
 
   await server.listen(3000)
+  return server
 }
 
 async function run () {
