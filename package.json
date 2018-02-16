@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
-    "fastify": "^1.0.0-rc.1",
+    "fastify": "^1.0.0-rc.2",
     "got": "^8.0.3",
     "http-errors": "^1.6.2",
     "make-promises-safe": "^1.1.0",

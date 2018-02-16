@@ -13,15 +13,18 @@ module.exports = async function (fastify, opts) {
     base: opts.upstream
   })
 
-  fastify.addContentTypeParser('*', function (req, done) {
+  fastify.addContentTypeParser('application/json', bodyParser)
+  fastify.addContentTypeParser('*', bodyParser)
+
+  function bodyParser (req, done) {
     done(null, req)
-  })
+  }
 
   fastify.all('/', { beforeHandler }, reply)
   fastify.all('/*', { beforeHandler }, reply)
 
   function reply (request, reply) {
-    const dest = request.req.url.replace(this.basePath, '')
+    var dest = request.raw.url.replace(this.basePath, '')
     reply.from(dest)
   }
 }
