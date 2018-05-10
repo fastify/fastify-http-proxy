@@ -33,6 +33,6 @@
     "tap": "^11.1.4"
   },
   "dependencies": {
-    "fastify-reply-from": "^0.3.0"
+    "fastify-reply-from": "^0.4.1"
   }
 }
