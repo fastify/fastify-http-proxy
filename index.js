@@ -10,7 +10,8 @@ module.exports = async function (fastify, opts) {
   const beforeHandler = opts.beforeHandler
 
   fastify.register(From, {
-    base: opts.upstream
+    base: opts.upstream,
+    http2: opts.http2
   })
 
   fastify.addContentTypeParser('application/json', bodyParser)

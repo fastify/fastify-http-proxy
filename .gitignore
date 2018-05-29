@@ -57,3 +57,10 @@ typings/
 # dotenv environment variables file
 .env
 
+# diag files
+*clinic*
+*0x*
+
+# lock files
+
+package-lock.json

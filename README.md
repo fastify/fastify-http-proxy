@@ -26,7 +26,8 @@ const server = Fastify()
 
 server.register(proxy, {
   upstream,
-  prefix: '/upstream' // optional
+  prefix: '/upstream', // optional
+  http2: false // optional
 })
 
 server.listen(3000)
@@ -53,11 +54,20 @@ The prefix to mount this plugin on. This is provided by fastify itself.
 A `beforeHandler` to be applied on all routes. Useful for performing
 authentication.
 
+### http2
+
+A `beforeHandler` to be applied on all routes. Useful for performing
+authentication.
+
+## Benchmarks
+
+The following benchmarks where generate on a Macbook 2018 with i5 and
+8GB of RAM.
+
 ## TODO
 
 * [ ] Generate unique request ids and implement request tracking
 * [ ] Perform validations for incoming data
-* [ ] Benchmarks
 
 ## License
 
