@@ -68,6 +68,9 @@ async function run () {
     const resultRoot = await got(`http://localhost:${server.server.address().port}/my-prefix/`)
     t.equal(resultRoot.body, 'this is root')
 
+    const withoutSlash = await got(`http://localhost:${server.server.address().port}/my-prefix`)
+    t.equal(withoutSlash.body, 'this is root')
+
     const resultA = await got(`http://localhost:${server.server.address().port}/my-prefix/a`)
     t.equal(resultA.body, 'this is a')
   })
