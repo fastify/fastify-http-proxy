@@ -24,7 +24,7 @@ npm i fastify-http-proxy fastify
 const Fastify = require('fastify')
 const server = Fastify()
 
-server.register(proxy, {
+server.register(require('fastify-http-proxy'), {
   upstream,
   prefix: '/upstream', // optional
   http2: false // optional
