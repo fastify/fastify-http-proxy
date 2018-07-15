@@ -59,7 +59,7 @@ server.register(proxy, {
 server.listen(3000)
 ```
 
-Notice that in these case it is important to use the `prefix` option and to have *non-ambiguous* or *non-overlapping* prefixes (e.g. `/api` and `/api2`).
+Notice that in this case it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
 
 For other examples, see `example.js`.
 
