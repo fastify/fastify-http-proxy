@@ -121,6 +121,43 @@ async function run () {
     }
     t.ok(errored)
   })
+
+  test('multiple prefixes with multiple plugins', async (t) => {
+    const origin2 = Fastify()
+
+    origin2.get('/', async (request, reply) => {
+      return 'this is root for origin2'
+    })
+
+    await origin2.listen(0)
+
+    const proxyServer = Fastify()
+
+    // register first proxy on /api
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api'
+    })
+
+    // register second proxy on /api2
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin2.server.address().port}`,
+      prefix: '/api2'
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      origin2.close()
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api`)
+    t.equal(firstProxyPrefix.body, 'this is root')
+
+    const secondProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api2`)
+    t.equal(secondProxyPrefix.body, 'this is root for origin2')
+  })
 }
 
 run()
