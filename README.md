@@ -27,7 +27,7 @@ const Fastify = require('fastify')
 const server = Fastify()
 
 server.register(require('fastify-http-proxy'), {
-  'http://my-api.example.com',
+  upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
   http2: false // optional
 })
@@ -45,19 +45,21 @@ const server = Fastify()
 const proxy = require('fastify-http-proxy')
 
 server.register(proxy, {
-  'http://my-api.example.com',
+  upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
   http2: false // optional
 })
 
 server.register(proxy, {
-  'http://single-signon.example.com/auth',
+  upstream: 'http://single-signon.example.com/auth',
   prefix: '/auth', // optional
   http2: false // optional
 })
 
 server.listen(3000)
 ```
+
+Notice that in these case it is important to use the `prefix` option and to have *non-ambiguous* or *non-overlapping* prefixes (e.g. `/api` and `/api2`).
 
 For other examples, see `example.js`.
 
