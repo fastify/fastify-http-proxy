@@ -65,7 +65,8 @@ For other examples, see `example.js`.
 
 ## Options
 
-This `fastify` plugin supports the following options.
+This `fastify` plugin supports _all_ the options of
+[`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) plus the following.
 
 *Note that this plugin is fully encapsulated, and non-JSON payloads will
 be streamed directly to the destination.*
@@ -82,10 +83,6 @@ The prefix to mount this plugin on. All the requests to the current server start
 
 A `beforeHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
-### http2
-
-A boolean value that indicates whether the proxy should support http2.
-
 ## Benchmarks
 
 The following benchmarks where generated on a Macbook 2018 with i5 and
@@ -95,6 +92,8 @@ The following benchmarks where generated on a Macbook 2018 with i5 and
 | `express-http-proxy` | 878.4 |
 | `http-proxy` | 3837 |
 | `fastify-http-proxy` | 4205 |
+| `fastify-http-proxy` (with
+[`undici`](https://github.com/mcollina/undici)) | 6235.6 |
 
 The results where gathered on the second run of `autocannon -c 100 -d 5
 URL`.
