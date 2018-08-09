@@ -89,11 +89,11 @@ The following benchmarks where generated on a Macbook 2018 with i5 and
 8GB of RAM:
 
 | __Framework__ | req/sec |
+| :----------------- | :------------------------- |
 | `express-http-proxy` | 878.4 |
 | `http-proxy` | 3837 |
 | `fastify-http-proxy` | 4205 |
-| `fastify-http-proxy` (with
-[`undici`](https://github.com/mcollina/undici)) | 6235.6 |
+| `fastify-http-proxy` (with [`undici`](https://github.com/mcollina/undici)) | 6235.6 |
 
 The results where gathered on the second run of `autocannon -c 100 -d 5
 URL`.
