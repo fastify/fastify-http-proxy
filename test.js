@@ -160,14 +160,6 @@ async function run () {
   })
 
   test('passes replyOptions object to reply.from() calls', async (t) => {
-    const server = Fastify()
-
-    server.get('/', async (request, reply) => {
-      return 'this is root for server'
-    })
-
-    await server.listen(0)
-
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -181,7 +173,6 @@ async function run () {
     await proxyServer.listen(0)
 
     t.tearDown(() => {
-      server.close()
       proxyServer.close()
     })
 
