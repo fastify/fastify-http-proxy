@@ -83,6 +83,10 @@ The prefix to mount this plugin on. All the requests to the current server start
 
 A `beforeHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
+### replyOptions
+
+Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
+
 ## Benchmarks
 
 The following benchmarks where generated on a Macbook 2018 with i5 and
