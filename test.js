@@ -158,6 +158,36 @@ async function run () {
     const secondProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api2`)
     t.equal(secondProxyPrefix.body, 'this is root for origin2')
   })
+
+  test('passes replyOptions object to reply.from() calls', async (t) => {
+    const server = Fastify()
+
+    server.get('/', async (request, reply) => {
+      return 'this is root for server'
+    })
+
+    await server.listen(0)
+
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      replyOptions: {
+        rewriteHeaders: headers => Object.assign({ 'x-test': 'test' }, headers)
+      }
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      server.close()
+      proxyServer.close()
+    })
+
+    const { headers } = await got(`http://localhost:${proxyServer.server.address().port}/api`)
+    t.match(headers, { 'x-test': 'test' })
+  })
 }
 
 run()
