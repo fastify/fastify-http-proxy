@@ -8,7 +8,7 @@ module.exports = async function (fastify, opts) {
   }
 
   const beforeHandler = opts.beforeHandler
-  const removePrefix = !opts.keepPrefix
+  const rewritePrefix = opts.rewritePrefix || ''
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -28,9 +28,7 @@ module.exports = async function (fastify, opts) {
 
   function reply (request, reply) {
     var dest = request.req.url
-    if (removePrefix) {
-      dest = dest.replace(this.basePath, '')
-    }
+    dest = dest.replace(this.basePath, rewritePrefix)
     reply.from(dest || '/', opts.replyOptions)
   }
 }

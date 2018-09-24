@@ -82,10 +82,9 @@ The prefix to mount this plugin on. All the requests to the current server start
 The prefix will be removed from the URL when forwarding the HTTP
 request.
 
-### keepPrefix
+### rewritePrefix
 
-Set it to `true` to keep the prefix this plugin is mounted to when
-forwarding the HTTP requests.
+Rewrite the prefix to the specified string. Default: `''`.
 
 ### beforeHandler
 

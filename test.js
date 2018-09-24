@@ -23,8 +23,8 @@ async function run () {
     throw new Error('kaboom')
   })
 
-  origin.get('/api/a', async (request, reply) => {
-    return 'this is /api/a'
+  origin.get('/api2/a', async (request, reply) => {
+    return 'this is /api2/a'
   })
 
   await origin.listen(0)
@@ -190,7 +190,7 @@ async function run () {
     proxyServer.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/api',
-      keepPrefix: true
+      rewritePrefix: '/api2'
     })
 
     await proxyServer.listen(0)
@@ -200,7 +200,7 @@ async function run () {
     })
 
     const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api/a`)
-    t.equal(firstProxyPrefix.body, 'this is /api/a')
+    t.equal(firstProxyPrefix.body, 'this is /api2/a')
   })
 }
 
