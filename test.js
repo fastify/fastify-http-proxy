@@ -23,6 +23,10 @@ async function run () {
     throw new Error('kaboom')
   })
 
+  origin.get('/api2/a', async (request, reply) => {
+    return 'this is /api2/a'
+  })
+
   await origin.listen(0)
 
   tearDown(origin.close.bind(origin))
@@ -178,6 +182,25 @@ async function run () {
 
     const { headers } = await got(`http://localhost:${proxyServer.server.address().port}/api`)
     t.match(headers, { 'x-test': 'test' })
+  })
+
+  test('keepPrefix true', async (t) => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2'
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api/a`)
+    t.equal(firstProxyPrefix.body, 'this is /api2/a')
   })
 }
 

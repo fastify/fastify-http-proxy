@@ -79,6 +79,13 @@ An URL (including protocol) that represents the target server to use for proxyin
 
 The prefix to mount this plugin on. All the requests to the current server starting with the given prefix will be proxied to the provided upstream.
 
+The prefix will be removed from the URL when forwarding the HTTP
+request.
+
+### rewritePrefix
+
+Rewrite the prefix to the specified string. Default: `''`.
+
 ### beforeHandler
 
 A `beforeHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).

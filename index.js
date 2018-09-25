@@ -8,6 +8,7 @@ module.exports = async function (fastify, opts) {
   }
 
   const beforeHandler = opts.beforeHandler
+  const rewritePrefix = opts.rewritePrefix || ''
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -26,7 +27,8 @@ module.exports = async function (fastify, opts) {
   fastify.all('/*', { beforeHandler }, reply)
 
   function reply (request, reply) {
-    var dest = request.req.url.replace(this.basePath, '')
+    var dest = request.req.url
+    dest = dest.replace(this.basePath, rewritePrefix)
     reply.from(dest || '/', opts.replyOptions)
   }
 }
