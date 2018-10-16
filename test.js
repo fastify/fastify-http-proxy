@@ -18,6 +18,7 @@ async function run () {
 
   origin.post('/this-has-data', async (request, reply) => {
     if (request.body.hello === 'world') {
+      reply.header('location', '/something')
       return { something: 'posted' }
     }
     throw new Error('kaboom')
@@ -184,7 +185,7 @@ async function run () {
     t.match(headers, { 'x-test': 'test' })
   })
 
-  test('keepPrefix true', async (t) => {
+  test('rewritePrefix', async (t) => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -201,6 +202,27 @@ async function run () {
 
     const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api/a`)
     t.equal(firstProxyPrefix.body, 'this is /api2/a')
+  })
+
+  test('rewrite location headers', async (t) => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api'
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      proxyServer.close()
+    })
+
+    const { headers: { location } } = await got(`http://localhost:${proxyServer.server.address().port}/api/this-has-data`, {
+      body: { hello: 'world' },
+      json: true
+    })
+    t.equal(location, '/api/something')
   })
 }
 

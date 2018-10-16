@@ -14,10 +14,27 @@ module.exports = async function (fastify, opts) {
   fromOpts.base = opts.upstream
   fromOpts.prefix = undefined
 
+  const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
+  const replyOpts = Object.assign({}, opts.replyOpts, {
+    rewriteHeaders
+  })
+  fromOpts.rewriteHeaders = rewriteHeaders
+
   fastify.register(From, fromOpts)
 
   fastify.addContentTypeParser('application/json', bodyParser)
   fastify.addContentTypeParser('*', bodyParser)
+
+  function rewriteHeaders (headers) {
+    const location = headers.location
+    if (location) {
+      headers.location = location.replace(rewritePrefix, fastify.basePath)
+    }
+    if (oldRewriteHeaders) {
+      headers = oldRewriteHeaders(headers)
+    }
+    return headers
+  }
 
   function bodyParser (req, done) {
     done(null, req)
@@ -29,6 +46,6 @@ module.exports = async function (fastify, opts) {
   function reply (request, reply) {
     var dest = request.req.url
     dest = dest.replace(this.basePath, rewritePrefix)
-    reply.from(dest || '/', opts.replyOptions)
+    reply.from(dest || '/', replyOpts)
   }
 }
