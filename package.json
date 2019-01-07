@@ -35,6 +35,9 @@
     "standard": "^12.0.1",
     "tap": "^12.1.1"
   },
+  "peerDependencies": {
+    "fastify": "1.x"
+  },
   "dependencies": {
     "fastify-reply-from": "^0.5.3"
   }
