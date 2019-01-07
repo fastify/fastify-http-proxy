@@ -28,7 +28,7 @@ module.exports = async function (fastify, opts) {
   function rewriteHeaders (headers) {
     const location = headers.location
     if (location) {
-      headers.location = location.replace(rewritePrefix, fastify.basePath)
+      headers.location = location.replace(rewritePrefix, fastify.prefix)
     }
     if (oldRewriteHeaders) {
       headers = oldRewriteHeaders(headers)
@@ -45,7 +45,7 @@ module.exports = async function (fastify, opts) {
 
   function reply (request, reply) {
     var dest = request.req.url
-    dest = dest.replace(this.basePath, rewritePrefix)
+    dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
 }
