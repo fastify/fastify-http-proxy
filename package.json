@@ -22,20 +22,20 @@
   },
   "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
-    "express": "^4.16.3",
-    "express-http-proxy": "^1.2.0",
-    "fastify": "^1.8.0",
-    "got": "^9.0.0",
-    "http-errors": "^1.6.3",
+    "express": "^4.16.4",
+    "express-http-proxy": "^1.5.0",
+    "fastify": "^1.13.3",
+    "got": "^9.5.0",
+    "http-errors": "^1.7.1",
     "http-proxy": "^1.17.0",
     "make-promises-safe": "^4.0.0",
     "pre-commit": "^1.2.2",
-    "simple-get": "^3.0.0",
+    "simple-get": "^3.0.3",
     "snazzy": "^8.0.0",
-    "standard": "^12.0.0",
-    "tap": "^12.0.0"
+    "standard": "^12.0.1",
+    "tap": "^12.1.1"
   },
   "dependencies": {
-    "fastify-reply-from": "^0.5.0"
+    "fastify-reply-from": "^0.5.3"
   }
 }
