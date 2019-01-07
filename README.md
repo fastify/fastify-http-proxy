@@ -14,6 +14,10 @@ you for single route proxying.
 
 This plugin can be used in a variety of circumstances, for example if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
 
+## Requirements
+
+Fastify ^1.8.0
+
 ## Install
 
 ```
