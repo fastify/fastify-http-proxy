@@ -7,7 +7,7 @@ module.exports = async function (fastify, opts) {
     throw new Error('upstream must be specified')
   }
 
-  const preHandler = opts.preHandler
+  const preHandler = opts.preHandler || opts.beforeHandler
   const rewritePrefix = opts.rewritePrefix || ''
 
   const fromOpts = Object.assign({}, opts)

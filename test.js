@@ -127,6 +127,37 @@ async function run () {
     t.ok(errored)
   })
 
+  test('beforeHandler(deprecated)', async (t) => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      async beforeHandler (request, reply) {
+        throw new Unauthorized()
+      }
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    var errored = false
+    try {
+      await got(`http://localhost:${server.server.address().port}`)
+    } catch (err) {
+      t.equal(err.statusCode, 401)
+      errored = true
+    }
+    t.ok(errored)
+
+    errored = false
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`)
+    } catch (err) {
+      t.equal(err.statusCode, 401)
+      errored = true
+    }
+    t.ok(errored)
+  })
+
   test('multiple prefixes with multiple plugins', async (t) => {
     const origin2 = Fastify()
 
