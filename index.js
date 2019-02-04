@@ -7,7 +7,7 @@ module.exports = async function (fastify, opts) {
     throw new Error('upstream must be specified')
   }
 
-  const beforeHandler = opts.beforeHandler
+  const preHandler = opts.preHandler
   const rewritePrefix = opts.rewritePrefix || ''
 
   const fromOpts = Object.assign({}, opts)
@@ -40,8 +40,8 @@ module.exports = async function (fastify, opts) {
     done(null, req)
   }
 
-  fastify.all('/', { beforeHandler }, reply)
-  fastify.all('/*', { beforeHandler }, reply)
+  fastify.all('/', { preHandler }, reply)
+  fastify.all('/*', { preHandler }, reply)
 
   function reply (request, reply) {
     var dest = request.req.url

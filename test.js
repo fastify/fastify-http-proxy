@@ -96,11 +96,11 @@ async function run () {
     t.deepEqual(resultRoot.body, { something: 'posted' })
   })
 
-  test('beforeHandler', async (t) => {
+  test('preHandler', async (t) => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
-      async beforeHandler (request, reply) {
+      async preHandler (request, reply) {
         throw new Unauthorized()
       }
     })
