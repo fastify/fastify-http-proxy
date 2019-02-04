@@ -90,9 +90,9 @@ request.
 
 Rewrite the prefix to the specified string. Default: `''`.
 
-### beforeHandler
+### preHandler
 
-A `beforeHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
+A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
 ### replyOptions
 
