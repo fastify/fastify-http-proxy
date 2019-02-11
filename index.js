@@ -15,7 +15,7 @@ module.exports = async function (fastify, opts) {
   fromOpts.prefix = undefined
 
   const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
-  const replyOpts = Object.assign({}, opts.replyOpts, {
+  const replyOpts = Object.assign({}, opts.replyOptions, {
     rewriteHeaders
   })
   fromOpts.rewriteHeaders = rewriteHeaders
