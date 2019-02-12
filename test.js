@@ -5,6 +5,7 @@ const Fastify = require('fastify')
 const proxy = require('.')
 const got = require('got')
 const { Unauthorized } = require('http-errors')
+const Transform = require('stream').Transform
 
 async function run () {
   const origin = Fastify()
@@ -32,7 +33,7 @@ async function run () {
 
   tearDown(origin.close.bind(origin))
 
-  test('basic proxy', async (t) => {
+  test('basic proxy', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`
@@ -41,14 +42,18 @@ async function run () {
     await server.listen(0)
     t.tearDown(server.close.bind(server))
 
-    const resultRoot = await got(`http://localhost:${server.server.address().port}`)
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}`
+    )
     t.equal(resultRoot.body, 'this is root')
 
-    const resultA = await got(`http://localhost:${server.server.address().port}/a`)
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/a`
+    )
     t.equal(resultA.body, 'this is a')
   })
 
-  test('no upstream will throw', async (t) => {
+  test('no upstream will throw', async t => {
     const server = Fastify()
     server.register(proxy)
     try {
@@ -60,7 +65,7 @@ async function run () {
     t.fail()
   })
 
-  test('prefixed proxy', async (t) => {
+  test('prefixed proxy', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
@@ -70,17 +75,23 @@ async function run () {
     await server.listen(0)
     t.tearDown(server.close.bind(server))
 
-    const resultRoot = await got(`http://localhost:${server.server.address().port}/my-prefix/`)
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/`
+    )
     t.equal(resultRoot.body, 'this is root')
 
-    const withoutSlash = await got(`http://localhost:${server.server.address().port}/my-prefix`)
+    const withoutSlash = await got(
+      `http://localhost:${server.server.address().port}/my-prefix`
+    )
     t.equal(withoutSlash.body, 'this is root')
 
-    const resultA = await got(`http://localhost:${server.server.address().port}/my-prefix/a`)
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/a`
+    )
     t.equal(resultA.body, 'this is a')
   })
 
-  test('posting stuff', async (t) => {
+  test('posting stuff', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`
@@ -89,14 +100,17 @@ async function run () {
     await server.listen(0)
     t.tearDown(server.close.bind(server))
 
-    const resultRoot = await got(`http://localhost:${server.server.address().port}/this-has-data`, {
-      body: { hello: 'world' },
-      json: true
-    })
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        body: { hello: 'world' },
+        json: true
+      }
+    )
     t.deepEqual(resultRoot.body, { something: 'posted' })
   })
 
-  test('preHandler', async (t) => {
+  test('preHandler', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
@@ -127,7 +141,7 @@ async function run () {
     t.ok(errored)
   })
 
-  test('beforeHandler(deprecated)', async (t) => {
+  test('beforeHandler(deprecated)', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
@@ -158,7 +172,7 @@ async function run () {
     t.ok(errored)
   })
 
-  test('multiple prefixes with multiple plugins', async (t) => {
+  test('multiple prefixes with multiple plugins', async t => {
     const origin2 = Fastify()
 
     origin2.get('/', async (request, reply) => {
@@ -188,14 +202,18 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api`)
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api`
+    )
     t.equal(firstProxyPrefix.body, 'this is root')
 
-    const secondProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api2`)
+    const secondProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api2`
+    )
     t.equal(secondProxyPrefix.body, 'this is root for origin2')
   })
 
-  test('passes replyOptions object to reply.from() calls', async (t) => {
+  test('passes replyOptions object to reply.from() calls', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -212,11 +230,13 @@ async function run () {
       proxyServer.close()
     })
 
-    const { headers } = await got(`http://localhost:${proxyServer.server.address().port}/api`)
+    const { headers } = await got(
+      `http://localhost:${proxyServer.server.address().port}/api`
+    )
     t.match(headers, { 'x-test': 'test' })
   })
 
-  test('rewritePrefix', async (t) => {
+  test('rewritePrefix', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -231,11 +251,13 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(`http://localhost:${proxyServer.server.address().port}/api/a`)
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/a`
+    )
     t.equal(firstProxyPrefix.body, 'this is /api2/a')
   })
 
-  test('rewrite location headers', async (t) => {
+  test('rewrite location headers', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -249,11 +271,51 @@ async function run () {
       proxyServer.close()
     })
 
-    const { headers: { location } } = await got(`http://localhost:${proxyServer.server.address().port}/api/this-has-data`, {
-      body: { hello: 'world' },
-      json: true
-    })
+    const {
+      headers: { location }
+    } = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/this-has-data`,
+      {
+        body: { hello: 'world' },
+        json: true
+      }
+    )
     t.equal(location, '/api/something')
+  })
+
+  test('passes onResponse option to reply.from() calls', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      replyOptions: {
+        onResponse (request, reply, stream) {
+          return reply.send(
+            stream.pipe(
+              new Transform({
+                transform: function (chunk, enc, cb) {
+                  this.push(chunk.toString().toUpperCase())
+                  cb()
+                }
+              })
+            )
+          )
+        }
+      }
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      proxyServer.close()
+    })
+
+    const { body } = await got(
+      `http://localhost:${proxyServer.server.address().port}/api`
+    )
+
+    t.match(body, 'THIS IS ROOT')
   })
 }
 
