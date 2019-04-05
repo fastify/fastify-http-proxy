@@ -96,7 +96,7 @@ A `preHandler` to be applied on all routes. Useful for performing actions before
 
 ### config
 
-An object accessible within the `preHandler` via `reply.context.confg`.
+An object accessible within the `preHandler` via `reply.context.config`.
 See [Config](https://www.fastify.io/docs/v2.1.x/Routes/#config) in the Fastify
 documentation for information on this option. Note: this is merged with other
 configuration passed to the route.
