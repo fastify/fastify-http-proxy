@@ -94,6 +94,13 @@ Rewrite the prefix to the specified string. Default: `''`.
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
+### config
+
+An object accessible within the `preHandler` via `reply.context.config`.
+See [Config](https://www.fastify.io/docs/v2.1.x/Routes/#config) in the Fastify
+documentation for information on this option. Note: this is merged with other
+configuration passed to the route.
+
 ### replyOptions
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
