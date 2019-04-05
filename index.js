@@ -40,8 +40,8 @@ module.exports = async function (fastify, opts) {
     done(null, req)
   }
 
-  fastify.all('/', { preHandler }, reply)
-  fastify.all('/*', { preHandler }, reply)
+  fastify.all('/', { preHandler, config: opts.config || {} }, reply)
+  fastify.all('/*', { preHandler, config: opts.config || {} }, reply)
 
   function reply (request, reply) {
     var dest = request.req.url

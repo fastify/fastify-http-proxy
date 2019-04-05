@@ -141,6 +141,30 @@ async function run () {
     t.ok(errored)
   })
 
+  test('preHandler gets config', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      config: { foo: 'bar' },
+      async preHandler (request, reply) {
+        t.deepEqual(reply.context.config, { foo: 'bar', url: '/*' })
+        throw new Unauthorized()
+      }
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    var errored = false
+    try {
+      await got(`http://localhost:${server.server.address().port}`)
+    } catch (err) {
+      t.equal(err.statusCode, 401)
+      errored = true
+    }
+    t.ok(errored)
+  })
+
   test('beforeHandler(deprecated)', async t => {
     const server = Fastify()
     server.register(proxy, {
