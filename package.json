@@ -39,6 +39,7 @@
     "fastify": "2.x"
   },
   "dependencies": {
+    "@types/node": "^11.13.9",
     "fastify-reply-from": "^0.6.0"
   }
 }
