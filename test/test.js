@@ -2,7 +2,7 @@
 
 const { tearDown, test } = require('tap')
 const Fastify = require('fastify')
-const proxy = require('.')
+const proxy = require('../')
 const got = require('got')
 const { Unauthorized } = require('http-errors')
 const Transform = require('stream').Transform
