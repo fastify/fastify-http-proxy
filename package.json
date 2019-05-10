@@ -38,7 +38,7 @@
     "simple-get": "^3.0.3",
     "snazzy": "^8.0.0",
     "standard": "^12.0.1",
-    "tap": "^12.5.2",
+    "tap": "^12.6.6",
     "typescript": "^3.4.5"
   },
   "peerDependencies": {
@@ -46,5 +46,10 @@
   },
   "dependencies": {
     "fastify-reply-from": "^0.6.0"
+  },
+  "greenkeeper": {
+    "ignore": [
+      "tap"
+    ]
   }
 }
