@@ -103,8 +103,9 @@ async function run () {
     const resultRoot = await got(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
-        body: { hello: 'world' },
-        json: true
+        method: 'POST',
+        json: { hello: 'world' },
+        responseType: 'json'
       }
     )
     t.deepEqual(resultRoot.body, { something: 'posted' })
@@ -126,7 +127,7 @@ async function run () {
     try {
       await got(`http://localhost:${server.server.address().port}`)
     } catch (err) {
-      t.equal(err.statusCode, 401)
+      t.equal(err.response.statusCode, 401)
       errored = true
     }
     t.ok(errored)
@@ -135,7 +136,7 @@ async function run () {
     try {
       await got(`http://localhost:${server.server.address().port}/a`)
     } catch (err) {
-      t.equal(err.statusCode, 401)
+      t.equal(err.response.statusCode, 401)
       errored = true
     }
     t.ok(errored)
@@ -159,38 +160,7 @@ async function run () {
     try {
       await got(`http://localhost:${server.server.address().port}`)
     } catch (err) {
-      t.equal(err.statusCode, 401)
-      errored = true
-    }
-    t.ok(errored)
-  })
-
-  test('beforeHandler(deprecated)', async t => {
-    const server = Fastify()
-    server.register(proxy, {
-      upstream: `http://localhost:${origin.server.address().port}`,
-      async beforeHandler (request, reply) {
-        throw new Unauthorized()
-      }
-    })
-
-    await server.listen(0)
-    t.tearDown(server.close.bind(server))
-
-    var errored = false
-    try {
-      await got(`http://localhost:${server.server.address().port}`)
-    } catch (err) {
-      t.equal(err.statusCode, 401)
-      errored = true
-    }
-    t.ok(errored)
-
-    errored = false
-    try {
-      await got(`http://localhost:${server.server.address().port}/a`)
-    } catch (err) {
-      t.equal(err.statusCode, 401)
+      t.equal(err.response.statusCode, 401)
       errored = true
     }
     t.ok(errored)
@@ -300,8 +270,8 @@ async function run () {
     } = await got(
       `http://localhost:${proxyServer.server.address().port}/api/this-has-data`,
       {
-        body: { hello: 'world' },
-        json: true
+        method: 'POST',
+        json: { hello: 'world' }
       }
     )
     t.equal(location, '/api/something')
