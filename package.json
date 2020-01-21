@@ -45,7 +45,7 @@
     "fastify": "2.x"
   },
   "dependencies": {
-    "fastify-reply-from": "^1.0.0"
+    "fastify-reply-from": "^2.0.0"
   },
   "greenkeeper": {
     "ignore": [
