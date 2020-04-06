@@ -94,6 +94,19 @@ Rewrite the prefix to the specified string. Default: `''`.
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
+### proxyPayloads
+
+When this option is `false`, you will be able to access the body but it will also disable direct pass through of the payload. As a result, it is left up to the implementation to properly parse and proxy the payload correctly.
+
+For example, if you are expecting a payload of type `application/xml`, then you would have to add a parser for it like so:
+
+```javascript
+fastify.addContentTypeParser('application/xml', (req, done) => {
+  const parsedBody = parsingCode(req)
+  done(null, parsedBody)
+})
+```
+
 ### config
 
 An object accessible within the `preHandler` via `reply.context.config`.

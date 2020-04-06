@@ -22,8 +22,10 @@ module.exports = async function (fastify, opts) {
 
   fastify.register(From, fromOpts)
 
-  fastify.addContentTypeParser('application/json', bodyParser)
-  fastify.addContentTypeParser('*', bodyParser)
+  if (opts.proxyPayloads !== false) {
+    fastify.addContentTypeParser('application/json', bodyParser)
+    fastify.addContentTypeParser('*', bodyParser)
+  }
 
   function rewriteHeaders (headers) {
     const location = headers.location
