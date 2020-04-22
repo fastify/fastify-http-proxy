@@ -148,7 +148,19 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       config: { foo: 'bar' },
       async preHandler (request, reply) {
-        t.deepEqual(reply.context.config, { foo: 'bar', url: '/*' })
+        t.deepEqual(reply.context.config, {
+          foo: 'bar',
+          url: '/*',
+          method: [
+            'DELETE',
+            'GET',
+            'HEAD',
+            'PATCH',
+            'POST',
+            'PUT',
+            'OPTIONS'
+          ]
+        })
         throw new Unauthorized()
       }
     })

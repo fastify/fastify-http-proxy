@@ -1,53 +1,31 @@
 /// <reference types="node" />
+
 import {
   FastifyRequest,
-  Plugin,
-  DefaultQuery,
-  DefaultParams,
-  DefaultHeaders,
+  RawServerBase,
+  FastifyPlugin,
   FastifyError,
   FastifyReply
 } from "fastify";
-import { Server, IncomingMessage, ServerResponse } from "http";
-import { Http2ServerRequest, Http2ServerResponse } from "http2";
 
-type HttpRequest = IncomingMessage | Http2ServerRequest;
-type HttpResponse = ServerResponse | Http2ServerResponse;
+export interface FastifyHttpProxyOptions {
+  upstream: string;
+  prefix?: string;
+  rewritePrefix?: string;
+  http2?: boolean;
+  preHandler?: (
+    request: FastifyRequest<RawServerBase>,
+    reply: FastifyReply<RawServerBase>,
+    next: (err?: FastifyError | undefined) => void
+  ) => void;
+  beforeHandler?: (
+    request: FastifyRequest<RawServerBase>,
+    reply: FastifyReply<RawServerBase>,
+    next: (err?: FastifyError | undefined) => void
+  ) => void;
+  config?: Object;
+  replyOptions?: Object;
+}
 
-declare const fastifyHttpProxy: Plugin<
-  Server,
-  IncomingMessage,
-  ServerResponse,
-  {
-    upstream: string;
-    prefix?: string;
-    rewritePrefix?: string;
-    http2?: boolean;
-    preHandler?: (
-      request: FastifyRequest<
-        HttpRequest,
-        DefaultQuery,
-        DefaultParams,
-        DefaultHeaders,
-        any
-      >,
-      reply: FastifyReply<HttpResponse>,
-      next: (err?: FastifyError | undefined) => void
-    ) => void;
-    beforeHandler?: (
-      request: FastifyRequest<
-        HttpRequest,
-        DefaultQuery,
-        DefaultParams,
-        DefaultHeaders,
-        any
-      >,
-      reply: FastifyReply<HttpResponse>,
-      next: (err?: FastifyError | undefined) => void
-    ) => void;
-    config?: Object;
-    replyOptions?: Object;
-  }
->;
-
-export = fastifyHttpProxy;
+declare const fastifyHttpProxy: FastifyPlugin<FastifyHttpProxyOptions>;
+export default fastifyHttpProxy;

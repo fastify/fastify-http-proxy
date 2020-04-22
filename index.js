@@ -44,7 +44,7 @@ module.exports = async function (fastify, opts) {
   fastify.all('/*', { preHandler, config: opts.config || {} }, reply)
 
   function reply (request, reply) {
-    var dest = request.req.url
+    var dest = request.raw.url
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
