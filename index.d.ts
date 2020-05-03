@@ -23,6 +23,7 @@ declare const fastifyHttpProxy: Plugin<
     prefix?: string;
     rewritePrefix?: string;
     http2?: boolean;
+    proxyPayloads?: boolean;
     preHandler?: (
       request: FastifyRequest<
         HttpRequest,

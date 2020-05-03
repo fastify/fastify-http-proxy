@@ -111,6 +111,30 @@ async function run () {
     t.deepEqual(resultRoot.body, { something: 'posted' })
   })
 
+  test('skip proxying the incoming payload', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      proxyPayloads: false,
+      preHandler (request, reply, next) {
+        t.deepEqual(request.body, { hello: 'world' })
+        next()
+      }
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'world' },
+        responseType: 'json'
+      }
+    )
+  })
+
   test('preHandler', async t => {
     const server = Fastify()
     server.register(proxy, {
