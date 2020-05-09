@@ -129,6 +129,8 @@ A few things are missing:
 2. support for paths, `prefix` and `rewritePrefix`
 3. request id logging
 
+Pull requests are welcome to finish this feature.
+
 
 ## Benchmarks
 
