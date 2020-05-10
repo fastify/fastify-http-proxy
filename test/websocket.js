@@ -39,9 +39,11 @@ test('basic websocket proxy', async (t) => {
 
   await once(ws, 'open')
 
-  ws.send('hello')
+  const stream = WebSocket.createWebSocketStream(ws)
 
-  const [{ data }] = await once(ws, 'message')
+  stream.write('hello')
 
-  t.is(data.toString(), 'hello')
+  const [buf] = await once(stream, 'data')
+
+  t.is(buf.toString(), 'hello')
 })
