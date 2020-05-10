@@ -95,7 +95,7 @@ module.exports = async function (fastify, opts) {
     fastify.log.info('starting websocket tunnel')
     pipeline(conn, stream, conn, function (err) {
       if (err) {
-        fastify.log.info({ err }, 'websokcet tunnel terminated with error')
+        fastify.log.info({ err }, 'websocket tunnel terminated with error')
         return
       }
       fastify.log.info('websocket tunnel terminated')
