@@ -4,7 +4,7 @@
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "scripts": {
-    "test": "standard | snazzy && tap test/test.js",
+    "test": "standard | snazzy && tap test/*.js",
     "lint:typescript": "standard --fix --parser @typescript-eslint/parser --plugin typescript test/types/*.ts",
     "typescript": "tsc --project ./test/types/tsconfig.json"
   },
@@ -42,6 +42,8 @@
     "typescript": "^3.4.5"
   },
   "dependencies": {
-    "fastify-reply-from": "^2.0.0"
+    "fastify-reply-from": "^2.0.0",
+    "fastify-websocket": "^1.1.2",
+    "ws": "^7.2.5"
   }
 }

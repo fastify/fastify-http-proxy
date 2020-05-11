@@ -118,6 +118,20 @@ configuration passed to the route.
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
 
+## websocket
+
+This module has _partial_ support for forwarding websockets by passing a
+`websocket` option. All those options are going to be forwarded to
+[`fastify-websocket`](https://github.com/fastify/fastify-websocket).
+A few things are missing:
+
+1. forwarding headers as well as `rewriteHeaders`
+2. support for paths, `prefix` and `rewritePrefix`
+3. request id logging
+
+Pull requests are welcome to finish this feature.
+
+
 ## Benchmarks
 
 The following benchmarks where generated on a Macbook 2018 with i5 and
@@ -137,6 +151,7 @@ URL`.
 
 * [ ] Generate unique request ids and implement request tracking
 * [ ] Perform validations for incoming data
+* [ ] Finish implementing websocket (follow TODO)
 
 ## License
 

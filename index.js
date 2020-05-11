@@ -1,6 +1,10 @@
 'use strict'
 
 const From = require('fastify-reply-from')
+const WebSocketPlugin = require('fastify-websocket')
+const WebSocket = require('ws')
+const { pipeline } = require('stream')
+const nonWsMethods = ['DELETE', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 
 module.exports = async function (fastify, opts) {
   if (!opts.upstream) {
@@ -42,12 +46,59 @@ module.exports = async function (fastify, opts) {
     done(null, req)
   }
 
-  fastify.all('/', { preHandler, config: opts.config || {} }, reply)
-  fastify.all('/*', { preHandler, config: opts.config || {} }, reply)
+  if (opts.websocket) {
+    fastify.register(WebSocketPlugin, opts.websocket)
+  }
 
-  function reply (request, reply) {
+  fastify.get('/', {
+    preHandler,
+    config: opts.config || {},
+    handler,
+    wsHandler
+  })
+  fastify.get('/*', {
+    preHandler,
+    config: opts.config || {},
+    handler,
+    wsHandler
+  })
+
+  fastify.route({
+    url: '/',
+    method: nonWsMethods,
+    preHandler,
+    config: opts.config || {},
+    handler
+  })
+  fastify.route({
+    url: '/*',
+    method: nonWsMethods,
+    preHandler,
+    config: opts.config || {},
+    handler
+  })
+
+  function handler (request, reply) {
     var dest = request.req.url
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
+  }
+
+  function wsHandler (conn, req) {
+    // TODO support paths and querystrings
+    // TODO support rewriteHeader
+    // TODO support rewritePrefix
+    const ws = new WebSocket(opts.upstream)
+    const stream = WebSocket.createWebSocketStream(ws)
+
+    // TODO fastify-websocket should create a logger for each connection
+    fastify.log.info('starting websocket tunnel')
+    pipeline(conn, stream, conn, function (err) {
+      if (err) {
+        fastify.log.info({ err }, 'websocket tunnel terminated with error')
+        return
+      }
+      fastify.log.info('websocket tunnel terminated')
+    })
   }
 }
