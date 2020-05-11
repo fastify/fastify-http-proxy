@@ -1,7 +1,5 @@
 # fastify-http-proxy
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/fastify/fastify-http-proxy.svg)](https://greenkeeper.io/)
-
 [![Build Status](https://travis-ci.org/fastify/fastify-http-proxy.svg?branch=master)](https://travis-ci.org/fastify/fastify-http-proxy)
 
 Proxy your http requests to another server, with hooks.
