@@ -30,7 +30,7 @@
     "express": "^4.16.4",
     "express-http-proxy": "^1.5.0",
     "fastify": "^3.0.0-alpha.1",
-    "got": "^10.6.0",
+    "got": "^11.3.0",
     "http-errors": "^1.7.1",
     "http-proxy": "^1.17.0",
     "make-promises-safe": "^5.0.0",
