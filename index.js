@@ -42,8 +42,8 @@ module.exports = async function (fastify, opts) {
     return headers
   }
 
-  function bodyParser (req, done) {
-    done(null, req)
+  function bodyParser (req, payload, done) {
+    done(null, payload)
   }
 
   if (opts.websocket) {
@@ -79,7 +79,7 @@ module.exports = async function (fastify, opts) {
   })
 
   function handler (request, reply) {
-    var dest = request.req.url
+    var dest = request.raw.url
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
