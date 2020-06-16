@@ -6,7 +6,7 @@
   "scripts": {
     "test": "standard | snazzy && tap test/*.js",
     "lint:typescript": "standard --fix --parser @typescript-eslint/parser --plugin typescript test/types/*.ts",
-    "typescript": "tsc --project ./test/types/tsconfig.json"
+    "typescript": "tsd"
   },
   "repository": {
     "type": "git",
@@ -29,7 +29,7 @@
     "eslint-plugin-typescript": "^0.14.0",
     "express": "^4.16.4",
     "express-http-proxy": "^1.5.0",
-    "fastify": "^2.0.0",
+    "fastify": "^3.0.0-alpha.1",
     "got": "^10.6.0",
     "http-errors": "^1.7.1",
     "http-proxy": "^1.17.0",
@@ -39,11 +39,15 @@
     "snazzy": "^8.0.0",
     "standard": "^14.0.2",
     "tap": "^14.0.0",
+    "tsd": "^0.11.0",
     "typescript": "^3.4.5"
   },
   "dependencies": {
-    "fastify-reply-from": "^2.0.0",
     "fastify-websocket": "^1.1.2",
-    "ws": "^7.2.5"
+    "ws": "^7.2.5",
+    "fastify-reply-from": "^3.1.0"
+  },
+  "tsd": {
+    "directory": "test"
   }
 }
