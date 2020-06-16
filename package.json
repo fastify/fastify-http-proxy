@@ -35,7 +35,7 @@
     "http-proxy": "^1.17.0",
     "make-promises-safe": "^5.0.0",
     "pre-commit": "^1.2.2",
-    "simple-get": "^3.0.3",
+    "simple-get": "^4.0.0",
     "snazzy": "^8.0.0",
     "standard": "^14.0.2",
     "tap": "^14.0.0",
