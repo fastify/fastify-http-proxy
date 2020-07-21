@@ -46,15 +46,18 @@ const Fastify = require('fastify')
 const server = Fastify()
 const proxy = require('fastify-http-proxy')
 
+// /api/x will be proxied to http://my-api.example.com/x
 server.register(proxy, {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
   http2: false // optional
 })
 
+// /auth/user will be proxied to http://single-signon.example.com/signon/user
 server.register(proxy, {
-  upstream: 'http://single-signon.example.com/auth',
+  upstream: 'http://single-signon.example.com',
   prefix: '/auth', // optional
+  rewritePrefix: '/signon', // optional
   http2: false // optional
 })
 
@@ -62,6 +65,8 @@ server.listen(3000)
 ```
 
 Notice that in this case it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
+
+Also notice paths in `upstream` are ignored, so you need to use `rewritePrefix` to specify the target base path.
 
 For other examples, see `example.js`.
 
