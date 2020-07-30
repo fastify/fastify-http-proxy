@@ -347,6 +347,32 @@ async function run () {
 
     t.match(body, 'THIS IS ROOT')
   })
+
+  test('undici POST', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      undici: true
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      proxyServer.close()
+    })
+
+    const {
+      headers: { location }
+    } = await got(
+      `http://localhost:${proxyServer.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'world' }
+      }
+    )
+    t.equal(location, '/something')
+  })
 }
 
 run()
