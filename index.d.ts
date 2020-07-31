@@ -2,7 +2,6 @@
 
 import {
   FastifyRequest,
-  RawServerBase,
   FastifyPlugin,
   FastifyError,
   FastifyReply
@@ -15,13 +14,13 @@ export interface FastifyHttpProxyOptions {
   http2?: boolean;
   proxyPayloads?: boolean;
   preHandler?: (
-    request: FastifyRequest<RawServerBase>,
-    reply: FastifyReply<RawServerBase>,
+    request: FastifyRequest,
+    reply: FastifyReply,
     next: (err?: FastifyError | undefined) => void
   ) => void;
   beforeHandler?: (
-    request: FastifyRequest<RawServerBase>,
-    reply: FastifyReply<RawServerBase>,
+    request: FastifyRequest,
+    reply: FastifyReply,
     next: (err?: FastifyError | undefined) => void
   ) => void;
   config?: Object;
