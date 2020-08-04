@@ -1,8 +1,6 @@
-import fastify from "fastify";
+import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from "fastify";
 import fastifyHttpProxy from "..";
 import { expectType } from "tsd";
-import { IncomingMessage, ServerResponse } from "http";
-import { Http2ServerRequest, Http2ServerResponse } from "http2";
 
 const app = fastify();
 
@@ -18,11 +16,11 @@ app.register(fastifyHttpProxy, {
   config: { key: 1 },
   replyOptions: { opt: "a" },
   preHandler: (request, reply) => {
-    expectType<IncomingMessage | Http2ServerRequest>(request.raw);
-    expectType<ServerResponse | Http2ServerResponse>(reply.raw);
+    expectType<RawRequestDefaultExpression>(request.raw);
+    expectType<RawReplyDefaultExpression>(reply.raw);
   },
   beforeHandler: (request, reply) => {
-    expectType<IncomingMessage | Http2ServerRequest>(request.raw);
-    expectType<ServerResponse | Http2ServerResponse>(reply.raw);
+    expectType<RawRequestDefaultExpression>(request.raw);
+    expectType<RawReplyDefaultExpression>(reply.raw);
   }
 });

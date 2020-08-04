@@ -1,11 +1,8 @@
 /// <reference types="node" />
 
 import {
-  FastifyRequest,
-  RawServerBase,
   FastifyPlugin,
-  FastifyError,
-  FastifyReply
+  preHandlerHookHandler
 } from "fastify";
 
 export interface FastifyHttpProxyOptions {
@@ -14,16 +11,8 @@ export interface FastifyHttpProxyOptions {
   rewritePrefix?: string;
   http2?: boolean;
   proxyPayloads?: boolean;
-  preHandler?: (
-    request: FastifyRequest<RawServerBase>,
-    reply: FastifyReply<RawServerBase>,
-    next: (err?: FastifyError | undefined) => void
-  ) => void;
-  beforeHandler?: (
-    request: FastifyRequest<RawServerBase>,
-    reply: FastifyReply<RawServerBase>,
-    next: (err?: FastifyError | undefined) => void
-  ) => void;
+  preHandler?: preHandlerHookHandler;
+  beforeHandler?: preHandlerHookHandler;
   config?: Object;
   replyOptions?: Object;
 }
