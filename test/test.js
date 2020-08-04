@@ -29,6 +29,11 @@ async function run () {
     return 'this is /api2/a'
   })
 
+  origin.get('/timeout', async (request, reply) => {
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    return 'this is never received'
+  })
+
   await origin.listen(0)
 
   tearDown(origin.close.bind(origin))
@@ -372,6 +377,33 @@ async function run () {
       }
     )
     t.equal(location, '/something')
+  })
+
+  test('proxy request timeout', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      http: {
+        requestOptions: {
+          timeout: 300
+        }
+      }
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    try {
+      await got(
+        `http://localhost:${server.server.address().port}/timeout`,
+        { retry: 0 }
+      )
+    } catch (err) {
+      t.equal(err.response.statusCode, 504)
+      t.equal(err.response.statusMessage, 'Gateway Timeout')
+      return
+    }
+    t.fail()
   })
 }
 
