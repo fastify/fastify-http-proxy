@@ -1,6 +1,6 @@
 {
   "name": "fastify-http-proxy",
-  "version": "4.0.2",
+  "version": "4.0.3",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "scripts": {
@@ -25,7 +25,7 @@
   "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
     "@types/node": "^14.0.27",
-    "@typescript-eslint/parser": "^3.7.1",
+    "@typescript-eslint/parser": "^3.8.0",
     "eslint-plugin-typescript": "^0.14.0",
     "express": "^4.16.4",
     "express-http-proxy": "^1.6.2",
@@ -44,7 +44,7 @@
   },
   "dependencies": {
     "fastify-reply-from": "^3.1.3",
-    "fastify-websocket": "^2.0.6",
+    "fastify-websocket": "^2.0.7",
     "ws": "^7.3.1"
   },
   "tsd": {
