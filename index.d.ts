@@ -13,7 +13,6 @@ export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   upstream: string;
   prefix?: string;
   rewritePrefix?: string;
-  http2?: boolean;
   proxyPayloads?: boolean;
   preHandler?: preHandlerHookHandler;
   beforeHandler?: preHandlerHookHandler;
