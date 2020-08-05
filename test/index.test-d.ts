@@ -22,5 +22,21 @@ app.register(fastifyHttpProxy, {
   beforeHandler: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw);
     expectType<RawReplyDefaultExpression>(reply.raw);
-  }
+  },
+  base: 'whatever',
+  cacheURLs: 10,
+  undici: { dummy: true }, // undici has no TS declarations yet
+  http: {
+    agentOptions: {
+      keepAliveMsecs: 10 * 60 * 1000
+    },
+    requestOptions: {
+      timeout: 20000
+    }
+  },
+  keepAliveMsecs: 60000,
+  maxFreeSockets: 10,
+  maxSockets: 20,
+  rejectUnauthorized: true,
+  sessionTimeout: 30000
 });
