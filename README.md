@@ -70,6 +70,29 @@ Also notice paths in `upstream` are ignored, so you need to use `rewritePrefix` 
 
 For other examples, see `example.js`.
 
+## Request tracking
+
+`fastify-http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) built in options a fairly simple example would look like this:
+
+```js
+const Fastify = require('fastify')
+const proxy = require('fastify-http-proxy')
+const hyperid = require('hyperid')
+
+const server = Fastify()
+const uuid = hyperid()
+
+server.register(proxy, {
+  upstream: 'http://localhost:4001',
+  replyOptions: {
+    rewriteRequestHeaders: (originalReq, headers) => ({...headers, 'request-id': uuid()})
+  }
+})
+
+
+server.listen(3000);
+```
+
 ## Options
 
 This `fastify` plugin supports _all_ the options of
@@ -151,8 +174,6 @@ The results where gathered on the second run of `autocannon -c 100 -d 5
 URL`.
 
 ## TODO
-
-* [ ] Generate unique request ids and implement request tracking
 * [ ] Perform validations for incoming data
 * [ ] Finish implementing websocket (follow TODO)
 
