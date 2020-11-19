@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "standard | snazzy && tap test/*.js && npm run typescript",
+    "lint:fix": "standard --fix",
     "lint:typescript": "standard --fix --parser @typescript-eslint/parser --plugin typescript test/types/*.ts",
     "typescript": "tsd"
   },

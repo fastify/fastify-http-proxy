@@ -1,9 +1,9 @@
 'use strict'
 
-var httpProxy = require('http-proxy')
-var { Agent } = require('http')
+const httpProxy = require('http-proxy')
+const { Agent } = require('http')
 
-var proxy = httpProxy.createProxyServer({
+const proxy = httpProxy.createProxyServer({
   target: 'http://localhost:3001',
   agent: new Agent({
     keepAlive: true,
