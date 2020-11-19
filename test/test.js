@@ -152,7 +152,7 @@ async function run () {
     await server.listen(0)
     t.tearDown(server.close.bind(server))
 
-    var errored = false
+    let errored = false
     try {
       await got(`http://localhost:${server.server.address().port}`)
     } catch (err) {
@@ -197,7 +197,7 @@ async function run () {
     await server.listen(0)
     t.tearDown(server.close.bind(server))
 
-    var errored = false
+    let errored = false
     try {
       await got(`http://localhost:${server.server.address().port}`)
     } catch (err) {

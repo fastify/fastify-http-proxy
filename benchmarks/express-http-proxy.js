@@ -1,7 +1,7 @@
 'use strict'
 
-var proxy = require('express-http-proxy')
-var app = require('express')()
+const proxy = require('express-http-proxy')
+const app = require('express')()
 
 app.use('/', proxy('localhost:3001'))
 

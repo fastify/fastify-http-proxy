@@ -79,7 +79,7 @@ module.exports = async function (fastify, opts) {
   })
 
   function handler (request, reply) {
-    var dest = request.raw.url
+    let dest = request.raw.url
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
