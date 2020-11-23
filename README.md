@@ -154,6 +154,8 @@ A few things are missing:
 1. forwarding headers as well as `rewriteHeaders`
 2. request id logging
 
+The `prefix` and `rewritePrefix` options are also supported
+
 Pull requests are welcome to finish this feature.
 
 
