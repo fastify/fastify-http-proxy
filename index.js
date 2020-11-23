@@ -85,10 +85,9 @@ module.exports = async function (fastify, opts) {
   }
 
   function wsHandler (conn, req) {
-    // TODO support paths and querystrings
     // TODO support rewriteHeader
-    // TODO support rewritePrefix
-    const ws = new WebSocket(opts.upstream)
+    const path = req.url.replace(this.prefix, rewritePrefix)
+    const ws = new WebSocket(opts.upstream + path)
     const stream = WebSocket.createWebSocketStream(ws)
 
     // TODO fastify-websocket should create a logger for each connection

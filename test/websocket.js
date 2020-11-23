@@ -9,14 +9,15 @@ const { promisify } = require('util')
 const { once } = require('events')
 
 test('basic websocket proxy', async (t) => {
-  t.plan(2)
+  t.plan(3)
 
   const origin = createServer()
-  const wss = new WebSocket.Server({ server: origin })
+  const wss = new WebSocket.Server({ server: origin, path: '/internal' })
   t.tearDown(wss.close.bind(wss))
   t.tearDown(origin.close.bind(origin))
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req) => {
+    t.equal(req.url, '/internal?query=string')
     ws.on('message', (message) => {
       t.equal(message.toString(), 'hello')
       // echo
@@ -29,13 +30,15 @@ test('basic websocket proxy', async (t) => {
   const server = Fastify()
   server.register(proxy, {
     upstream: `http://localhost:${origin.address().port}`,
-    websocket: true
+    websocket: true,
+    prefix: '/external',
+    rewritePrefix: '/internal'
   })
 
   await server.listen(0)
   t.tearDown(server.close.bind(server))
 
-  const ws = new WebSocket(`http://localhost:${server.server.address().port}`)
+  const ws = new WebSocket(`http://localhost:${server.server.address().port}/external?query=string`)
 
   await once(ws, 'open')
 
