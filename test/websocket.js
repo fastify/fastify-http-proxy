@@ -1,3 +1,4 @@
+
 'use strict'
 
 const { test } = require('tap')
@@ -9,7 +10,78 @@ const { promisify } = require('util')
 const { once } = require('events')
 
 test('basic websocket proxy', async (t) => {
-  t.plan(3)
+  t.plan(2)
+
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.tearDown(wss.close.bind(wss))
+  t.tearDown(origin.close.bind(origin))
+
+  wss.on('connection', (ws) => {
+    ws.on('message', (message) => {
+      t.equal(message.toString(), 'hello')
+      // echo
+      ws.send(message)
+    })
+  })
+
+  await promisify(origin.listen.bind(origin))(0)
+
+  const server = Fastify()
+  server.register(proxy, {
+    upstream: `http://localhost:${origin.address().port}`,
+    websocket: true
+  })
+
+  await server.listen(0)
+  t.tearDown(server.close.bind(server))
+
+  const ws = new WebSocket(`http://localhost:${server.server.address().port}`)
+
+  await once(ws, 'open')
+
+  const stream = WebSocket.createWebSocketStream(ws)
+
+  stream.write('hello')
+
+  const [buf] = await once(stream, 'data')
+
+  t.is(buf.toString(), 'hello')
+})
+
+test('querystring websocket proxy', async (t) => {
+  t.plan(1)
+
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.tearDown(wss.close.bind(wss))
+  t.tearDown(origin.close.bind(origin))
+
+  wss.on('connection', (ws, req) => {
+    t.equal(req.url, '/?token=abc')
+    ws.close()
+  })
+
+  await promisify(origin.listen.bind(origin))(0)
+
+  const server = Fastify()
+  server.register(proxy, {
+    upstream: `http://localhost:${origin.address().port}`,
+    websocket: true
+  })
+
+  await server.listen(0)
+
+  t.tearDown(server.close.bind(server))
+
+  const ws = new WebSocket(`http://localhost:${server.server.address().port}?token=abc`)
+
+  await once(ws, 'open')
+  await once(ws, 'close')
+})
+
+test('rewritePrefix websocket proxy', async (t) => {
+  t.plan(1)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin, path: '/internal' })
@@ -17,12 +89,7 @@ test('basic websocket proxy', async (t) => {
   t.tearDown(origin.close.bind(origin))
 
   wss.on('connection', (ws, req) => {
-    t.equal(req.url, '/internal?query=string')
-    ws.on('message', (message) => {
-      t.equal(message.toString(), 'hello')
-      // echo
-      ws.send(message)
-    })
+    ws.send(req.url)
   })
 
   await promisify(origin.listen.bind(origin))(0)
@@ -38,15 +105,15 @@ test('basic websocket proxy', async (t) => {
   await server.listen(0)
   t.tearDown(server.close.bind(server))
 
-  const ws = new WebSocket(`http://localhost:${server.server.address().port}/external?query=string`)
+  const ws = new WebSocket(`http://localhost:${server.server.address().port}/external?token=abc`)
 
   await once(ws, 'open')
 
   const stream = WebSocket.createWebSocketStream(ws)
 
-  stream.write('hello')
-
   const [buf] = await once(stream, 'data')
 
-  t.is(buf.toString(), 'hello')
+  console.log(buf.toString())
+
+  t.is(buf.toString(), '/internal?token=abc')
 })
