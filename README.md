@@ -152,8 +152,8 @@ This module has _partial_ support for forwarding websockets by passing a
 A few things are missing:
 
 1. forwarding headers as well as `rewriteHeaders`
-2. support for paths, `prefix` and `rewritePrefix`
-3. request id logging
+2. request id logging
+3. support `ignoreTrailingSlash`
 
 Pull requests are welcome to finish this feature.
 

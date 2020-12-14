@@ -180,9 +180,9 @@ async function run () {
         t.deepEqual(reply.context.config, {
           foo: 'bar',
           url: '/*',
-          // GET is not there because of the nonWsMethods.
           method: [
             'DELETE',
+            'GET',
             'HEAD',
             'PATCH',
             'POST',

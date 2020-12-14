@@ -9,6 +9,11 @@ import {
   FastifyReplyFromOptions
 } from "fastify-reply-from"
 
+import {
+  ClientOptions,
+  ServerOptions
+} from "ws"
+
 export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   upstream: string;
   prefix?: string;
@@ -18,6 +23,9 @@ export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   beforeHandler?: preHandlerHookHandler;
   config?: Object;
   replyOptions?: Object;
+  websocket?: boolean
+  wsClientOptions?: ClientOptions
+  wsServerOptions?: ServerOptions
 }
 
 declare const fastifyHttpProxy: FastifyPlugin<FastifyHttpProxyOptions>;
