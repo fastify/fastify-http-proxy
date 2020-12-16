@@ -73,6 +73,13 @@ function setupWebSocketProxy (fastify, options) {
     ...options.wsServerOptions
   })
 
+  fastify.addHook('onClose', (instance, done) => {
+    for (const client of server.clients) {
+      client.close()
+    }
+    done()
+  })
+
   server.on('connection', (source, request) => {
     const url = createWebSocketUrl(options, request)
 
