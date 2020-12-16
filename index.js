@@ -83,10 +83,7 @@ function setupWebSocketProxy (fastify, options) {
   server.on('connection', (source, request) => {
     const url = createWebSocketUrl(options, request)
 
-    const target = new WebSocket(url, {
-      rejectUnauthorized: process.env.NODE_ENV === 'production',
-      ...options.wsClientOptions
-    })
+    const target = new WebSocket(url, options.wsClientOptions)
 
     fastify.log.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)
