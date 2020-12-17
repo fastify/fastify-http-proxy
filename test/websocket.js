@@ -33,6 +33,7 @@ test('basic websocket proxy', async (t) => {
   })
 
   await server.listen(0)
+  t.tearDown(server.close.bind(server))
 
   const ws = new WebSocket(`http://localhost:${server.server.address().port}`)
 

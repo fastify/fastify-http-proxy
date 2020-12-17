@@ -21,6 +21,7 @@ test('proxy socket.io', async t => {
   await promisify(srvUpstream.listen.bind(srvUpstream))(0)
 
   const srvProxy = Fastify()
+  t.tearDown(srvProxy.close.bind(srvProxy))
 
   srvProxy.register(proxy, {
     upstream: `http://127.0.0.1:${srvUpstream.address().port}`,
