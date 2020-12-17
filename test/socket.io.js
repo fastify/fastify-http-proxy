@@ -37,7 +37,7 @@ test('proxy socket.io', async t => {
     })
   })
 
-  const cliSocket = ioClient(`http://127.0.0.1:${srvUpstream.address().port}`)
+  const cliSocket = ioClient(`http://127.0.0.1:${srvProxy.server.address().port}`)
   t.tearDown(cliSocket.close.bind(cliSocket))
 
   cliSocket.emit('hello', 'world')
