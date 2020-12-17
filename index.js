@@ -90,7 +90,7 @@ function setupWebSocketProxy (fastify, options) {
   })
 }
 
-module.exports = async function (fastify, opts) {
+async function httpProxy (fastify, opts) {
   if (!opts.upstream) {
     throw new Error('upstream must be specified')
   }
@@ -155,3 +155,10 @@ module.exports = async function (fastify, opts) {
     setupWebSocketProxy(fastify, opts)
   }
 }
+
+httpProxy[Symbol.for('plugin-meta')] = {
+  fastify: '^3.0.0',
+  name: 'fastify-http-proxy'
+}
+
+module.exports = httpProxy
