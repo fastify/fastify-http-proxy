@@ -73,12 +73,20 @@ function setupWebSocketProxy (fastify, options) {
     ...options.wsServerOptions
   })
 
-  fastify.addHook('onClose', (instance, done) => {
+  fastify.addHook('onClose', (instance, done) => server.close(done))
+
+  // To be able to close the HTTP server,
+  // all WebSocket clients need to be disconnected.
+  // Fastify is missing a pre-close event, or the ability to
+  // add a hook before the server.close call. We need to resort
+  // to monkeypatching for now.
+  const oldClose = fastify.server.close
+  fastify.server.close = function (done) {
     for (const client of server.clients) {
       client.close()
     }
-    done()
-  })
+    oldClose.call(this, done)
+  }
 
   server.on('connection', (source, request) => {
     const url = createWebSocketUrl(options, request)
