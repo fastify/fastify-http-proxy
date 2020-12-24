@@ -105,6 +105,7 @@ async function httpProxy (fastify, opts) {
 
   const preHandler = opts.preHandler || opts.beforeHandler
   const rewritePrefix = opts.rewritePrefix || ''
+  const schema = opts.schema
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -143,6 +144,7 @@ async function httpProxy (fastify, opts) {
     method: httpMethods,
     preHandler,
     config: opts.config || {},
+    schema,
     handler
   })
   fastify.route({
@@ -150,6 +152,7 @@ async function httpProxy (fastify, opts) {
     method: httpMethods,
     preHandler,
     config: opts.config || {},
+    schema,
     handler
   })
 

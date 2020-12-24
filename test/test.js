@@ -405,6 +405,44 @@ async function run () {
     }
     t.fail()
   })
+
+  test('schema validation', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      schema: {
+        querystring: {
+          type: 'object',
+          required: ['foo'],
+          properties: {
+            foo: { type: 'integer' }
+          }
+        }
+      }
+    })
+
+    await proxyServer.listen(0)
+
+    t.tearDown(() => {
+      proxyServer.close()
+    })
+
+    try {
+      await got(
+        `http://localhost:${proxyServer.server.address().port}/api`,
+        { retry: 0 }
+      )
+    } catch (err) {
+      t.equal(err.response.statusCode, 400)
+    }
+
+    const proxyWithQuery = await got(
+      `http://localhost:${proxyServer.server.address().port}/api?foo=123`
+    )
+    t.equal(proxyWithQuery.body, 'this is root')
+  })
 }
 
 run()

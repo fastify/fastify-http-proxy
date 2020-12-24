@@ -144,6 +144,10 @@ configuration passed to the route.
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
 
+### schema
+
+This option is the same as [specified here](https://www.fastify.io/docs/latest/Routes/#routes-options). Note that certain validations may not work properly depending on the proxy settings used - e.g. `body` - since payloads may be directly streamed.
+
 ## websocket
 
 This module has _partial_ support for forwarding websockets by passing a
