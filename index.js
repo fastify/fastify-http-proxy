@@ -1,9 +1,9 @@
 'use strict'
-
 const From = require('fastify-reply-from')
 const WebSocket = require('ws')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
+const urlPattern = /^https?:\/\//
 
 function liftErrorCode (code) {
   if (typeof code !== 'number') {
@@ -30,6 +30,10 @@ function waitConnection (socket, write) {
     write()
   }
 }
+
+function isExternalUrl (url = '') {
+  return urlPattern.test(url)
+};
 
 function proxyWebSockets (source, target) {
   function close (code, reason) {
@@ -125,7 +129,7 @@ async function httpProxy (fastify, opts) {
 
   function rewriteHeaders (headers) {
     const location = headers.location
-    if (location) {
+    if (location && !isExternalUrl(location)) {
       headers.location = location.replace(rewritePrefix, fastify.prefix)
     }
     if (oldRewriteHeaders) {

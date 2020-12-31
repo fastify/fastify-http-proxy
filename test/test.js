@@ -17,6 +17,10 @@ async function run () {
     return 'this is a'
   })
 
+  origin.get('/redirect', async (request, reply) => {
+    return reply.redirect(302, 'https://fastify.io')
+  })
+
   origin.post('/this-has-data', async (request, reply) => {
     if (request.body.hello === 'world') {
       reply.header('location', '/something')
@@ -56,6 +60,27 @@ async function run () {
       `http://localhost:${server.server.address().port}/a`
     )
     t.equal(resultA.body, 'this is a')
+  })
+
+  test('redirects passthrough', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    const {
+      headers: { location },
+      statusCode
+    } = await got(
+      `http://localhost:${server.server.address().port}/redirect`, {
+        followRedirect: false
+      }
+    )
+    t.equal(location, 'https://fastify.io')
+    t.equal(statusCode, 302)
   })
 
   test('no upstream will throw', async t => {
