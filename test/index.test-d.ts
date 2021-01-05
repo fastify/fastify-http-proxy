@@ -14,7 +14,7 @@ app.register(fastifyHttpProxy, {
   rewritePrefix: "/u",
   http2: false,
   config: { key: 1 },
-  replyOptions: { opt: "a" },
+  replyOptions: { contentType: "application/json" },
   preHandler: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw);
     expectType<RawReplyDefaultExpression>(reply.raw);
