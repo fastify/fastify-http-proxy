@@ -88,6 +88,10 @@ function setupWebSocketProxy (fastify, options) {
     oldClose.call(this, done)
   }
 
+  server.on('error', (err) => {
+    fastify.log.error(err)
+  })
+
   server.on('connection', (source, request) => {
     const url = createWebSocketUrl(options, request)
 

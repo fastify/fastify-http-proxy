@@ -52,3 +52,18 @@ test('basic websocket proxy', async (t) => {
     server.close()
   ])
 })
+
+test('captures errors on start', async (t) => {
+  const app = Fastify()
+  await app.listen(0)
+
+  const app2 = Fastify()
+  app2.register(proxy, { upstream: 'http://localhost', websocket: true })
+
+  const appPort = app.server.address().port
+
+  await t.rejects(app2.listen(appPort), /EADDRINUSE/)
+
+  t.tearDown(app.close.bind(app))
+  t.tearDown(app2.close.bind(app2))
+})
