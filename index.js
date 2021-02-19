@@ -53,22 +53,8 @@ function proxyWebSockets (source, target) {
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
 
-function createWebSocketUrl (options, request) {
-  const source = new URL(request.url, 'http://127.0.0.1')
-
-  const target = new URL(
-    options.rewritePrefix || options.prefix || source.pathname,
-    options.upstream
-  )
-
-  target.search = source.search
-
-  return target
-}
-
-function setupWebSocketProxy (fastify, options) {
+function setupWebSocketProxy (fastify, options, rewritePrefix) {
   const server = new WebSocket.Server({
-    path: options.prefix,
     server: fastify.server,
     ...options.wsServerOptions
   })
@@ -93,13 +79,46 @@ function setupWebSocketProxy (fastify, options) {
   })
 
   server.on('connection', (source, request) => {
-    const url = createWebSocketUrl(options, request)
+    if (fastify.prefix && !request.url.startsWith(fastify.prefix)) {
+      fastify.log.debug({ url: request.url }, 'not matching prefix')
+      source.close()
+      return
+    }
+
+    const url = createWebSocketUrl(request)
 
     const target = new WebSocket(url, options.wsClientOptions)
 
     fastify.log.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)
   })
+
+  function createWebSocketUrl (request) {
+    const source = new URL(request.url, 'http://127.0.0.1')
+
+    const target = new URL(
+      source.pathname.replace(fastify.prefix, rewritePrefix),
+      options.upstream
+    )
+
+    target.search = source.search
+
+    return target
+  }
+}
+
+function generateRewritePrefix (prefix, opts) {
+  if (!prefix) {
+    return ''
+  }
+
+  let rewritePrefix = opts.rewritePrefix || new URL(opts.upstream).pathname
+
+  if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
+    rewritePrefix = rewritePrefix.slice(0, -1)
+  }
+
+  return rewritePrefix
 }
 
 async function httpProxy (fastify, opts) {
@@ -108,7 +127,7 @@ async function httpProxy (fastify, opts) {
   }
 
   const preHandler = opts.preHandler || opts.beforeHandler
-  const rewritePrefix = opts.rewritePrefix || ''
+  const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -164,7 +183,7 @@ async function httpProxy (fastify, opts) {
   }
 
   if (opts.websocket) {
-    setupWebSocketProxy(fastify, opts)
+    setupWebSocketProxy(fastify, opts, rewritePrefix)
   }
 }
 

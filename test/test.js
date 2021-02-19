@@ -179,7 +179,7 @@ async function run () {
       async preHandler (request, reply) {
         t.deepEqual(reply.context.config, {
           foo: 'bar',
-          url: '/*',
+          url: '/',
           method: [
             'DELETE',
             'GET',
