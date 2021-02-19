@@ -5,8 +5,13 @@ const proxy = require('.')
 
 async function startOrigin () {
   const origin = Fastify()
+
   origin.get('/', async (request, reply) => {
     return 'this is root'
+  })
+
+  origin.get('/redirect', async (request, reply) => {
+    return reply.redirect(302, 'https://fastify.io')
   })
 
   origin.get('/a', async (request, reply) => {
