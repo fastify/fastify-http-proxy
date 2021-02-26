@@ -48,7 +48,7 @@
     "typescript": "^4.0.2"
   },
   "dependencies": {
-    "fastify-reply-from": "^4.0.2",
+    "fastify-reply-from": "^5.0.1",
     "ws": "^7.4.1"
   },
   "tsd": {
