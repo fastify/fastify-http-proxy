@@ -160,15 +160,13 @@ Pull requests are welcome to finish this feature.
 
 ## Benchmarks
 
-The following benchmarks where generated on a Macbook 2018 with i5 and
-8GB of RAM:
+The following benchmarks where generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:
 
 | __Framework__ | req/sec |
 | :----------------- | :------------------------- |
-| `express-http-proxy` | 878.4 |
-| `http-proxy` | 3837 |
-| `fastify-http-proxy` | 4205 |
-| `fastify-http-proxy` (with [`undici`](https://github.com/mcollina/undici)) | 6235.6 |
+| `express-http-proxy` | 2557 |
+| `http-proxy` | 9519 |
+| `fastify-http-proxy` | 15919 |
 
 The results where gathered on the second run of `autocannon -c 100 -d 5
 URL`.

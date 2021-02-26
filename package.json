@@ -32,7 +32,7 @@
     "express": "^4.16.4",
     "express-http-proxy": "^1.6.2",
     "fast-proxy": "^1.7.0",
-    "fastify": "^3.0.0",
+    "fastify": "^3.12.0",
     "fastify-websocket": "^3.0.0",
     "got": "^11.5.1",
     "http-errors": "^1.8.0",
