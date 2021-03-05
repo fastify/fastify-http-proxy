@@ -79,13 +79,15 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
       }
     })
 
-    t.teardown(() => backend.close())
-
     const backendURL = await backend.listen(0)
 
     const [frontend, frontendURL] = await proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOptions)
 
-    t.teardown(() => frontend.close())
+    t.teardown(async () => {
+      // Close the frontend before the backend to avoid timeouts
+      await frontend.close()
+      await backend.close()
+    })
 
     for (const path of paths) {
       await processRequest(t, frontendURL, path, expected(path))
