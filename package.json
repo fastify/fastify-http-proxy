@@ -4,9 +4,9 @@
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "scripts": {
-    "test": "standard | snazzy && tap test/*.js && npm run typescript",
     "lint:fix": "standard --fix",
     "lint:typescript": "standard --fix --parser @typescript-eslint/parser --plugin typescript test/types/*.ts",
+    "test": "standard | snazzy && tap test/*.js && npm run typescript",
     "typescript": "tsd"
   },
   "repository": {
