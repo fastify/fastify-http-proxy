@@ -430,6 +430,36 @@ async function run () {
     }
     t.fail()
   })
+
+  test('settings of method types', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      httpMethods: ['POST']
+    })
+
+    await server.listen(0)
+    t.tearDown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'world' },
+        responseType: 'json'
+      }
+    )
+    t.deepEqual(resultRoot.body, { something: 'posted' })
+
+    let errored = false
+    try {
+      await await got(`http://localhost:${server.server.address().port}/a`)
+    } catch (err) {
+      t.equal(err.response.statusCode, 404)
+      errored = true
+    }
+    t.ok(errored)
+  })
 }
 
 run()
