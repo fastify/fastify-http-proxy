@@ -1,6 +1,6 @@
 'use strict'
 
-const { tearDown, test } = require('tap')
+const { teardown, test } = require('tap')
 const Fastify = require('fastify')
 const proxy = require('../')
 const got = require('got')
@@ -40,7 +40,7 @@ async function run () {
 
   await origin.listen(0)
 
-  tearDown(origin.close.bind(origin))
+  teardown(origin.close.bind(origin))
 
   test('basic proxy', async t => {
     const server = Fastify()
@@ -49,7 +49,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
       `http://localhost:${server.server.address().port}`
@@ -69,7 +69,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     const {
       headers: { location },
@@ -103,7 +103,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
       `http://localhost:${server.server.address().port}/my-prefix/`
@@ -128,7 +128,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
       `http://localhost:${server.server.address().port}/this-has-data`,
@@ -138,7 +138,7 @@ async function run () {
         responseType: 'json'
       }
     )
-    t.deepEqual(resultRoot.body, { something: 'posted' })
+    t.same(resultRoot.body, { something: 'posted' })
   })
 
   test('skip proxying the incoming payload', async t => {
@@ -147,13 +147,13 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       proxyPayloads: false,
       preHandler (request, reply, next) {
-        t.deepEqual(request.body, { hello: 'world' })
+        t.same(request.body, { hello: 'world' })
         next()
       }
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     await got(
       `http://localhost:${server.server.address().port}/this-has-data`,
@@ -175,7 +175,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     let errored = false
     try {
@@ -202,7 +202,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       config: { foo: 'bar' },
       async preHandler (request, reply) {
-        t.deepEqual(reply.context.config, {
+        t.same(reply.context.config, {
           foo: 'bar',
           url: '/',
           method: [
@@ -220,7 +220,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     let errored = false
     try {
@@ -257,7 +257,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       origin2.close()
       proxyServer.close()
     })
@@ -286,7 +286,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       proxyServer.close()
     })
 
@@ -307,7 +307,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       proxyServer.close()
     })
 
@@ -327,7 +327,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       proxyServer.close()
     })
 
@@ -367,7 +367,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       proxyServer.close()
     })
 
@@ -388,7 +388,7 @@ async function run () {
 
     await proxyServer.listen(0)
 
-    t.tearDown(() => {
+    t.teardown(() => {
       proxyServer.close()
     })
 
@@ -416,7 +416,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     try {
       await got(
@@ -439,7 +439,7 @@ async function run () {
     })
 
     await server.listen(0)
-    t.tearDown(server.close.bind(server))
+    t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
       `http://localhost:${server.server.address().port}/this-has-data`,
@@ -449,7 +449,7 @@ async function run () {
         responseType: 'json'
       }
     )
-    t.deepEqual(resultRoot.body, { something: 'posted' })
+    t.same(resultRoot.body, { something: 'posted' })
 
     let errored = false
     try {
