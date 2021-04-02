@@ -167,14 +167,14 @@ async function httpProxy (fastify, opts) {
 
   fastify.route({
     url: '/',
-    method: httpMethods,
+    method: opts.httpMethods || httpMethods,
     preHandler,
     config: opts.config || {},
     handler
   })
   fastify.route({
     url: '/*',
-    method: httpMethods,
+    method: opts.httpMethods || httpMethods,
     preHandler,
     config: opts.config || {},
     handler
