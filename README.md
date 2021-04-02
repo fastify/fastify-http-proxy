@@ -147,6 +147,9 @@ configuration passed to the route.
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
 
+### httpMethods
+An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
+
 ## websocket
 
 This module has _partial_ support for forwarding websockets by passing a
