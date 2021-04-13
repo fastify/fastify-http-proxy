@@ -5,13 +5,12 @@
 [![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-http-proxy/badge.svg)](https://snyk.io/test/github/fastify/fastify-http-proxy)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
-Proxy your http requests to another server, with hooks.
-This [`fastify`](https://www.fastify.io) plugin forward all the request
+Proxy your HTTP requests to another server, with hooks.
+This [`fastify`](https://www.fastify.io) plugin forwards all requests
 received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
 
 `fastify-http-proxy` is built on top of
-[`fastify-reply-from`](http://npm.im/fastify-reply-from), which enables
-you for single route proxying.
+[`fastify-reply-from`](http://npm.im/fastify-reply-from), which enables single route proxying.
 
 This plugin can be used in a variety of circumstances, for example if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
 
@@ -42,7 +41,7 @@ server.listen(3000)
 
 This will proxy any request starting with `/api` to `http://my-api.example.com`. For instance `http://localhost:3000/api/users` will be proxied to `http://my-api.example.com/users`.
 
-If you want to have different proxies on different prefixes in you can register multiple instances of the plugin as shown in the following snippet:
+If you want to have different proxies on different prefixes you can register multiple instances of the plugin as shown in the following snippet:
 
 ```js
 const Fastify = require('fastify')
@@ -71,11 +70,11 @@ Notice that in this case it is important to use the `prefix` option to tell the 
 
 Also notice paths in `upstream` are ignored, so you need to use `rewritePrefix` to specify the target base path.
 
-For other examples, see `example.js`.
+For other examples, see [`example.js`](example.js).
 
 ## Request tracking
 
-`fastify-http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) built in options a fairly simple example would look like this:
+`fastify-http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) built-in options a fairly simple example would look like this:
 
 ```js
 const Fastify = require('fastify')
@@ -174,7 +173,7 @@ The following benchmarks where generated on a dedicated server with an Intel(R) 
 | `http-proxy` | 9519 |
 | `fastify-http-proxy` | 15919 |
 
-The results where gathered on the second run of `autocannon -c 100 -d 5
+The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
 
 ## TODO
