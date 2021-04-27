@@ -121,6 +121,30 @@ async function run () {
     t.equal(resultA.body, 'this is a')
   })
 
+  test('prefixed proxy with plugin that binds handler to fastify server', async t => {
+    const server = Fastify()
+
+    server.addHook('onRoute', routeOptions => {
+      const handler = routeOptions.handler
+      routeOptions.handler = (request, reply) => {
+        return handler.call(server, request, reply)
+      }
+    })
+
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/my-prefix'
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/`
+    )
+    t.equal(resultRoot.body, 'this is root')
+  })
+
   test('posting stuff', async t => {
     const server = Fastify()
     server.register(proxy, {
