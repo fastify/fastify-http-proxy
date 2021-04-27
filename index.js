@@ -182,7 +182,7 @@ async function httpProxy (fastify, opts) {
 
   function handler (request, reply) {
     let dest = request.raw.url
-    dest = dest.replace(this.prefix, rewritePrefix)
+    dest = dest.replace(fastify.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
 
