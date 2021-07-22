@@ -197,3 +197,5 @@ httpProxy[Symbol.for('plugin-meta')] = {
 }
 
 module.exports = httpProxy
+module.exports.default = httpProxy
+module.exports.fastifyHttpProxy = httpProxy
