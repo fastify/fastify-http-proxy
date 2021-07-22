@@ -1,6 +1,5 @@
 'use strict'
 const From = require('fastify-reply-from')
-const FastifyPlugin = require('fastify-plugin')
 const WebSocket = require('ws')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
@@ -192,7 +191,11 @@ async function httpProxy (fastify, opts) {
   }
 }
 
-module.exports = FastifyPlugin(httpProxy, {
+httpProxy[Symbol.for('plugin-meta')] = {
   fastify: '^3.0.0',
   name: 'fastify-http-proxy'
-})
+}
+
+module.exports = httpProxy
+module.exports.default = httpProxy
+module.exports.fastifyHttpProxy = httpProxy
