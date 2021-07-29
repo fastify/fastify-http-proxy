@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "fastify-reply-from": "^6.0.0",
-    "ws": "^7.4.1"
+    "ws": "^8.0.0"
   },
   "tsd": {
     "directory": "test"
