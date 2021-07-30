@@ -5,7 +5,7 @@ const WebSocket = require('ws')
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 
-function liftErrorCode (code) {
+function liftErrorCode(code) {
   if (typeof code !== 'number') {
     // Sometimes "close" event emits with a non-numeric value
     return 1011
@@ -17,13 +17,13 @@ function liftErrorCode (code) {
   }
 }
 
-function closeWebSocket (socket, code, reason) {
+function closeWebSocket(socket, code, reason) {
   if (socket.readyState === WebSocket.OPEN) {
     socket.close(liftErrorCode(code), reason)
   }
 }
 
-function waitConnection (socket, write) {
+function waitConnection(socket, write) {
   if (socket.readyState === WebSocket.CONNECTING) {
     socket.once('open', write)
   } else {
@@ -31,12 +31,12 @@ function waitConnection (socket, write) {
   }
 }
 
-function isExternalUrl (url = '') {
+function isExternalUrl(url = '') {
   return urlPattern.test(url)
 };
 
-function proxyWebSockets (source, target) {
-  function close (code, reason) {
+function proxyWebSockets(source, target) {
+  function close(code, reason) {
     closeWebSocket(source, code, reason)
     closeWebSocket(target, code, reason)
   }
@@ -57,7 +57,7 @@ function proxyWebSockets (source, target) {
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
 
-function setupWebSocketProxy (fastify, options, rewritePrefix) {
+function setupWebSocketProxy(fastify, options, rewritePrefix) {
   const server = new WebSocket.Server({
     server: fastify.server,
     ...options.wsServerOptions
@@ -97,12 +97,12 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     proxyWebSockets(source, target)
   })
 
-  function createWebSocketUrl (request) {
-    const source = new URL(request.url, 'http://127.0.0.1')
+  function createWebSocketUrl(request) {
+    const source = new URL(request.url, 'ws://127.0.0.1')
 
     const target = new URL(
       source.pathname.replace(fastify.prefix, rewritePrefix),
-      options.upstream
+      options.upstream.replace('http:', 'ws:')
     )
 
     target.search = source.search
@@ -111,7 +111,7 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
   }
 }
 
-function generateRewritePrefix (prefix, opts) {
+function generateRewritePrefix(prefix, opts) {
   if (!prefix) {
     return ''
   }
@@ -125,7 +125,7 @@ function generateRewritePrefix (prefix, opts) {
   return rewritePrefix
 }
 
-async function httpProxy (fastify, opts) {
+async function httpProxy(fastify, opts) {
   if (!opts.upstream) {
     throw new Error('upstream must be specified')
   }
@@ -150,7 +150,7 @@ async function httpProxy (fastify, opts) {
     fastify.addContentTypeParser('*', bodyParser)
   }
 
-  function rewriteHeaders (headers) {
+  function rewriteHeaders(headers) {
     const location = headers.location
     if (location && !isExternalUrl(location)) {
       headers.location = location.replace(rewritePrefix, fastify.prefix)
@@ -161,7 +161,7 @@ async function httpProxy (fastify, opts) {
     return headers
   }
 
-  function bodyParser (req, payload, done) {
+  function bodyParser(req, payload, done) {
     done(null, payload)
   }
 
@@ -180,7 +180,7 @@ async function httpProxy (fastify, opts) {
     handler
   })
 
-  function handler (request, reply) {
+  function handler(request, reply) {
     let dest = request.raw.url
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)

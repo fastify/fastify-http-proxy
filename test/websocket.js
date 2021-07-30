@@ -28,14 +28,14 @@ test('basic websocket proxy', async (t) => {
 
   const server = Fastify()
   server.register(proxy, {
-    upstream: `http://localhost:${origin.address().port}`,
+    upstream: `ws://localhost:${origin.address().port}`,
     websocket: true
   })
 
   await server.listen(0)
   t.teardown(server.close.bind(server))
 
-  const ws = new WebSocket(`http://localhost:${server.server.address().port}`)
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`)
 
   await once(ws, 'open')
 
@@ -58,7 +58,7 @@ test('captures errors on start', async (t) => {
   await app.listen(0)
 
   const app2 = Fastify()
-  app2.register(proxy, { upstream: 'http://localhost', websocket: true })
+  app2.register(proxy, { upstream: 'ws://localhost', websocket: true })
 
   const appPort = app.server.address().port
 
