@@ -11,7 +11,7 @@ const got = require('got')
 
 const level = 'warn'
 
-async function proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOptions) {
+async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOptions) {
   const frontend = Fastify({ logger: { level } })
   const registerProxy = async fastify => {
     fastify.register(proxy, {
@@ -31,7 +31,7 @@ async function proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOpti
   return [frontend, await frontend.listen(0)]
 }
 
-async function processRequest(t, frontendURL, path, expected) {
+async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
   t.comment('ws connecting to ' + url.toString())
   const wsUrl = url.href.replace('http:', 'ws:')
@@ -65,7 +65,7 @@ async function processRequest(t, frontendURL, path, expected) {
   t.equal(gotResult, expected)
 }
 
-async function handleProxy(info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
+async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
   t.test(info, async function (t) {
     const backend = Fastify({ logger: { level } })
     await backend.register(fastifyWebSocket)
