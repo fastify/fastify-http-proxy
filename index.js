@@ -1,7 +1,7 @@
 'use strict'
 const From = require('fastify-reply-from')
 const WebSocket = require('ws')
-
+const { convertUrlToWebSocket } = require('./utils')
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 
@@ -102,7 +102,7 @@ function setupWebSocketProxy(fastify, options, rewritePrefix) {
 
     const target = new URL(
       source.pathname.replace(fastify.prefix, rewritePrefix),
-      options.upstream.replace('http:', 'ws:')
+      convertUrlToWebSocket(options.upstream)
     )
 
     target.search = source.search
