@@ -11,7 +11,7 @@ t.test('convertUrlToWebSocket', function (t) {
     { before: 'wss://localhost', after: 'wss://localhost' }
   ]
   t.plan(expected.length)
-  expected.forEach(({ before, after }) => {
+  for (const { before, after } of expected) {
     t.equal(convertUrlToWebSocket(before), after)
-  })
+  }
 })
