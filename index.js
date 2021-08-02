@@ -2,6 +2,7 @@
 const From = require('fastify-reply-from')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
+
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 
