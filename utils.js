@@ -1,5 +1,6 @@
 'use strict'
-function convertUrlToWebSocket (urlString) {
+
+function convertUrlToWebSocket(urlString) {
   return urlString.replace(/(http)(s)?:\/\//, 'ws$2://')
 }
 
