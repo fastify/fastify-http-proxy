@@ -34,7 +34,8 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
 async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
   t.comment('ws connecting to ' + url.toString())
-  const ws = new WebSocket(url)
+  const wsUrl = url.href.replace('http:', 'ws:')
+  const ws = new WebSocket(wsUrl)
   let wsResult, gotResult
 
   try {

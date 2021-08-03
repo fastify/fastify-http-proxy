@@ -8,6 +8,7 @@ const fastifyWebSocket = require('fastify-websocket')
 const proxy = require('..')
 const WebSocket = require('ws')
 const got = require('got')
+const { convertUrlToWebSocket } = require('../utils')
 
 const level = 'warn'
 
@@ -35,7 +36,8 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
 async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
   t.comment('ws connecting to ' + url.toString())
-  const ws = new WebSocket(url)
+  const wsUrl = convertUrlToWebSocket(url.href)
+  const ws = new WebSocket(wsUrl)
   let wsResult, gotResult
 
   try {
