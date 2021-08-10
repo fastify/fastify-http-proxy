@@ -117,7 +117,7 @@ function generateRewritePrefix (prefix, opts) {
     return ''
   }
 
-  let rewritePrefix = opts.rewritePrefix || new URL(opts.upstream).pathname
+  let rewritePrefix = opts.rewritePrefix || new URL(opts.upstream || 'http://empty').pathname
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
     rewritePrefix = rewritePrefix.slice(0, -1)
@@ -127,7 +127,7 @@ function generateRewritePrefix (prefix, opts) {
 }
 
 async function httpProxy (fastify, opts) {
-  if (!opts.upstream) {
+  if (!opts.upstream && !(opts.upstream === '' && typeof opts?.replyOptions?.getUpstream === 'function')) {
     throw new Error('upstream must be specified')
   }
 
