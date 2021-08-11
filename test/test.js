@@ -62,10 +62,61 @@ async function run () {
     t.equal(resultA.body, 'this is a')
   })
 
+  test('dynamic upstream for basic proxy', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: '',
+      replyOptions: {
+        getUpstream: function (original, base) {
+          return `http://localhost:${origin.server.address().port}`
+        }
+      }
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}`
+    )
+    t.equal(resultRoot.body, 'this is root')
+
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/a`
+    )
+    t.equal(resultA.body, 'this is a')
+  })
+
   test('redirects passthrough', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const {
+      headers: { location },
+      statusCode
+    } = await got(
+      `http://localhost:${server.server.address().port}/redirect`, {
+        followRedirect: false
+      }
+    )
+    t.equal(location, 'https://fastify.io')
+    t.equal(statusCode, 302)
+  })
+
+  test('dynamic upstream for redirects passthrough', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: '',
+      replyOptions: {
+        getUpstream: function (original, base) {
+          return `http://localhost:${origin.server.address().port}`
+        }
+      }
     })
 
     await server.listen(0)
@@ -121,10 +172,66 @@ async function run () {
     t.equal(resultA.body, 'this is a')
   })
 
+  test('dynamic upstream for prefixed proxy', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: '',
+      prefix: '/my-prefix',
+      replyOptions: {
+        getUpstream: function (original, base) {
+          return `http://localhost:${origin.server.address().port}`
+        }
+      }
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/`
+    )
+    t.equal(resultRoot.body, 'this is root')
+
+    const withoutSlash = await got(
+      `http://localhost:${server.server.address().port}/my-prefix`
+    )
+    t.equal(withoutSlash.body, 'this is root')
+
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/a`
+    )
+    t.equal(resultA.body, 'this is a')
+  })
+
   test('posting stuff', async t => {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'world' },
+        responseType: 'json'
+      }
+    )
+    t.same(resultRoot.body, { something: 'posted' })
+  })
+
+  test('dynamic upstream for posting stuff', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: '',
+      replyOptions: {
+        getUpstream: function (original, base) {
+          return `http://localhost:${origin.server.address().port}`
+        }
+      }
     })
 
     await server.listen(0)
