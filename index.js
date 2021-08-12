@@ -117,7 +117,7 @@ function generateRewritePrefix (prefix, opts) {
     return ''
   }
 
-  let rewritePrefix = opts.rewritePrefix || new URL(opts.upstream || 'http://empty').pathname
+  let rewritePrefix = opts.rewritePrefix || (opts.upstream ? new URL(opts.upstream).pathname : '/')
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
     rewritePrefix = rewritePrefix.slice(0, -1)
