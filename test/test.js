@@ -567,6 +567,60 @@ async function run () {
     }
     t.ok(errored)
   })
+
+  test('constraints', async t => {
+    const server = Fastify({
+      constraints: {
+        testConstraint: {
+          name: 'testConstraint',
+          storage: () => {
+            let headerValues = {}
+            return {
+              get: (value) => { return headerValues[value] || null },
+              set: (value, store) => { headerValues[value] = store },
+              del: (value) => { delete headerValues[value] },
+              empty: () => { headerValues = {} }
+            }
+          },
+          validate () {},
+          mustMatchWhenDerived: false,
+          deriveConstraint: (req, ctx) => {
+            return req.headers['test-header']
+          }
+        }
+      }
+    })
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      constraints: { testConstraint: 'valid-value' }
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+    await got(`http://localhost:${server.server.address().port}/a`, {
+      headers: {
+        'test-header': 'valid-value'
+      }
+    })
+
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`, {
+        headers: {
+          'test-header': 'invalid-value'
+        }
+      })
+      t.fail()
+    } catch (err) {
+      t.equal(err.response.statusCode, 404)
+    }
+
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`)
+      t.fail()
+    } catch (err) {
+      t.equal(err.response.statusCode, 404)
+    }
+  })
 }
 
 run()

@@ -22,6 +22,7 @@ export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   wsClientOptions?: ClientOptions;
   wsServerOptions?: ServerOptions;
   httpMethods?: string[];
+  constraints?: { [name: string]: any };
 }
 
 declare const fastifyHttpProxy: FastifyPlugin<FastifyHttpProxyOptions>;
