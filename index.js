@@ -171,6 +171,7 @@ async function httpProxy (fastify, opts) {
     method: opts.httpMethods || httpMethods,
     preHandler,
     config: opts.config || {},
+    constraints: opts.constraints || {},
     handler
   })
   fastify.route({
@@ -178,6 +179,7 @@ async function httpProxy (fastify, opts) {
     method: opts.httpMethods || httpMethods,
     preHandler,
     config: opts.config || {},
+    constraints: opts.constraints || {},
     handler
   })
 
