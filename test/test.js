@@ -567,6 +567,93 @@ async function run () {
     }
     t.ok(errored)
   })
+
+  const getTestConstraint = () => ({
+    name: 'testConstraint',
+    storage: () => {
+      let headerValues = {}
+      return {
+        get: (value) => { return headerValues[value] || null },
+        set: (value, store) => { headerValues[value] = store },
+        del: (value) => { delete headerValues[value] },
+        empty: () => { headerValues = {} }
+      }
+    },
+    validate (value) { return true },
+    deriveConstraint: (req, ctx) => {
+      return req.headers['test-header']
+    }
+  })
+
+  test('constraints', async t => {
+    const server = Fastify({
+      constraints: {
+        testConstraint: getTestConstraint()
+      }
+    })
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      constraints: { testConstraint: 'valid-value' }
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+    await got(`http://localhost:${server.server.address().port}/a`, {
+      headers: {
+        'test-header': 'valid-value'
+      }
+    })
+
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`, {
+        headers: {
+          'test-header': 'invalid-value'
+        }
+      })
+      t.fail()
+    } catch (err) {
+      t.equal(err.response.statusCode, 404)
+    }
+
+    try {
+      await got(`http://localhost:${server.server.address().port}/a`)
+      t.fail()
+    } catch (err) {
+      t.equal(err.response.statusCode, 404)
+    }
+  })
+
+  test('constraints with unconstrained routes', async t => {
+    const server = Fastify({
+      constraints: {
+        testConstraint: getTestConstraint()
+      }
+    })
+    server.get('/a', {
+      constraints: { testConstraint: 'without-proxy' }
+    }, async () => 'this is unproxied a')
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      constraints: { testConstraint: 'with-proxy' }
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultProxied = await got(`http://localhost:${server.server.address().port}/a`, {
+      headers: {
+        'test-header': 'with-proxy'
+      }
+    })
+    t.equal(resultProxied.body, 'this is a')
+
+    const resultUnproxied = await got(`http://localhost:${server.server.address().port}/a`, {
+      headers: {
+        'test-header': 'without-proxy'
+      }
+    })
+    t.equal(resultUnproxied.body, 'this is unproxied a')
+  })
 }
 
 run()
