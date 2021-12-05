@@ -62,6 +62,27 @@ async function run () {
     t.equal(resultA.body, 'this is a')
   })
 
+  test('basic proxy with query search', async t => {
+    const server = Fastify()
+    const querySearch = '?param=value'
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}${querySearch}`
+    )
+    t.equal(resultRoot.body, 'this is root')
+
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/a${querySearch}`
+    )
+    t.equal(resultA.body, 'this is a')
+  })
+
   test('dynamic upstream for basic proxy', async t => {
     const server = Fastify()
     server.register(proxy, {
@@ -168,6 +189,33 @@ async function run () {
 
     const resultA = await got(
       `http://localhost:${server.server.address().port}/my-prefix/a`
+    )
+    t.equal(resultA.body, 'this is a')
+  })
+  test('prefixed proxy with query search', async t => {
+    const server = Fastify()
+    const querySearch = '?param=value'
+
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/my-prefix'
+    })
+
+    await server.listen(0)
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/${querySearch}`
+    )
+    t.equal(resultRoot.body, 'this is root')
+
+    const withoutSlash = await got(
+      `http://localhost:${server.server.address().port}/my-prefix${querySearch}`
+    )
+    t.equal(withoutSlash.body, 'this is root')
+
+    const resultA = await got(
+      `http://localhost:${server.server.address().port}/my-prefix/a${querySearch}`
     )
     t.equal(resultA.body, 'this is a')
   })
