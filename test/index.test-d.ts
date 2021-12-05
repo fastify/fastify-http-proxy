@@ -26,7 +26,7 @@ app.register(fastifyHttpProxy, {
   },
   base: 'whatever',
   cacheURLs: 10,
-  undici: { dummy: true }, // undici has no TS declarations yet
+  undici: {},
   http: {
     agentOptions: {
       keepAliveMsecs: 10 * 60 * 1000
