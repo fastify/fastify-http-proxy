@@ -50,7 +50,6 @@
   },
   "dependencies": {
     "fastify-reply-from": "^6.0.0",
-    "fastify-url-data": "^3.0.3",
     "ws": "^8.0.0"
   },
   "tsd": {

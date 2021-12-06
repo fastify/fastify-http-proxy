@@ -1,6 +1,5 @@
 'use strict'
 const From = require('fastify-reply-from')
-const UrlData = require('fastify-url-data')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 
@@ -146,7 +145,6 @@ async function httpProxy (fastify, opts) {
   fromOpts.rewriteHeaders = rewriteHeaders
 
   fastify.register(From, fromOpts)
-  fastify.register(UrlData)
 
   if (opts.proxyPayloads !== false) {
     fastify.addContentTypeParser('application/json', bodyParser)
@@ -186,7 +184,7 @@ async function httpProxy (fastify, opts) {
   })
 
   function handler (request, reply) {
-    let dest = request.urlData().path
+    let [dest] = request.raw.url.split('?')
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
