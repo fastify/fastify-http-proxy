@@ -184,7 +184,8 @@ async function httpProxy (fastify, opts) {
   })
 
   function handler (request, reply) {
-    let [dest] = request.raw.url.split('?')
+    const queryParamIndex = request.raw.url.indexOf()
+    let dest = request.raw.url.slice(0, queryParamIndex !== -1 ? queryParamIndex : undefined)
     dest = dest.replace(this.prefix, rewritePrefix)
     reply.from(dest || '/', replyOpts)
   }
