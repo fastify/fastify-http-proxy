@@ -28,7 +28,7 @@
     "@fastify/pre-commit": "^2.0.2",
     "@types/node": "^16.0.0",
     "@types/ws": "^8.2.0",
-    "@typescript-eslint/parser": "^4.0.0",
+    "@typescript-eslint/parser": "^5.7.0",
     "eslint-plugin-typescript": "^0.14.0",
     "express": "^4.16.4",
     "express-http-proxy": "^1.6.2",
