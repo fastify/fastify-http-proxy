@@ -1,6 +1,6 @@
 import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from 'fastify';
 import { expectError, expectType } from 'tsd';
-import fastifyHttpProxy from '..';
+import fastifyHttpProxy from '../..';
 
 const app = fastify();
 
