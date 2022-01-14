@@ -1,13 +1,13 @@
-/// <reference types="node" />
+/// <reference types='node' />
 
-import { FastifyPlugin, preHandlerHookHandler } from "fastify";
+import { FastifyPluginCallback, preHandlerHookHandler } from 'fastify';
 
 import {
   FastifyReplyFromOptions,
   FastifyReplyFromHooks,
-} from "fastify-reply-from";
+} from 'fastify-reply-from';
 
-import { ClientOptions, ServerOptions } from "ws";
+import { ClientOptions, ServerOptions } from 'ws';
 
 export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   upstream: string;
@@ -25,5 +25,5 @@ export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
   constraints?: { [name: string]: any };
 }
 
-declare const fastifyHttpProxy: FastifyPlugin<FastifyHttpProxyOptions>;
+export const fastifyHttpProxy: FastifyPluginCallback<FastifyHttpProxyOptions>;
 export default fastifyHttpProxy;
