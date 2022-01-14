@@ -55,6 +55,6 @@
     "ws": "^8.4.2"
   },
   "tsd": {
-    "directory": "test"
+    "directory": "test/types"
   }
 }

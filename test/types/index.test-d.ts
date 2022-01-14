@@ -1,5 +1,5 @@
 import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from 'fastify';
-import { expectType } from 'tsd';
+import { expectError, expectType } from 'tsd';
 import fastifyHttpProxy from '..';
 
 const app = fastify();
@@ -49,3 +49,9 @@ app.register(fastifyHttpProxy, {
   sessionTimeout: 30000,
   constraints: { version: '1.0.2' }
 });
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    thisOptionDoesNotExist: 'triggers a typescript error'
+  })
+);
