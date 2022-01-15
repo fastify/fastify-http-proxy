@@ -1,7 +1,7 @@
 'use strict'
 
 const Fastify = require('fastify')
-const proxy = require('.')
+const proxy = require('..')
 
 async function startOrigin () {
   const origin = Fastify()

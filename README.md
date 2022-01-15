@@ -70,7 +70,7 @@ Notice that in this case it is important to use the `prefix` option to tell the 
 
 Also notice paths in `upstream` are ignored, so you need to use `rewritePrefix` to specify the target base path.
 
-For other examples, see [`example.js`](example.js).
+For other examples, see [`example.js`](examples/example.js).
 
 ## Request tracking
 

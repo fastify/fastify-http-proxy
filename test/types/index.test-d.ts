@@ -1,21 +1,21 @@
-import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from "fastify";
-import fastifyHttpProxy from "..";
-import { expectType } from "tsd";
+import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from 'fastify';
+import { expectError, expectType } from 'tsd';
+import fastifyHttpProxy from '../..';
 
 const app = fastify();
 
 app.register(fastifyHttpProxy, {
-  upstream: "http://origin.asd"
+  upstream: 'http://origin.asd'
 });
 
 app.register(fastifyHttpProxy, {
-  upstream: "http://origin.asd",
-  prefix: "/auth",
-  rewritePrefix: "/u",
+  upstream: 'http://origin.asd',
+  prefix: '/auth',
+  rewritePrefix: '/u',
   http2: false,
   config: { key: 1 },
-  replyOptions: { contentType: "application/json" },
-  httpMethods: ["DELETE", "GET", "HEAD", "PATCH", "POST", "PUT", "OPTIONS"],
+  replyOptions: { contentType: 'application/json' },
+  httpMethods: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
   preHandler: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw);
     expectType<RawReplyDefaultExpression>(reply.raw);
@@ -26,7 +26,14 @@ app.register(fastifyHttpProxy, {
   },
   base: 'whatever',
   cacheURLs: 10,
-  undici: { dummy: true }, // undici has no TS declarations yet
+  undici: {
+    connections: 128,
+    pipelining: 1,
+    keepAliveTimeout: 60 * 1000,
+    tls: {
+      rejectUnauthorized: false
+    }
+  },
   http: {
     agentOptions: {
       keepAliveMsecs: 10 * 60 * 1000
@@ -42,3 +49,9 @@ app.register(fastifyHttpProxy, {
   sessionTimeout: 30000,
   constraints: { version: '1.0.2' }
 });
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    thisOptionDoesNotExist: 'triggers a typescript error'
+  })
+);

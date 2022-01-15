@@ -3,10 +3,12 @@
   "version": "6.2.1",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
+  "types": "index.d.ts",
   "scripts": {
-    "lint:fix": "standard --fix",
-    "lint:typescript": "standard --fix --parser @typescript-eslint/parser --plugin typescript test/types/*.ts",
-    "test": "standard | snazzy && tap test/*.js && npm run typescript",
+    "lint": "standard | snazzy",
+    "lint:fix": "standard --fix | snazzy",
+    "lint:typescript": "npm run lint:fix - --parser @typescript-eslint/parser --plugin typescript \"test/types/*.ts\"",
+    "test": "npm run lint && tap \"test/*.js\" && npm run typescript",
     "typescript": "tsd"
   },
   "repository": {
@@ -26,33 +28,33 @@
   "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
     "@fastify/pre-commit": "^2.0.2",
-    "@types/node": "^16.0.0",
-    "@types/ws": "^8.2.0",
-    "@typescript-eslint/parser": "^4.0.0",
-    "eslint-plugin-typescript": "^0.14.0",
-    "express": "^4.16.4",
-    "express-http-proxy": "^1.6.2",
-    "fast-proxy": "^2.0.0",
-    "fastify": "^3.12.0",
+    "@types/node": "^16.11.19",
+    "@types/ws": "^8.2.2",
+    "@typescript-eslint/eslint-plugin": "^5.9.1",
+    "@typescript-eslint/parser": "^5.9.1",
+    "express": "^4.17.2",
+    "express-http-proxy": "^1.6.3",
+    "fast-proxy": "^2.1.0",
+    "fastify": "^3.25.3",
     "fastify-websocket": "^4.0.0",
-    "got": "^11.5.1",
-    "http-errors": "^1.8.0",
-    "http-proxy": "^1.17.0",
-    "make-promises-safe": "^5.0.0",
+    "got": "^11.8.3",
+    "http-errors": "^2.0.0",
+    "http-proxy": "^1.18.1",
+    "make-promises-safe": "^5.1.0",
     "simple-get": "^4.0.0",
     "snazzy": "^9.0.0",
-    "socket.io": "^4.0.0",
-    "socket.io-client": "^4.0.0",
-    "standard": "^16.0.3",
-    "tap": "^15.0.1",
-    "tsd": "^0.17.0",
-    "typescript": "^4.0.2"
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1",
+    "standard": "^16.0.4",
+    "tap": "^15.1.6",
+    "tsd": "^0.19.1",
+    "typescript": "^4.5.4"
   },
   "dependencies": {
-    "fastify-reply-from": "^6.0.0",
-    "ws": "^8.0.0"
+    "fastify-reply-from": "^6.4.1",
+    "ws": "^8.4.2"
   },
   "tsd": {
-    "directory": "test"
+    "directory": "test/types"
   }
 }
