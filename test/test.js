@@ -659,10 +659,10 @@ async function run () {
     const appServer = Fastify()
 
     appServer.get('/second-service', async (request, reply) => {
-        return `Hello World - lang = ${request.query.lang}`
+      return `Hello World - lang = ${request.query.lang}`
     })
     appServer.get('/second-service/foo', async (request, reply) => {
-        return `Hello World (foo) - lang = ${request.query.lang}`
+      return `Hello World (foo) - lang = ${request.query.lang}`
     })
     const address = await appServer.listen(0)
 
