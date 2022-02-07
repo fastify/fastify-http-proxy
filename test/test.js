@@ -654,6 +654,38 @@ async function run () {
     })
     t.equal(resultUnproxied.body, 'this is unproxied a')
   })
+
+  test('prefixed proxy with query search', async t => {
+    const appServer = Fastify()
+
+    appServer.get('/second-service', async (request, reply) => {
+      return `Hello World - lang = ${request.query.lang}`
+    })
+    appServer.get('/second-service/foo', async (request, reply) => {
+      return `Hello World (foo) - lang = ${request.query.lang}`
+    })
+    const address = await appServer.listen(0)
+
+    const proxyServer = Fastify()
+    proxyServer.register(proxy, {
+      upstream: `${address}/second-service`,
+      prefix: '/second-service'
+    })
+    const proxyAddress = await proxyServer.listen(0)
+
+    t.teardown(appServer.close.bind(appServer))
+    t.teardown(proxyServer.close.bind(proxyServer))
+
+    const resultRoot = await got(
+      `${proxyAddress}/second-service?lang=en`
+    )
+    t.equal(resultRoot.body, 'Hello World - lang = en')
+
+    const resultFooRoute = await got(
+      `${proxyAddress}/second-service/foo?lang=en`
+    )
+    t.equal(resultFooRoute.body, 'Hello World (foo) - lang = en')
+  })
 }
 
 run()
