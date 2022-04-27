@@ -8,8 +8,7 @@
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix | snazzy",
     "lint:typescript": "npm run lint:fix - --parser @typescript-eslint/parser --plugin typescript \"test/types/*.ts\"",
-    "test:disabled": "npm run lint && tap \"test/*.js\" && npm run typescript",
-    "test": "npm run lint && tap \"test/*.js\"",
+    "test": "npm run lint && tap \"test/*.js\" && npm run typescript",
     "typescript": "tsd"
   },
   "repository": {
