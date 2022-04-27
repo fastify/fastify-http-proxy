@@ -1,6 +1,6 @@
 {
-  "name": "fastify-http-proxy",
-  "version": "6.2.2",
+  "name": "@fastify/http-proxy",
+  "version": "7.0.0",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "types": "index.d.ts",
@@ -56,5 +56,8 @@
   },
   "tsd": {
     "directory": "test/types"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
