@@ -4,7 +4,7 @@ const t = require('tap')
 const { once } = require('events')
 
 const Fastify = require('fastify')
-const fastifyWebSocket = require('fastify-websocket')
+const fastifyWebSocket = require('@fastify/websocket')
 const proxy = require('..')
 const WebSocket = require('ws')
 const got = require('got')
