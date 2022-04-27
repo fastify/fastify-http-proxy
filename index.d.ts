@@ -5,7 +5,7 @@ import { FastifyPluginCallback, preHandlerHookHandler } from 'fastify';
 import {
   FastifyReplyFromOptions,
   FastifyReplyFromHooks,
-} from 'fastify-reply-from';
+} from '@fastify/reply-from';
 
 import { ClientOptions, ServerOptions } from 'ws';
 
