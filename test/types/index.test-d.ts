@@ -42,11 +42,6 @@ app.register(fastifyHttpProxy, {
       timeout: 20000
     }
   },
-  keepAliveMsecs: 60000,
-  maxFreeSockets: 10,
-  maxSockets: 20,
-  rejectUnauthorized: true,
-  sessionTimeout: 30000,
   constraints: { version: '1.0.2' }
 });
 
