@@ -98,7 +98,7 @@ server.listen(3000);
 ## Options
 
 This `fastify` plugin supports _all_ the options of
-[`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) plus the following.
+[`@fastify/reply-from`](https://github.com/fastify/fastify-reply-from) plus the following.
 
 *Note that this plugin is fully encapsulated, and non-JSON payloads will
 be streamed directly to the destination.*
