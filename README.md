@@ -1,4 +1,4 @@
-# fastify-http-proxy
+# @fastify/http-proxy
 
 ![CI](https://github.com/fastify/fastify-http-proxy/workflows/CI/badge.svg)
 [![NPM version](https://img.shields.io/npm/v/fastify-http-proxy.svg?style=flat)](https://www.npmjs.com/package/fastify-http-proxy)
