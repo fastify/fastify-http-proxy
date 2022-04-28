@@ -9,7 +9,7 @@ Proxy your HTTP requests to another server, with hooks.
 This [`fastify`](https://www.fastify.io) plugin forwards all requests
 received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
 
-`fastify-http-proxy` is built on top of
+`@fastify/http-proxy` is built on top of
 [`fastify-reply-from`](http://npm.im/fastify-reply-from), which enables single route proxying.
 
 This plugin can be used in a variety of circumstances, for example if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
@@ -21,7 +21,7 @@ Fastify 3.x. See [this branch](https://github.com/fastify/fastify-http-proxy/tre
 ## Install
 
 ```
-npm i fastify-http-proxy fastify
+npm i @fastify/http-proxy fastify
 ```
 
 ## Example
@@ -30,7 +30,7 @@ npm i fastify-http-proxy fastify
 const Fastify = require('fastify')
 const server = Fastify()
 
-server.register(require('fastify-http-proxy'), {
+server.register(require('@fastify/http-proxy'), {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
   http2: false // optional
@@ -46,7 +46,7 @@ If you want to have different proxies on different prefixes you can register mul
 ```js
 const Fastify = require('fastify')
 const server = Fastify()
-const proxy = require('fastify-http-proxy')
+const proxy = require('@fastify/http-proxy')
 
 // /api/x will be proxied to http://my-api.example.com/x
 server.register(proxy, {
@@ -74,11 +74,11 @@ For other examples, see [`example.js`](examples/example.js).
 
 ## Request tracking
 
-`fastify-http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) built-in options a fairly simple example would look like this:
+`@fastify/http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`fastify-reply-from`](https://github.com/fastify/fastify-reply-from) built-in options a fairly simple example would look like this:
 
 ```js
 const Fastify = require('fastify')
-const proxy = require('fastify-http-proxy')
+const proxy = require('@fastify/http-proxy')
 const hyperid = require('hyperid')
 
 const server = Fastify()
@@ -171,7 +171,7 @@ The following benchmarks where generated on a dedicated server with an Intel(R) 
 | :----------------- | :------------------------- |
 | `express-http-proxy` | 2557 |
 | `http-proxy` | 9519 |
-| `fastify-http-proxy` | 15919 |
+| `@fastify/http-proxy` | 15919 |
 
 The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
