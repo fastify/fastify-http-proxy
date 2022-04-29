@@ -1,7 +1,7 @@
 # @fastify/http-proxy
 
 ![CI](https://github.com/fastify/fastify-http-proxy/workflows/CI/badge.svg)
-[![NPM version](https://img.shields.io/npm/v/fastify-http-proxy.svg?style=flat)](https://www.npmjs.com/package/fastify-http-proxy)
+[![NPM version](https://img.shields.io/npm/v/@fastify/http-proxy.svg?style=flat)](https://www.npmjs.com/package/@fastify/http-proxy)
 [![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-http-proxy/badge.svg)](https://snyk.io/test/github/fastify/fastify-http-proxy)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
@@ -144,7 +144,7 @@ configuration passed to the route.
 
 ### replyOptions
 
-Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `fastify-reply-from`.
+Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `@fastify/reply-from`.
 
 ### httpMethods
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
