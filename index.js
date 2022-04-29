@@ -90,9 +90,17 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
       return
     }
 
+    let optionsWs = {}
+    if (request.headers.cookie) {
+      const headers = { cookie: request.headers.cookie }
+      optionsWs = { ...options.wsClientOptions, headers }
+    } else {
+      optionsWs = options.wsClientOptions
+    }
+
     const url = createWebSocketUrl(request)
 
-    const target = new WebSocket(url, options.wsClientOptions)
+    const target = new WebSocket(url, optionsWs)
 
     fastify.log.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)

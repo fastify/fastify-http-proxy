@@ -7,16 +7,18 @@ const WebSocket = require('ws')
 const { createServer } = require('http')
 const { promisify } = require('util')
 const { once } = require('events')
+const cookieValue = 'foo=bar'
 
 test('basic websocket proxy', async (t) => {
-  t.plan(2)
+  t.plan(3)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
   t.teardown(wss.close.bind(wss))
   t.teardown(origin.close.bind(origin))
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, request) => {
+    t.equal(request.headers.cookie, cookieValue)
     ws.on('message', (message) => {
       t.equal(message.toString(), 'hello')
       // echo
@@ -35,7 +37,8 @@ test('basic websocket proxy', async (t) => {
   await server.listen(0)
   t.teardown(server.close.bind(server))
 
-  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`)
+  const options = { headers: { cookie: cookieValue } }
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, options)
 
   await once(ws, 'open')
 
