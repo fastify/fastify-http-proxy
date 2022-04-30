@@ -156,7 +156,7 @@ This module has _partial_ support for forwarding websockets by passing a
 [`@fastify/websocket`](https://github.com/fastify/fastify-websocket).
 A few things are missing:
 
-1. forwarding headers as well as `rewriteHeaders`
+1. forwarding headers as well as `rewriteHeaders`. Note: Only cookie headers are being forwarded
 2. request id logging
 3. support `ignoreTrailingSlash`
 
