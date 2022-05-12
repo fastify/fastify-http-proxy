@@ -26,7 +26,7 @@ test('basic websocket proxy', async (t) => {
     })
   })
 
-  await promisify(origin.listen.bind(origin))(0)
+  await promisify(origin.listen.bind(origin))({ port: 0 })
 
   const server = Fastify()
   server.register(proxy, {
@@ -34,7 +34,7 @@ test('basic websocket proxy', async (t) => {
     websocket: true
   })
 
-  await server.listen(0)
+  await server.listen({ port: 0 })
   t.teardown(server.close.bind(server))
 
   const options = { headers: { cookie: cookieValue } }
@@ -58,14 +58,14 @@ test('basic websocket proxy', async (t) => {
 
 test('captures errors on start', async (t) => {
   const app = Fastify()
-  await app.listen(0)
+  await app.listen({ port: 0 })
 
   const app2 = Fastify()
   app2.register(proxy, { upstream: 'ws://localhost', websocket: true })
 
   const appPort = app.server.address().port
 
-  await t.rejects(app2.listen(appPort), /EADDRINUSE/)
+  await t.rejects(app2.listen({ port: appPort }), /EADDRINUSE/)
 
   t.teardown(app.close.bind(app))
   t.teardown(app2.close.bind(app2))

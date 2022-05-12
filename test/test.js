@@ -38,9 +38,9 @@ async function run () {
     return 'this is never received'
   })
 
-  await origin.listen(0)
+  await origin.listen({ port: 0 })
 
-  teardown(origin.close.bind(origin))
+  teardown(() => origin.close())
 
   test('basic proxy', async t => {
     const server = Fastify()
@@ -48,7 +48,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -73,7 +73,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -93,7 +93,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const {
@@ -119,7 +119,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const {
@@ -153,7 +153,7 @@ async function run () {
       prefix: '/my-prefix'
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -184,7 +184,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -209,7 +209,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -234,7 +234,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -259,7 +259,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     await got(
@@ -281,7 +281,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     let errored = false
@@ -326,7 +326,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     let errored = false
@@ -346,7 +346,7 @@ async function run () {
       return 'this is root for origin2'
     })
 
-    await origin2.listen(0)
+    await origin2.listen({ port: 0 })
 
     const proxyServer = Fastify()
 
@@ -362,7 +362,7 @@ async function run () {
       prefix: '/api2'
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       origin2.close()
@@ -391,7 +391,7 @@ async function run () {
       }
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       proxyServer.close()
@@ -412,7 +412,7 @@ async function run () {
       rewritePrefix: '/api2'
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       proxyServer.close()
@@ -432,7 +432,7 @@ async function run () {
       prefix: '/api'
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       proxyServer.close()
@@ -472,7 +472,7 @@ async function run () {
       }
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       proxyServer.close()
@@ -493,7 +493,7 @@ async function run () {
       undici: true
     })
 
-    await proxyServer.listen(0)
+    await proxyServer.listen({ port: 0 })
 
     t.teardown(() => {
       proxyServer.close()
@@ -522,7 +522,7 @@ async function run () {
       }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     try {
@@ -545,7 +545,7 @@ async function run () {
       httpMethods: ['POST']
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultRoot = await got(
@@ -596,7 +596,7 @@ async function run () {
       constraints: { testConstraint: 'valid-value' }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
     await got(`http://localhost:${server.server.address().port}/a`, {
       headers: {
@@ -637,7 +637,7 @@ async function run () {
       constraints: { testConstraint: 'with-proxy' }
     })
 
-    await server.listen(0)
+    await server.listen({ port: 0 })
     t.teardown(server.close.bind(server))
 
     const resultProxied = await got(`http://localhost:${server.server.address().port}/a`, {
@@ -664,17 +664,18 @@ async function run () {
     appServer.get('/second-service/foo', async (request, reply) => {
       return `Hello World (foo) - lang = ${request.query.lang}`
     })
-    const address = await appServer.listen(0)
+    const address = await appServer.listen({ port: 0 })
+    console.log(address)
 
     const proxyServer = Fastify()
     proxyServer.register(proxy, {
       upstream: `${address}/second-service`,
       prefix: '/second-service'
     })
-    const proxyAddress = await proxyServer.listen(0)
+    const proxyAddress = await proxyServer.listen({ port: 0 })
 
-    t.teardown(appServer.close.bind(appServer))
     t.teardown(proxyServer.close.bind(proxyServer))
+    t.teardown(appServer.close.bind(appServer))
 
     const resultRoot = await got(
       `${proxyAddress}/second-service?lang=en`
