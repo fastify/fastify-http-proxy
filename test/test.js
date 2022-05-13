@@ -665,7 +665,6 @@ async function run () {
       return `Hello World (foo) - lang = ${request.query.lang}`
     })
     const address = await appServer.listen({ port: 0 })
-    console.log(address)
 
     const proxyServer = Fastify()
     proxyServer.register(proxy, {
