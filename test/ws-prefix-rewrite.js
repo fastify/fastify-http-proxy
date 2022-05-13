@@ -28,7 +28,7 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
     await registerProxy(frontend)
   }
 
-  return [frontend, await frontend.listen(0)]
+  return [frontend, await frontend.listen({ port: 0 })]
 }
 
 async function processRequest (t, frontendURL, path, expected) {
@@ -80,7 +80,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
       }
     })
 
-    const backendURL = await backend.listen(0)
+    const backendURL = await backend.listen({ port: 0 })
 
     const [frontend, frontendURL] = await proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOptions)
 

@@ -28,7 +28,7 @@ test('proxy socket.io', async t => {
     websocket: true
   })
 
-  await srvProxy.listen(0)
+  await srvProxy.listen({ port: 0 })
 
   srvSocket.on('connection', socket => {
     socket.on('hello', data => {

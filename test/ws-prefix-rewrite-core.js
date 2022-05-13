@@ -30,7 +30,7 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
     await registerProxy(frontend)
   }
 
-  return [frontend, await frontend.listen(0)]
+  return [frontend, await frontend.listen({ port: 0, host: '127.0.0.1' })]
 }
 
 async function processRequest (t, frontendURL, path, expected) {
@@ -84,7 +84,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
 
     t.teardown(() => backend.close())
 
-    const backendURL = await backend.listen(0)
+    const backendURL = await backend.listen({ port: 0, host: '127.0.0.1' })
 
     const [frontend, frontendURL] = await proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOptions)
 
