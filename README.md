@@ -2,7 +2,6 @@
 
 ![CI](https://github.com/fastify/fastify-http-proxy/workflows/CI/badge.svg)
 [![NPM version](https://img.shields.io/npm/v/@fastify/http-proxy.svg?style=flat)](https://www.npmjs.com/package/@fastify/http-proxy)
-[![Known Vulnerabilities](https://snyk.io/test/github/fastify/fastify-http-proxy/badge.svg)](https://snyk.io/test/github/fastify/fastify-http-proxy)
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
 Proxy your HTTP requests to another server, with hooks.
