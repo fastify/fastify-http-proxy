@@ -204,7 +204,7 @@ async function httpProxy (fastify, opts) {
 }
 
 httpProxy[Symbol.for('plugin-meta')] = {
-  fastify: '^4.0.0',
+  fastify: '4.x',
   name: '@fastify/http-proxy'
 }
 
