@@ -424,6 +424,26 @@ async function run () {
     t.equal(firstProxyPrefix.body, 'this is /api2/a')
   })
 
+  test('rewritePrefix without prefix', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      rewritePrefix: '/api2'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/a`
+    )
+    t.equal(firstProxyPrefix.body, 'this is /api2/a')
+  })
+
   test('rewrite location headers', async t => {
     const proxyServer = Fastify()
 
