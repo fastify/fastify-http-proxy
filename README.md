@@ -62,6 +62,13 @@ server.register(proxy, {
   http2: false // optional
 })
 
+// /user will be proxied to http://single-signon.example.com/signon/user
+server.register(proxy, {
+  upstream: 'http://single-signon.example.com',
+  rewritePrefix: '/signon', // optional
+  http2: false // optional
+})
+
 server.listen(3000)
 ```
 

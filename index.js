@@ -120,11 +120,7 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
   }
 }
 
-function generateRewritePrefix (prefix, opts) {
-  if (!prefix) {
-    return ''
-  }
-
+function generateRewritePrefix (prefix = '', opts) {
   let rewritePrefix = opts.rewritePrefix || (opts.upstream ? new URL(opts.upstream).pathname : '/')
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
