@@ -8,9 +8,10 @@ const { createServer } = require('http')
 const { promisify } = require('util')
 const { once } = require('events')
 const cookieValue = 'foo=bar'
+const subprotocolValue = 'foo-subprotocol'
 
 test('basic websocket proxy', async (t) => {
-  t.plan(3)
+  t.plan(4)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
@@ -18,6 +19,7 @@ test('basic websocket proxy', async (t) => {
   t.teardown(origin.close.bind(origin))
 
   wss.on('connection', (ws, request) => {
+    t.equal(ws.protocol, subprotocolValue)
     t.equal(request.headers.cookie, cookieValue)
     ws.on('message', (message) => {
       t.equal(message.toString(), 'hello')
@@ -38,7 +40,7 @@ test('basic websocket proxy', async (t) => {
   t.teardown(server.close.bind(server))
 
   const options = { headers: { cookie: cookieValue } }
-  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, options)
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, [subprotocolValue], options)
 
   await once(ws, 'open')
 
@@ -47,7 +49,6 @@ test('basic websocket proxy', async (t) => {
   stream.write('hello')
 
   const [buf] = await once(stream, 'data')
-
   t.equal(buf.toString(), 'hello')
 
   await Promise.all([

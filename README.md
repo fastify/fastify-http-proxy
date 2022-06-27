@@ -165,6 +165,7 @@ A few things are missing:
 1. forwarding headers as well as `rewriteHeaders`. Note: Only cookie headers are being forwarded
 2. request id logging
 3. support `ignoreTrailingSlash`
+4. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
 
 Pull requests are welcome to finish this feature.
 
