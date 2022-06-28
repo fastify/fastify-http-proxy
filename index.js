@@ -42,7 +42,7 @@ function proxyWebSockets (source, target) {
     closeWebSocket(target, code, reason)
   }
 
-  source.on('message', data => waitConnection(target, () => target.send(data)))
+  source.on('message', (data, binary) => waitConnection(target, () => target.send(data, { binary })))
   source.on('ping', data => waitConnection(target, () => target.ping(data)))
   source.on('pong', data => waitConnection(target, () => target.pong(data)))
   source.on('close', close)
@@ -50,7 +50,7 @@ function proxyWebSockets (source, target) {
   source.on('unexpected-response', () => close(1011, 'unexpected response'))
 
   // source WebSocket is already connected because it is created by ws server
-  target.on('message', data => source.send(data))
+  target.on('message', (data, binary) => source.send(data, { binary }))
   target.on('ping', data => source.ping(data))
   target.on('pong', data => source.pong(data))
   target.on('close', close)

@@ -11,20 +11,21 @@ const cookieValue = 'foo=bar'
 const subprotocolValue = 'foo-subprotocol'
 
 test('basic websocket proxy', async (t) => {
-  t.plan(4)
+  t.plan(7)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
   t.teardown(wss.close.bind(wss))
   t.teardown(origin.close.bind(origin))
 
+  const serverMessages = []
   wss.on('connection', (ws, request) => {
     t.equal(ws.protocol, subprotocolValue)
     t.equal(request.headers.cookie, cookieValue)
-    ws.on('message', (message) => {
-      t.equal(message.toString(), 'hello')
+    ws.on('message', (message, binary) => {
+      serverMessages.push([message.toString(), binary])
       // echo
-      ws.send(message)
+      ws.send(message, { binary })
     })
   })
 
@@ -41,15 +42,22 @@ test('basic websocket proxy', async (t) => {
 
   const options = { headers: { cookie: cookieValue } }
   const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, [subprotocolValue], options)
-
   await once(ws, 'open')
 
-  const stream = WebSocket.createWebSocketStream(ws)
+  ws.send('hello', { binary: false })
+  const [reply0, binary0] = await once(ws, 'message')
+  t.equal(reply0.toString(), 'hello')
+  t.equal(binary0, false)
 
-  stream.write('hello')
+  ws.send(Buffer.from('fastify'), { binary: true })
+  const [reply1, binary1] = await once(ws, 'message')
+  t.equal(reply1.toString(), 'fastify')
+  t.equal(binary1, true)
 
-  const [buf] = await once(stream, 'data')
-  t.equal(buf.toString(), 'hello')
+  t.strictSame(serverMessages, [
+    ['hello', false],
+    ['fastify', true]
+  ])
 
   await Promise.all([
     once(ws, 'close'),
