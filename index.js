@@ -58,37 +58,76 @@ function proxyWebSockets (source, target) {
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
 
-function setupWebSocketProxy (fastify, options, rewritePrefix) {
-  const server = new WebSocket.Server({
-    server: fastify.server,
-    ...options.wsServerOptions
-  })
+class WebSocketProxy {
+  constructor (fastify, wsServerOptions) {
+    this.logger = fastify.log
 
-  fastify.addHook('onClose', (instance, done) => server.close(done))
+    const wss = new WebSocket.Server({
+      server: fastify.server,
+      ...wsServerOptions
+    })
 
-  // To be able to close the HTTP server,
-  // all WebSocket clients need to be disconnected.
-  // Fastify is missing a pre-close event, or the ability to
-  // add a hook before the server.close call. We need to resort
-  // to monkeypatching for now.
-  const oldClose = fastify.server.close
-  fastify.server.close = function (done) {
-    for (const client of server.clients) {
-      client.close()
+    // To be able to close the HTTP server,
+    // all WebSocket clients need to be disconnected.
+    // Fastify is missing a pre-close event, or the ability to
+    // add a hook before the server.close call. We need to resort
+    // to monkeypatching for now.
+    const oldClose = fastify.server.close
+    fastify.server.close = function (done) {
+      for (const client of wss.clients) {
+        client.close()
+      }
+      oldClose.call(this, done)
     }
-    oldClose.call(this, done)
+
+    wss.on('error', (err) => {
+      this.logger.error(err)
+    })
+
+    wss.on('connection', this.handleConnection.bind(this))
+
+    this.wss = wss
+    this.prefixList = []
   }
 
-  server.on('error', (err) => {
-    fastify.log.error(err)
-  })
+  close (done) {
+    this.wss.close(done)
+  }
 
-  server.on('connection', (source, request) => {
-    if (fastify.prefix && !request.url.startsWith(fastify.prefix)) {
-      fastify.log.debug({ url: request.url }, 'not matching prefix')
+  addUpstream (prefix, rewritePrefix, upstream, wsClientOptions) {
+    this.prefixList.push({
+      prefix: new URL(prefix, 'ws://127.0.0.1').pathname,
+      rewritePrefix,
+      upstream: convertUrlToWebSocket(upstream),
+      wsClientOptions
+    })
+
+    // sort by decreasing prefix length, so that findUpstreamUrl() does longest prefix match
+    this.prefixList.sort((a, b) => b.prefix.length - a.prefix.length)
+  }
+
+  findUpstream (request) {
+    const source = new URL(request.url, 'ws://127.0.0.1')
+
+    for (const { prefix, rewritePrefix, upstream, wsClientOptions } of this.prefixList) {
+      if (source.pathname.startsWith(prefix)) {
+        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
+        target.search = source.search
+        return { target, wsClientOptions }
+      }
+    }
+
+    return undefined
+  }
+
+  handleConnection (source, request) {
+    const upstream = this.findUpstream(request)
+    if (!upstream) {
+      this.logger.debug({ url: request.url }, 'not matching prefix')
       source.close()
       return
     }
+    const { target: url, wsClientOptions } = upstream
 
     const subprotocols = []
     if (source.protocol) {
@@ -98,31 +137,32 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     let optionsWs = {}
     if (request.headers.cookie) {
       const headers = { cookie: request.headers.cookie }
-      optionsWs = { ...options.wsClientOptions, headers }
+      optionsWs = { ...wsClientOptions, headers }
     } else {
-      optionsWs = options.wsClientOptions
+      optionsWs = wsClientOptions
     }
 
-    const url = createWebSocketUrl(request)
-
     const target = new WebSocket(url, subprotocols, optionsWs)
-
-    fastify.log.debug({ url: url.href }, 'proxy websocket')
+    this.logger.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)
-  })
-
-  function createWebSocketUrl (request) {
-    const source = new URL(request.url, 'ws://127.0.0.1')
-
-    const target = new URL(
-      source.pathname.replace(fastify.prefix, rewritePrefix),
-      convertUrlToWebSocket(options.upstream)
-    )
-
-    target.search = source.search
-
-    return target
   }
+}
+
+const httpWss = new WeakMap() // http.Server => WebSocketProxy
+
+function setupWebSocketProxy (fastify, options, rewritePrefix) {
+  let wsProxy = httpWss.get(fastify.server)
+  if (!wsProxy) {
+    wsProxy = new WebSocketProxy(fastify, options.wsServerOptions)
+    httpWss.set(fastify.server, wsProxy)
+
+    fastify.addHook('onClose', (instance, done) => {
+      httpWss.delete(fastify.server)
+      wsProxy.close(done)
+    })
+  }
+
+  wsProxy.addUpstream(fastify.prefix, rewritePrefix, options.upstream, options.wsClientOptions)
 }
 
 function generateRewritePrefix (prefix = '', opts) {

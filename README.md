@@ -160,6 +160,10 @@ An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HE
 This module has _partial_ support for forwarding websockets by passing a
 `websocket` option. All those options are going to be forwarded to
 [`@fastify/websocket`](https://github.com/fastify/fastify-websocket).
+
+Multiple websocket proxies may be attached to the same HTTP server at different paths.
+In this case, only the first `wsServerOptions` is applied.
+
 A few things are missing:
 
 1. forwarding headers as well as `rewriteHeaders`. Note: Only cookie headers are being forwarded
