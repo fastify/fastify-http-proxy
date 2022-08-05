@@ -25,7 +25,7 @@ async function startOrigin () {
     throw new Error('kaboom')
   })
 
-  await origin.listen(0)
+  await origin.listen()
 
   return origin
 }
@@ -37,7 +37,7 @@ async function startProxy (upstream) {
     prefix: '/upstream' // optional
   })
 
-  await server.listen(3000)
+  await server.listen({ port: 3000 })
   return server
 }
 

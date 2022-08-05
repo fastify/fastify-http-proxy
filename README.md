@@ -35,7 +35,7 @@ server.register(require('@fastify/http-proxy'), {
   http2: false // optional
 })
 
-server.listen(3000)
+server.listen({ port: 3000 })
 ```
 
 This will proxy any request starting with `/api` to `http://my-api.example.com`. For instance `http://localhost:3000/api/users` will be proxied to `http://my-api.example.com/users`.
@@ -69,7 +69,7 @@ server.register(proxy, {
   http2: false // optional
 })
 
-server.listen(3000)
+server.listen({ port: 3000 })
 ```
 
 Notice that in this case it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
@@ -98,7 +98,7 @@ server.register(proxy, {
 })
 
 
-server.listen(3000);
+server.listen({ port: 3000 });
 ```
 
 ## Options
