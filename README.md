@@ -15,7 +15,8 @@ This plugin can be used in a variety of circumstances, for example if you have t
 
 ## Requirements
 
-Fastify 3.x. See [this branch](https://github.com/fastify/fastify-http-proxy/tree/1.x) and related versions for Fastify 1.x compatibility and [this tag](https://github.com/fastify/fastify-http-proxy/tree/v3.2.0) for Fastify 2.x.
+Fastify 4.x.
+See [@fastify/http-proxy v7.x](https://github.com/fastify/fastify-http-proxy/tree/7.x) for Fastify 3.x compatibility.
 
 ## Install
 
