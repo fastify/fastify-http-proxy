@@ -21,7 +21,7 @@ async function startOrigin () {
     throw new Error('kaboom')
   })
 
-  await origin.listen(3001)
+  await origin.listen({ port: 3001 })
 
   return origin
 }
