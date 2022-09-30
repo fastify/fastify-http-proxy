@@ -387,7 +387,10 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/api',
       replyOptions: {
-        rewriteHeaders: headers => Object.assign({ 'x-test': 'test' }, headers)
+        rewriteHeaders: (headers, req) => Object.assign({
+          'x-test': 'test',
+          'x-req': req.headers['x-req']
+        }, headers)
       }
     })
 
@@ -397,10 +400,13 @@ async function run () {
       proxyServer.close()
     })
 
-    const { headers } = await got(
-      `http://localhost:${proxyServer.server.address().port}/api`
-    )
-    t.match(headers, { 'x-test': 'test' })
+    const { headers } = await got({
+      url: `http://localhost:${proxyServer.server.address().port}/api`,
+      headers: {
+        'x-req': 'from-header'
+      }
+    })
+    t.match(headers, { 'x-test': 'test', 'x-req': 'from-header' })
   })
 
   test('rewritePrefix', async t => {
