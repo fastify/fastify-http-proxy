@@ -200,13 +200,13 @@ async function httpProxy (fastify, opts) {
     fastify.addContentTypeParser('*', bodyParser)
   }
 
-  function rewriteHeaders (headers) {
+  function rewriteHeaders (headers, req) {
     const location = headers.location
     if (location && !isExternalUrl(location)) {
       headers.location = location.replace(rewritePrefix, fastify.prefix)
     }
     if (oldRewriteHeaders) {
-      headers = oldRewriteHeaders(headers)
+      headers = oldRewriteHeaders(headers, req)
     }
     return headers
   }
