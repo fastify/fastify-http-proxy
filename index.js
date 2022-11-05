@@ -108,7 +108,6 @@ class WebSocketProxy {
 
   findUpstream (request) {
     const source = new URL(request.url, 'ws://127.0.0.1')
-
     for (const { prefix, rewritePrefix, upstream, wsClientOptions } of this.prefixList) {
       if (source.pathname.startsWith(prefix)) {
         const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
@@ -162,7 +161,18 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     })
   }
 
-  wsProxy.addUpstream(fastify.prefix, rewritePrefix, options.upstream, options.wsClientOptions)
+  if (options.upstream !== '') {
+    wsProxy.addUpstream(fastify.prefix, rewritePrefix, options.upstream, options.wsClientOptions)
+  } else if (typeof options.replyOptions.getUpstream === 'function') {
+    wsProxy.findUpstream = function (request) {
+      const source = new URL(request.url, 'ws://127.0.0.1')
+      const upstream = options.replyOptions.getUpstream(request, '')
+      const target = new URL(source.pathname, upstream)
+      target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
+      target.search = source.search
+      return { target, wsClientOptions: options.wsClientOptions }
+    }
+  }
 }
 
 function generateRewritePrefix (prefix = '', opts) {

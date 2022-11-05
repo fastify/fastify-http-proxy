@@ -66,6 +66,9 @@ async function run () {
     const server = Fastify()
     server.register(proxy, {
       upstream: '',
+      getWebSocketUpstream () {
+        t.fail('should never be called')
+      },
       replyOptions: {
         getUpstream: function (original, base) {
           return `http://localhost:${origin.server.address().port}`
