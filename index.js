@@ -167,7 +167,8 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     wsProxy.findUpstream = function (request) {
       const source = new URL(request.url, 'ws://127.0.0.1')
       const upstream = options.replyOptions.getUpstream(request, '')
-      const target = new URL(source.pathname, upstream)
+      const isIpc = upstream.indexOf('ws+unix:') === 0 || upstream.indexOf('wss+unix:') === 0
+      const target = isIpc ? new URL(upstream) : new URL(source.pathname, upstream)
       target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
       target.search = source.search
       return { target, wsClientOptions: options.wsClientOptions }
