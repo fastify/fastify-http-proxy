@@ -187,7 +187,7 @@ test('getWebSocketStream', async (t) => {
   ])
 })
 
-test('WebSocket getUpstream with ipc', async (t) => {
+test('WebSocket getUpstream with ipc', { skip: process.platform === 'win32' }, async (t) => {
   t.plan(7)
 
   const origin = createServer()
