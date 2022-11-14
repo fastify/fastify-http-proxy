@@ -1,3 +1,5 @@
+'use strict'
+
 const Fastify = require('fastify')
 const proxy = require('..')
 const { WebSocketServer, WebSocket } = require('ws')
