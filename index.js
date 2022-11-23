@@ -12,7 +12,7 @@ function liftErrorCode (code) {
     return 1011
   } else if (code === 1004 || code === 1005 || code === 1006) {
     // ws module forbid those error codes usage, lift to "application level" (4xxx)
-    return 4000 + (code % 1000)
+    return 3000 + code
   } else {
     return code
   }
