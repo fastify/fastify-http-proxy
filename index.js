@@ -12,7 +12,7 @@ function liftErrorCode (code) {
     return 1011
   } else if (code === 1004 || code === 1005 || code === 1006) {
     // ws module forbid those error codes usage, lift to "application level" (4xxx)
-    return 4000 + (code % 1000)
+    return 3000 + code
   } else {
     return code
   }
@@ -186,7 +186,7 @@ function generateRewritePrefix (prefix = '', opts) {
   return rewritePrefix
 }
 
-async function httpProxy (fastify, opts) {
+async function fastifyHttpProxy (fastify, opts) {
   if (!opts.upstream && !(opts.upstream === '' && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
     throw new Error('upstream must be specified')
   }
@@ -262,11 +262,11 @@ async function httpProxy (fastify, opts) {
   }
 }
 
-httpProxy[Symbol.for('plugin-meta')] = {
+fastifyHttpProxy[Symbol.for('plugin-meta')] = {
   fastify: '4.x',
   name: '@fastify/http-proxy'
 }
 
-module.exports = httpProxy
-module.exports.default = httpProxy
-module.exports.fastifyHttpProxy = httpProxy
+module.exports = fastifyHttpProxy
+module.exports.default = fastifyHttpProxy
+module.exports.fastifyHttpProxy = fastifyHttpProxy

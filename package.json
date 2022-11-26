@@ -3,7 +3,7 @@
   "version": "8.2.3",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
-  "types": "index.d.ts",
+  "types": "types/index.d.ts",
   "scripts": {
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix | snazzy",
