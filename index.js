@@ -266,11 +266,5 @@ module.exports = fp(fastifyHttpProxy, {
   fastify: '4.x',
   name: '@fastify/http-proxy'
 })
-module.exports.default = fp(fastifyHttpProxy, {
-  fastify: '4.x',
-  name: '@fastify/http-proxy'
-})
-module.exports.fastifyHttpProxy = fp(fastifyHttpProxy, {
-  fastify: '4.x',
-  name: '@fastify/http-proxy'
-})
+module.exports.default = fastifyHttpProxy
+module.exports.fastifyHttpProxy = fastifyHttpProxy
