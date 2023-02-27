@@ -2,6 +2,7 @@
 const From = require('@fastify/reply-from')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
+const fp = require('fastify-plugin')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
@@ -261,11 +262,10 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 }
 
-fastifyHttpProxy[Symbol.for('plugin-meta')] = {
+module.exports = fp(fastifyHttpProxy, {
   fastify: '4.x',
-  name: '@fastify/http-proxy'
-}
-
-module.exports = fastifyHttpProxy
+  name: '@fastify/http-proxy',
+  encapsulate: true
+})
 module.exports.default = fastifyHttpProxy
 module.exports.fastifyHttpProxy = fastifyHttpProxy
