@@ -264,7 +264,8 @@ async function fastifyHttpProxy (fastify, opts) {
 
 module.exports = fp(fastifyHttpProxy, {
   fastify: '4.x',
-  name: '@fastify/http-proxy'
+  name: '@fastify/http-proxy',
+  encapsulate: true
 })
 module.exports.default = fastifyHttpProxy
 module.exports.fastifyHttpProxy = fastifyHttpProxy
