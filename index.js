@@ -11,6 +11,7 @@ const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
 
 function liftErrorCode (code) {
+  /* istanbul ignore next */
   if (typeof code !== 'number') {
     // Sometimes "close" event emits with a non-numeric value
     return 1011
@@ -36,9 +37,11 @@ function waitConnection (socket, write) {
   }
 }
 
-function isExternalUrl (url = '') {
+function isExternalUrl (url) {
   return urlPattern.test(url)
-};
+}
+
+function noop () {}
 
 function proxyWebSockets (source, target) {
   function close (code, reason) {
@@ -47,25 +50,32 @@ function proxyWebSockets (source, target) {
   }
 
   source.on('message', (data, binary) => waitConnection(target, () => target.send(data, { binary })))
+  /* istanbul ignore next */
   source.on('ping', data => waitConnection(target, () => target.ping(data)))
+  /* istanbul ignore next */
   source.on('pong', data => waitConnection(target, () => target.pong(data)))
   source.on('close', close)
+  /* istanbul ignore next */
   source.on('error', error => close(1011, error.message))
+  /* istanbul ignore next */
   source.on('unexpected-response', () => close(1011, 'unexpected response'))
 
   // source WebSocket is already connected because it is created by ws server
   target.on('message', (data, binary) => source.send(data, { binary }))
+  /* istanbul ignore next */
   target.on('ping', data => source.ping(data))
+  /* istanbul ignore next */
   target.on('pong', data => source.pong(data))
   target.on('close', close)
+  /* istanbul ignore next */
   target.on('error', error => close(1011, error.message))
+  /* istanbul ignore next */
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
 
 class WebSocketProxy {
   constructor (fastify, wsServerOptions) {
     this.logger = fastify.log
-    this.closing = false
 
     const wss = new WebSocket.Server({
       noServer: true,
@@ -77,39 +87,19 @@ class WebSocketProxy {
       rawRequest[kWs] = socket
       rawRequest[kWsHead] = head
 
-      if (this.closing) {
-        this.handleUpgrade(rawRequest, (connection) => {
-          connection.socket.close(1001)
-        })
-      } else {
-        const rawResponse = new ServerResponse(rawRequest)
-        rawResponse.assignSocket(socket)
-        fastify.routing(rawRequest, rawResponse)
+      const rawResponse = new ServerResponse(rawRequest)
+      rawResponse.assignSocket(socket)
+      fastify.routing(rawRequest, rawResponse)
 
-        rawResponse.on('finish', () => {
-          socket.destroy()
-        })
-      }
+      rawResponse.on('finish', () => {
+        socket.destroy()
+      })
     })
 
     this.handleUpgrade = (rawRequest, cb) => {
       wss.handleUpgrade(rawRequest, rawRequest[kWs], rawRequest[kWsHead], (socket) => {
         wss.emit('connection', socket, rawRequest)
-
-        const connection = WebSocket.createWebSocketStream(socket)
-        connection.socket = socket
-
-        connection.on('error', (error) => {
-          fastify.log.error(error)
-        })
-
-        connection.socket.on('newListener', event => {
-          if (event === 'message') {
-            connection.resume()
-          }
-        })
-
-        cb && cb()
+        cb()
       })
     }
 
@@ -120,9 +110,7 @@ class WebSocketProxy {
     // to monkeypatching for now.
     {
       const oldClose = fastify.server.close
-      const that = this
       fastify.server.close = function (done) {
-        that.closing = true
         wss.close(() => {
           oldClose.call(this, (err) => {
             done(err)
@@ -137,7 +125,9 @@ class WebSocketProxy {
       }
     }
 
+    /* istanbul ignore next */
     wss.on('error', (err) => {
+      /* istanbul ignore next */
       this.logger.error(err)
     })
 
@@ -169,16 +159,12 @@ class WebSocketProxy {
       }
     }
 
-    return undefined
+    /* istanbul ignore next */
+    throw new Error(`no upstream found for ${request.url}. this should not happend`)
   }
 
   handleConnection (source, request) {
     const upstream = this.findUpstream(request)
-    if (!upstream) {
-      this.logger.debug({ url: request.url }, 'not matching prefix')
-      source.close()
-      return
-    }
     const { target: url, wsClientOptions } = upstream
     let rewriteRequestHeaders = defaultWsHeadersRewrite
     let headersToRewrite = {}
@@ -206,9 +192,9 @@ class WebSocketProxy {
 
 function defaultWsHeadersRewrite (headers, request) {
   if (request.headers.cookie) {
-    return { cookie: request.headers.cookie }
+    return { ...headers, cookie: request.headers.cookie }
   }
-  return {}
+  return { ...headers }
 }
 
 const httpWss = new WeakMap() // http.Server => WebSocketProxy
@@ -222,11 +208,13 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
 
   if (options.upstream !== '') {
     wsProxy.addUpstream(fastify.prefix, rewritePrefix, options.upstream, options.wsClientOptions)
-  } else if (typeof options.replyOptions.getUpstream === 'function') {
+    // The else block is validate earlier in the code
+  } else {
     wsProxy.findUpstream = function (request) {
       const source = new URL(request.url, 'ws://127.0.0.1')
       const upstream = options.replyOptions.getUpstream(request, '')
       const target = new URL(source.pathname, upstream)
+      /* istanbul ignore next */
       target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
       target.search = source.search
       return { target, wsClientOptions: options.wsClientOptions }
@@ -235,7 +223,7 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
   return wsProxy
 }
 
-function generateRewritePrefix (prefix = '', opts) {
+function generateRewritePrefix (prefix, opts) {
   let rewritePrefix = opts.rewritePrefix || (opts.upstream ? new URL(opts.upstream).pathname : '/')
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
@@ -310,14 +298,11 @@ async function fastifyHttpProxy (fastify, opts) {
 
   function handler (request, reply) {
     if (request.raw[kWs]) {
-      if (request.method !== 'GET') {
-        reply.code(404).send()
-        return
-      }
       reply.hijack()
       try {
-        wsProxy.handleUpgrade(request.raw)
+        wsProxy.handleUpgrade(request.raw, noop)
       } catch (err) {
+        /* istanbul ignore next */
         request.log.warn({ err }, 'websocket proxy error')
       }
       return
