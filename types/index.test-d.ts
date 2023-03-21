@@ -30,7 +30,7 @@ app.register(fastifyHttpProxy, {
     connections: 128,
     pipelining: 1,
     keepAliveTimeout: 60 * 1000,
-    tls: {
+    connect: {
       rejectUnauthorized: false
     }
   },
