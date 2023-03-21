@@ -1,11 +1,14 @@
 'use strict'
 const From = require('@fastify/reply-from')
+const { ServerResponse } = require('http')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 const fp = require('fastify-plugin')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
+const kWs = Symbol('ws')
+const kWsHead = Symbol('wsHead')
 
 function liftErrorCode (code) {
   if (typeof code !== 'number') {
@@ -62,23 +65,76 @@ function proxyWebSockets (source, target) {
 class WebSocketProxy {
   constructor (fastify, wsServerOptions) {
     this.logger = fastify.log
+    this.closing = false
 
     const wss = new WebSocket.Server({
-      server: fastify.server,
+      noServer: true,
       ...wsServerOptions
     })
+
+    fastify.server.on('upgrade', (rawRequest, socket, head) => {
+      // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
+      rawRequest[kWs] = socket
+      rawRequest[kWsHead] = head
+
+      if (this.closing) {
+        this.handleUpgrade(rawRequest, (connection) => {
+          connection.socket.close(1001)
+        })
+      } else {
+        const rawResponse = new ServerResponse(rawRequest)
+        rawResponse.assignSocket(socket)
+        fastify.routing(rawRequest, rawResponse)
+
+        rawResponse.on('finish', () => {
+          socket.destroy()
+        })
+      }
+    })
+
+    this.handleUpgrade = (rawRequest, cb) => {
+      wss.handleUpgrade(rawRequest, rawRequest[kWs], rawRequest[kWsHead], (socket) => {
+        wss.emit('connection', socket, rawRequest)
+
+        const connection = WebSocket.createWebSocketStream(socket)
+        connection.socket = socket
+
+        connection.on('error', (error) => {
+          fastify.log.error(error)
+        })
+
+        connection.socket.on('newListener', event => {
+          if (event === 'message') {
+            connection.resume()
+          }
+        })
+
+        cb && cb()
+      })
+    }
 
     // To be able to close the HTTP server,
     // all WebSocket clients need to be disconnected.
     // Fastify is missing a pre-close event, or the ability to
     // add a hook before the server.close call. We need to resort
     // to monkeypatching for now.
-    const oldClose = fastify.server.close
-    fastify.server.close = function (done) {
-      for (const client of wss.clients) {
-        client.close()
+    {
+      const oldClose = fastify.server.close
+      const that = this
+      fastify.server.close = function (done) {
+        that.closing = true
+        wss.close(() => {
+          oldClose.call(this, (err) => {
+            done(err)
+          })
+        })
+        if (wss.clients.size === 0) {
+          return
+        }
+        for (const client of wss.clients) {
+          client.close()
+        }
       }
-      oldClose.call(this, done)
     }
 
     wss.on('error', (err) => {
@@ -89,10 +145,6 @@ class WebSocketProxy {
 
     this.wss = wss
     this.prefixList = []
-  }
-
-  close (done) {
-    this.wss.close(done)
   }
 
   addUpstream (prefix, rewritePrefix, upstream, wsClientOptions) {
@@ -128,24 +180,35 @@ class WebSocketProxy {
       return
     }
     const { target: url, wsClientOptions } = upstream
+    let rewriteRequestHeaders = defaultWsHeadersRewrite
+    let headersToRewrite = {}
+
+    if (wsClientOptions && wsClientOptions.headers) {
+      headersToRewrite = wsClientOptions.headers
+    }
+    if (wsClientOptions && wsClientOptions.rewriteRequestHeaders) {
+      rewriteRequestHeaders = wsClientOptions.rewriteRequestHeaders
+    }
 
     const subprotocols = []
     if (source.protocol) {
       subprotocols.push(source.protocol)
     }
 
-    let optionsWs = {}
-    if (request.headers.cookie) {
-      const headers = { cookie: request.headers.cookie }
-      optionsWs = { ...wsClientOptions, headers }
-    } else {
-      optionsWs = wsClientOptions
-    }
+    const headers = rewriteRequestHeaders(headersToRewrite, request)
+    const optionsWs = { ...(wsClientOptions || {}), headers }
 
     const target = new WebSocket(url, subprotocols, optionsWs)
     this.logger.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)
   }
+}
+
+function defaultWsHeadersRewrite (headers, request) {
+  if (request.headers.cookie) {
+    return { cookie: request.headers.cookie }
+  }
+  return {}
 }
 
 const httpWss = new WeakMap() // http.Server => WebSocketProxy
@@ -155,11 +218,6 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
   if (!wsProxy) {
     wsProxy = new WebSocketProxy(fastify, options.wsServerOptions)
     httpWss.set(fastify.server, wsProxy)
-
-    fastify.addHook('onClose', (instance, done) => {
-      httpWss.delete(fastify.server)
-      wsProxy.close(done)
-    })
   }
 
   if (options.upstream !== '') {
@@ -174,6 +232,7 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
       return { target, wsClientOptions: options.wsClientOptions }
     }
   }
+  return wsProxy
 }
 
 function generateRewritePrefix (prefix = '', opts) {
@@ -243,7 +302,26 @@ async function fastifyHttpProxy (fastify, opts) {
     handler
   })
 
+  let wsProxy
+
+  if (opts.websocket) {
+    wsProxy = setupWebSocketProxy(fastify, opts, rewritePrefix)
+  }
+
   function handler (request, reply) {
+    if (request.raw[kWs]) {
+      if (request.method !== 'GET') {
+        reply.code(404).send()
+        return
+      }
+      reply.hijack()
+      try {
+        wsProxy.handleUpgrade(request.raw)
+      } catch (err) {
+        request.log.warn({ err }, 'websocket proxy error')
+      }
+      return
+    }
     const queryParamIndex = request.raw.url.indexOf('?')
     let dest = request.raw.url.slice(0, queryParamIndex !== -1 ? queryParamIndex : undefined)
 
@@ -255,10 +333,6 @@ async function fastifyHttpProxy (fastify, opts) {
       dest = dest.replace(this.prefix, rewritePrefix)
     }
     reply.from(dest || '/', replyOpts)
-  }
-
-  if (opts.websocket) {
-    setupWebSocketProxy(fastify, opts, rewritePrefix)
   }
 }
 

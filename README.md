@@ -159,21 +159,26 @@ An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HE
 ## websocket
 
 This module has _partial_ support for forwarding websockets by passing a
-`websocket` option. All those options are going to be forwarded to
-[`@fastify/websocket`](https://github.com/fastify/fastify-websocket).
+`websocket` option. 
 
 Multiple websocket proxies may be attached to the same HTTP server at different paths.
 In this case, only the first `wsServerOptions` is applied.
 
 A few things are missing:
 
-1. forwarding headers as well as `rewriteHeaders`. Note: Only cookie headers are being forwarded
-2. request id logging
-3. support `ignoreTrailingSlash`
-4. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
+1. request id logging
+2. support `ignoreTrailingSlash`
+3. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
 
 Pull requests are welcome to finish this feature.
 
+## `wsClientOptions`
+
+When specified `wsClientOptions` , the object is passed throught to the [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocket).
+
+It also support an additional `rewriteRequestHeaders(headers, request)` function that can be used to write the headers before
+opening the WebSocket connection. This function should return an object with the given headers.
+The default implementation forwards the `cookie` header.
 
 ## Benchmarks
 
@@ -189,8 +194,9 @@ The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
 
 ## TODO
+
 * [ ] Perform validations for incoming data
-* [ ] Finish implementing websocket (follow TODO)
+* [ ] Finish implementing websocket
 
 ## License
 
