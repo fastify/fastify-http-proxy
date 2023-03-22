@@ -126,8 +126,8 @@ test('captures errors on start', async (t) => {
   t.teardown(app2.close.bind(app2))
 })
 
-test('getWebSocketStream', async (t) => {
-  t.plan(7)
+test('getUpstream', async (t) => {
+  t.plan(9)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
@@ -148,10 +148,18 @@ test('getWebSocketStream', async (t) => {
   await promisify(origin.listen.bind(origin))({ port: 0 })
 
   const server = Fastify()
+
+  let _req
+
+  server.server.on('upgrade', (req) => {
+    _req = req
+  })
   server.register(proxy, {
     upstream: '',
     replyOptions: {
-      getUpstream: function (original, base) {
+      getUpstream: function (original) {
+        t.not(original, _req)
+        t.equal(original.raw, _req)
         return `http://localhost:${origin.address().port}`
       }
     },
@@ -184,4 +192,218 @@ test('getWebSocketStream', async (t) => {
     once(ws, 'close'),
     server.close()
   ])
+})
+
+test('websocket proxy trigger hooks', async (t) => {
+  t.plan(8)
+
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.teardown(wss.close.bind(wss))
+  t.teardown(origin.close.bind(origin))
+
+  const serverMessages = []
+  wss.on('connection', (ws, request) => {
+    t.equal(ws.protocol, subprotocolValue)
+    t.equal(request.headers.cookie, cookieValue)
+    ws.on('message', (message, binary) => {
+      serverMessages.push([message.toString(), binary])
+      // echo
+      ws.send(message, { binary })
+    })
+  })
+
+  await promisify(origin.listen.bind(origin))({ port: 0 })
+
+  const server = Fastify()
+  server.addHook('onRequest', (request, reply, done) => {
+    t.pass('onRequest')
+    done()
+  })
+  server.register(proxy, {
+    upstream: `ws://localhost:${origin.address().port}`,
+    websocket: true
+  })
+
+  await server.listen({ port: 0 })
+  t.teardown(server.close.bind(server))
+
+  const options = { headers: { cookie: cookieValue } }
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, [subprotocolValue], options)
+  await once(ws, 'open')
+
+  ws.send('hello', { binary: false })
+  const [reply0, binary0] = await once(ws, 'message')
+  t.equal(reply0.toString(), 'hello')
+  t.equal(binary0, false)
+
+  ws.send(Buffer.from('fastify'), { binary: true })
+  const [reply1, binary1] = await once(ws, 'message')
+  t.equal(reply1.toString(), 'fastify')
+  t.equal(binary1, true)
+
+  t.strictSame(serverMessages, [
+    ['hello', false],
+    ['fastify', true]
+  ])
+
+  await Promise.all([
+    once(ws, 'close'),
+    server.close()
+  ])
+})
+
+test('websocket proxy with rewriteRequestHeaders', async (t) => {
+  t.plan(7)
+
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.teardown(wss.close.bind(wss))
+  t.teardown(origin.close.bind(origin))
+
+  const serverMessages = []
+  wss.on('connection', (ws, request) => {
+    t.equal(ws.protocol, subprotocolValue)
+    t.equal(request.headers.myauth, 'myauth')
+    ws.on('message', (message, binary) => {
+      serverMessages.push([message.toString(), binary])
+      // echo
+      ws.send(message, { binary })
+    })
+  })
+
+  await promisify(origin.listen.bind(origin))({ port: 0 })
+
+  const server = Fastify()
+  server.register(proxy, {
+    upstream: `ws://localhost:${origin.address().port}`,
+    websocket: true,
+    wsClientOptions: {
+      rewriteRequestHeaders: (headers, request) => {
+        return {
+          ...headers,
+          myauth: 'myauth'
+        }
+      }
+    }
+  })
+
+  await server.listen({ port: 0 })
+  t.teardown(server.close.bind(server))
+
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, [subprotocolValue])
+  await once(ws, 'open')
+
+  ws.send('hello', { binary: false })
+  const [reply0, binary0] = await once(ws, 'message')
+  t.equal(reply0.toString(), 'hello')
+  t.equal(binary0, false)
+
+  ws.send(Buffer.from('fastify'), { binary: true })
+  const [reply1, binary1] = await once(ws, 'message')
+  t.equal(reply1.toString(), 'fastify')
+  t.equal(binary1, true)
+
+  t.strictSame(serverMessages, [
+    ['hello', false],
+    ['fastify', true]
+  ])
+
+  await Promise.all([
+    once(ws, 'close'),
+    server.close()
+  ])
+})
+
+test('websocket proxy custom headers', async (t) => {
+  t.plan(7)
+
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.teardown(wss.close.bind(wss))
+  t.teardown(origin.close.bind(origin))
+
+  const serverMessages = []
+  wss.on('connection', (ws, request) => {
+    t.equal(ws.protocol, subprotocolValue)
+    t.equal(request.headers.myauth, 'myauth')
+    ws.on('message', (message, binary) => {
+      serverMessages.push([message.toString(), binary])
+      // echo
+      ws.send(message, { binary })
+    })
+  })
+
+  await promisify(origin.listen.bind(origin))({ port: 0 })
+
+  const server = Fastify()
+  server.register(proxy, {
+    upstream: `ws://localhost:${origin.address().port}`,
+    websocket: true,
+    wsClientOptions: {
+      headers: {
+        myauth: 'myauth'
+      }
+    }
+  })
+
+  await server.listen({ port: 0 })
+  t.teardown(server.close.bind(server))
+
+  const ws = new WebSocket(`ws://localhost:${server.server.address().port}`, [subprotocolValue])
+  await once(ws, 'open')
+
+  ws.send('hello', { binary: false })
+  const [reply0, binary0] = await once(ws, 'message')
+  t.equal(reply0.toString(), 'hello')
+  t.equal(binary0, false)
+
+  ws.send(Buffer.from('fastify'), { binary: true })
+  const [reply1, binary1] = await once(ws, 'message')
+  t.equal(reply1.toString(), 'fastify')
+  t.equal(binary1, true)
+
+  t.strictSame(serverMessages, [
+    ['hello', false],
+    ['fastify', true]
+  ])
+
+  await Promise.all([
+    once(ws, 'close'),
+    server.close()
+  ])
+})
+
+test('Should gracefully close when clients attempt to connect after calling close', async (t) => {
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.teardown(wss.close.bind(wss))
+  t.teardown(origin.close.bind(origin))
+
+  await promisify(origin.listen.bind(origin))({ port: 0 })
+
+  const server = Fastify({ logger: false })
+  await server.register(proxy, {
+    upstream: `ws://localhost:${origin.address().port}`,
+    websocket: true
+  })
+
+  const oldClose = server.server.close
+  let p
+  server.server.close = function (cb) {
+    const ws = new WebSocket('ws://localhost:' + server.server.address().port)
+
+    p = once(ws, 'unexpected-response').then(([req, res]) => {
+      t.equal(res.statusCode, 503)
+      oldClose.call(this, cb)
+    })
+  }
+
+  await server.listen({ port: 0 })
+
+  const ws = new WebSocket('ws://localhost:' + server.server.address().port)
+
+  await once(ws, 'open')
+  await server.close()
+  await p
 })

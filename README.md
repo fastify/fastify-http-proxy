@@ -110,26 +110,26 @@ This `fastify` plugin supports _all_ the options of
 *Note that this plugin is fully encapsulated, and non-JSON payloads will
 be streamed directly to the destination.*
 
-### upstream
+### `upstream`
 
 An URL (including protocol) that represents the target server to use for proxying.
 
-### prefix
+### `prefix`
 
 The prefix to mount this plugin on. All the requests to the current server starting with the given prefix will be proxied to the provided upstream.
 
 The prefix will be removed from the URL when forwarding the HTTP
 request.
 
-### rewritePrefix
+### `rewritePrefix`
 
 Rewrite the prefix to the specified string. Default: `''`.
 
-### preHandler
+### `preHandler`
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
-### proxyPayloads
+### `proxyPayloads`
 
 When this option is `false`, you will be able to access the body but it will also disable direct pass through of the payload. As a result, it is left up to the implementation to properly parse and proxy the payload correctly.
 
@@ -142,38 +142,47 @@ fastify.addContentTypeParser('application/xml', (req, done) => {
 })
 ```
 
-### config
+### `config`
 
 An object accessible within the `preHandler` via `reply.context.config`.
 See [Config](https://www.fastify.io/docs/v4.8.x/Reference/Routes/#config) in the Fastify
 documentation for information on this option. Note: this is merged with other
 configuration passed to the route.
 
-### replyOptions
+### `replyOptions`
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `@fastify/reply-from`.
 
-### httpMethods
+### `httpMethods`
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
-## websocket
+### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a
-`websocket` option. All those options are going to be forwarded to
-[`@fastify/websocket`](https://github.com/fastify/fastify-websocket).
-
-Multiple websocket proxies may be attached to the same HTTP server at different paths.
-In this case, only the first `wsServerOptions` is applied.
+`websocket` boolean option. 
 
 A few things are missing:
 
-1. forwarding headers as well as `rewriteHeaders`. Note: Only cookie headers are being forwarded
-2. request id logging
-3. support `ignoreTrailingSlash`
-4. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
+1. request id logging
+2. support `ignoreTrailingSlash`
+3. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
 
 Pull requests are welcome to finish this feature.
 
+### `wsServerOptions`
+
+The options passed to [`new ws.Server()`](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocketserver).
+
+In case multiple websocket proxies are attached to the same HTTP server at different paths.
+In this case, only the first `wsServerOptions` is applied.
+
+### `wsClientOptions`
+
+The options passed to the [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocket) for outgoing websockets.
+
+It also supports an additional `rewriteRequestHeaders(headers, request)` function that can be used to write the headers before
+opening the WebSocket connection. This function should return an object with the given headers.
+The default implementation forwards the `cookie` header.
 
 ## Benchmarks
 
@@ -189,8 +198,9 @@ The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
 
 ## TODO
+
 * [ ] Perform validations for incoming data
-* [ ] Finish implementing websocket (follow TODO)
+* [ ] Finish implementing websocket
 
 ## License
 
