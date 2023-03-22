@@ -162,15 +162,8 @@ class WebSocketProxy {
   handleConnection (source, request) {
     const upstream = this.findUpstream(request)
     const { target: url, wsClientOptions } = upstream
-    let rewriteRequestHeaders = defaultWsHeadersRewrite
-    let headersToRewrite = {}
-
-    if (wsClientOptions && wsClientOptions.headers) {
-      headersToRewrite = wsClientOptions.headers
-    }
-    if (wsClientOptions && wsClientOptions.rewriteRequestHeaders) {
-      rewriteRequestHeaders = wsClientOptions.rewriteRequestHeaders
-    }
+    const rewriteRequestHeaders = wsClientOptions?.rewriteRequestHeaders || defaultWsHeadersRewrite
+    const headersToRewrite = wsClientOptions?.headers || {}
 
     const subprotocols = []
     if (source.protocol) {
