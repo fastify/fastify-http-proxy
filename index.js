@@ -156,7 +156,7 @@ class WebSocketProxy {
     }
 
     /* istanbul ignore next */
-    throw new Error(`no upstream found for ${request.url}. this should not happend`)
+    throw new Error(`no upstream found for ${request.url}. this should not happened. Please report to https://github.com/fastify/fastify-http-proxy`)
   }
 
   handleConnection (source, request) {
