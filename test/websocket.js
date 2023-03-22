@@ -127,7 +127,7 @@ test('captures errors on start', async (t) => {
 })
 
 test('getUpstream', async (t) => {
-  t.plan(7)
+  t.plan(9)
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
@@ -148,10 +148,18 @@ test('getUpstream', async (t) => {
   await promisify(origin.listen.bind(origin))({ port: 0 })
 
   const server = Fastify()
+
+  let _req
+
+  server.server.on('upgrade', (req) => {
+    _req = req
+  })
   server.register(proxy, {
     upstream: '',
     replyOptions: {
-      getUpstream: function (original, base) {
+      getUpstream: function (original) {
+        t.not(original, _req)
+        t.equal(original.raw, _req)
         return `http://localhost:${origin.address().port}`
       }
     },

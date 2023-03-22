@@ -96,9 +96,9 @@ class WebSocketProxy {
       })
     })
 
-    this.handleUpgrade = (rawRequest, cb) => {
-      wss.handleUpgrade(rawRequest, rawRequest[kWs], rawRequest[kWsHead], (socket) => {
-        wss.emit('connection', socket, rawRequest)
+    this.handleUpgrade = (request, cb) => {
+      wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
+        this.handleConnection(socket, request)
         cb()
       })
     }
@@ -132,8 +132,6 @@ class WebSocketProxy {
       /* istanbul ignore next */
       this.logger.error(err)
     })
-
-    wss.on('connection', this.handleConnection.bind(this))
 
     this.wss = wss
     this.prefixList = []
@@ -302,7 +300,7 @@ async function fastifyHttpProxy (fastify, opts) {
     if (request.raw[kWs]) {
       reply.hijack()
       try {
-        wsProxy.handleUpgrade(request.raw, noop)
+        wsProxy.handleUpgrade(request, noop)
       } catch (err) {
         /* istanbul ignore next */
         request.log.warn({ err }, 'websocket proxy error')
