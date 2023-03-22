@@ -33,6 +33,10 @@ async function run () {
     return 'this is /api2/a'
   })
 
+  origin.get('/variable-api/:id/endpoint', async (request, reply) => {
+    return `this is "variable-api" endpoint with id ${request.params.id}`
+  })
+
   origin.get('/timeout', async (request, reply) => {
     await new Promise((resolve) => setTimeout(resolve, 600))
     return 'this is never received'
@@ -453,7 +457,7 @@ async function run () {
     t.equal(firstProxyPrefix.body, 'this is /api2/a')
   })
 
-  test('rewritePrefix with variables', async t => {
+  test('prefix with variables', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
@@ -472,6 +476,69 @@ async function run () {
       `http://localhost:${proxyServer.server.address().port}/api/123/static/a`
     )
     t.equal(firstProxyPrefix.body, 'this is /api2/a')
+  })
+
+  test('prefix and rewritePrefix with variables', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api/:id',
+      rewritePrefix: '/variable-api/:id'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/123/endpoint`
+    )
+    t.equal(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
+  })
+
+  test('prefix (complete path) and rewritePrefix with variables and similar path', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api/:id/static',
+      rewritePrefix: '/variable-api/:id/endpoint'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/123/static`
+    )
+    t.equal(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
+  })
+
+  test('prefix and rewritePrefix with variables with different paths', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/:id',
+      rewritePrefix: '/variable-api/:id/endpoint'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/123`
+    )
+    t.equal(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
   })
 
   test('rewrite location headers', async t => {

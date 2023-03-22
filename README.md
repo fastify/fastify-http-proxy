@@ -55,6 +55,14 @@ server.register(proxy, {
   http2: false // optional
 })
 
+// /rest-api/123/endpoint will be proxied to http://my-rest-api.example.com/123/endpoint
+server.register(proxy, {
+  upstream: 'http://my-rest-api.example.com',
+  prefix: '/rest-api/:id/endpoint', // optional
+  rewritePrefix: '/:id/endpoint', // optional
+  http2: false // optional
+})
+
 // /auth/user will be proxied to http://single-signon.example.com/signon/user
 server.register(proxy, {
   upstream: 'http://single-signon.example.com',
@@ -117,6 +125,8 @@ An URL (including protocol) that represents the target server to use for proxyin
 ### prefix
 
 The prefix to mount this plugin on. All the requests to the current server starting with the given prefix will be proxied to the provided upstream.
+
+Parametric path is supported. To register a parametric path, use the colon before the parameter name.
 
 The prefix will be removed from the URL when forwarding the HTTP
 request.
