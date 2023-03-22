@@ -174,9 +174,9 @@ Pull requests are welcome to finish this feature.
 
 ## `wsClientOptions`
 
-When specified `wsClientOptions` , the object is passed throught to the [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocket).
+When specified, the `wsClientOptions` object is passed to the [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocket).
 
-It also support an additional `rewriteRequestHeaders(headers, request)` function that can be used to write the headers before
+It also supports an additional `rewriteRequestHeaders(headers, request)` function that can be used to write the headers before
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
 
