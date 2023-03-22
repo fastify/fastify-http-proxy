@@ -117,10 +117,6 @@ class WebSocketProxy {
             done && done(err)
           })
         })
-        /* istanbul ignore next */
-        if (wss.clients.size === 0) {
-          return
-        }
         for (const client of wss.clients) {
           client.close()
         }
