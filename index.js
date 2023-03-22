@@ -113,7 +113,8 @@ class WebSocketProxy {
       fastify.server.close = function (done) {
         wss.close(() => {
           oldClose.call(this, (err) => {
-            done(err)
+            /* istanbul ignore next */
+            done && done(err)
           })
         })
         /* istanbul ignore next */
