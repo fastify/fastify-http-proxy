@@ -177,7 +177,7 @@ An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HE
 ### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a
-`websocket` boolean option.
+`websocket` boolean option. 
 
 A few things are missing:
 
