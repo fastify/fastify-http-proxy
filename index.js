@@ -234,6 +234,7 @@ async function fastifyHttpProxy (fastify, opts) {
   fromOpts.base = opts.upstream
   fromOpts.prefix = undefined
 
+  const disableInternalRewriteLocationHeader = opts.disableInternalRewriteLocationHeader || false
   const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
   const replyOpts = Object.assign({}, opts.replyOptions, {
     rewriteHeaders
@@ -249,7 +250,7 @@ async function fastifyHttpProxy (fastify, opts) {
 
   function rewriteHeaders (headers, req) {
     const location = headers.location
-    if (location && !isExternalUrl(location)) {
+    if (location && !isExternalUrl(location) && !disableInternalRewriteLocationHeader) {
       headers.location = location.replace(rewritePrefix, fastify.prefix)
     }
     if (oldRewriteHeaders) {
