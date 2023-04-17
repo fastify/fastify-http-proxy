@@ -572,13 +572,13 @@ async function run () {
     t.equal(location, '/api/something')
   })
 
-  test('location headers is preserved when disableInternalRewriteLocationHeader option is defined', async t => {
+  test('location headers is preserved when internalRewriteLocationHeader option is false', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/my-prefix',
-      disableInternalRewriteLocationHeader: true
+      internalRewriteLocationHeader: false
     })
 
     await proxyServer.listen({ port: 0 })
