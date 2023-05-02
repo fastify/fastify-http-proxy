@@ -29,6 +29,11 @@ async function run () {
     throw new Error('kaboom')
   })
 
+  origin.post('/redirect-to-relative-url', async (request, reply) => {
+    reply.header('location', '/relative-url')
+    return { status: 'ok' }
+  })
+
   origin.get('/api2/a', async (request, reply) => {
     return 'this is /api2/a'
   })
@@ -565,6 +570,32 @@ async function run () {
       }
     )
     t.equal(location, '/api/something')
+  })
+
+  test('location headers is preserved when internalRewriteLocationHeader option is false', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/my-prefix',
+      internalRewriteLocationHeader: false
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const {
+      headers: { location }
+    } = await got(
+      `http://localhost:${proxyServer.server.address().port}/my-prefix/redirect-to-relative-url`,
+      {
+        method: 'POST'
+      }
+    )
+    t.equal(location, '/relative-url')
   })
 
   test('passes onResponse option to reply.from() calls', async t => {

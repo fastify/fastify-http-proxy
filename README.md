@@ -163,6 +163,14 @@ configuration passed to the route.
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `@fastify/reply-from`.
 
+### `internalRewriteLocationHeader`
+By default, `@fastify/http-proxy` will rewrite the `location` header when a request redirects to a relative path.
+In other words, the [prefix](https://github.com/fastify/fastify-http-proxy#prefix) will be added to the relative path.
+
+If you want to preserve the original path, this option will disable this internal operation. Default: `true`.
+
+Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rewriteheadersheaders-request) option of [`@fastify/reply-from`](http://npm.im/fastify-reply-from) will retrieve headers modified (reminder: only `location` is updated among all headers) in parameter but with this option, the headers are unchanged.
+
 ### `httpMethods`
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
