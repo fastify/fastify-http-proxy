@@ -9,7 +9,7 @@ This [`fastify`](https://www.fastify.io) plugin forwards all requests
 received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
 
 `@fastify/http-proxy` is built on top of
-[`@fastify/reply-from`](http://npm.im/fastify-reply-from), which enables single route proxying.
+[`@fastify/reply-from`](https://npm.im/@fastify/reply-from), which enables single route proxying.
 
 This plugin can be used in a variety of circumstances, for example if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
 
