@@ -42,7 +42,9 @@ app.register(fastifyHttpProxy, {
       timeout: 20000
     }
   },
-  constraints: { version: '1.0.2' }
+  constraints: { version: '1.0.2' },
+  websocket: true,
+  wsUpstream: 'ws://origin.asd/connection'
 });
 
 expectError(
