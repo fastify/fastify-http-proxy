@@ -187,6 +187,14 @@ A few things are missing:
 
 Pull requests are welcome to finish this feature.
 
+### `wsUpstream`
+Working only if property `websocket` is `true`.
+
+An URL (including protocol) that represents the target websockets to use for proxying websockets.
+Accepted both `https://` and `wss://`.
+
+Note that if property `wsUpstream` not specified then proxy will try to connect with the `upstream` property.
+
 ### `wsServerOptions`
 
 The options passed to [`new ws.Server()`](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocketserver).

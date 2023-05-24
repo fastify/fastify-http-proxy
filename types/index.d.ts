@@ -22,6 +22,7 @@ declare namespace fastifyHttpProxy {
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
     websocket?: boolean;
+    wsUpstream?: string;
     wsClientOptions?: ClientOptions;
     wsServerOptions?: ServerOptions;
     httpMethods?: string[];
