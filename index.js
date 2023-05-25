@@ -10,10 +10,6 @@ const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
 
-function isDefinedString (string) {
-  return typeof string === 'string' && !!string
-}
-
 function liftErrorCode (code) {
   /* istanbul ignore next */
   if (typeof code !== 'number') {
@@ -209,7 +205,10 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     httpWss.set(fastify.server, wsProxy)
   }
 
-  if (isDefinedString(options.wsUpstream) || isDefinedString(options.upstream)) {
+  if (
+    (typeof options.wsUpstream === 'string' && options.wsUpstream !== '') ||
+    (typeof options.upstream === 'string' && options.upstream !== '')
+  ) {
     wsProxy.addUpstream(
       fastify.prefix,
       rewritePrefix,

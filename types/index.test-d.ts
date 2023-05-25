@@ -52,3 +52,18 @@ expectError(
     thisOptionDoesNotExist: 'triggers a typescript error'
   })
 );
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    upstream: 'http://origin.asd',
+    wsUpstream: 'ws://origin.asd'
+  })
+);
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    upstream: 'http://origin.asd',
+    websocket: false,
+    wsUpstream: 'asdf'
+  })
+);
