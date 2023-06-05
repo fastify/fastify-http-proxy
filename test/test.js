@@ -834,6 +834,20 @@ async function run () {
     )
     t.equal(resultFooRoute.body, 'Hello World (foo) - lang = en')
   })
+
+  test('inject proxy request', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`
+    })
+
+    const resultRoot = await server.inject({
+      method: 'POST',
+      url: '/this-has-data',
+      payload: { hello: 'world' }
+    })
+    t.same(resultRoot.payload, '{"something":"posted"}')
+  })
 }
 
 run()

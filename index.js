@@ -244,7 +244,7 @@ async function fastifyHttpProxy (fastify, opts) {
   fastify.register(From, fromOpts)
 
   if (opts.proxyPayloads !== false) {
-    fastify.addContentTypeParser('application/json', bodyParser)
+    // fastify.addContentTypeParser('application/json', bodyParser)
     fastify.addContentTypeParser('*', bodyParser)
   }
 
