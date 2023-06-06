@@ -147,9 +147,19 @@ class WebSocketProxy {
 
   findUpstream (request) {
     const source = new URL(request.url, 'ws://127.0.0.1')
+
     for (const { prefix, rewritePrefix, upstream, wsClientOptions } of this.prefixList) {
+      // If the "upstream" have path then need get the Base of url, otherwise the "target" path will be broken.
+      // Example: upstream is "ws://localhost:22/some/path" and after this code
+      // "target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)"
+      // The target.pathname will be "some/some/path"
+      const upstreamUrl = new URL(upstream)
+      const upstreamBase = upstreamUrl.pathname && upstreamUrl.pathname !== '/'
+        ? upstreamUrl.href.replace(upstreamUrl.pathname, '')
+        : upstream
+
       if (source.pathname.startsWith(prefix)) {
-        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
+        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstreamBase)
         target.search = source.search
         return { target, wsClientOptions }
       }
@@ -195,8 +205,16 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     httpWss.set(fastify.server, wsProxy)
   }
 
-  if (options.upstream !== '') {
-    wsProxy.addUpstream(fastify.prefix, rewritePrefix, options.upstream, options.wsClientOptions)
+  if (
+    (typeof options.wsUpstream === 'string' && options.wsUpstream !== '') ||
+    (typeof options.upstream === 'string' && options.upstream !== '')
+  ) {
+    wsProxy.addUpstream(
+      fastify.prefix,
+      rewritePrefix,
+      options.wsUpstream ? options.wsUpstream : options.upstream,
+      options.wsClientOptions
+    )
     // The else block is validate earlier in the code
   } else {
     wsProxy.findUpstream = function (request) {
