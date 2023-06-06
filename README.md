@@ -33,7 +33,9 @@ const server = Fastify()
 server.register(require('@fastify/http-proxy'), {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
-  http2: false // optional
+  replyOptions: {
+    http2: false // optional
+  }
 })
 
 server.listen({ port: 3000 })
@@ -52,7 +54,9 @@ const proxy = require('@fastify/http-proxy')
 server.register(proxy, {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
-  http2: false // optional
+  replyOptions: {
+    http2: false // optional
+  }
 })
 
 // /rest-api/123/endpoint will be proxied to http://my-rest-api.example.com/123/endpoint
@@ -60,7 +64,9 @@ server.register(proxy, {
   upstream: 'http://my-rest-api.example.com',
   prefix: '/rest-api/:id/endpoint', // optional
   rewritePrefix: '/:id/endpoint', // optional
-  http2: false // optional
+  replyOptions: {
+    http2: false // optional
+  }
 })
 
 // /auth/user will be proxied to http://single-signon.example.com/signon/user
@@ -68,14 +74,18 @@ server.register(proxy, {
   upstream: 'http://single-signon.example.com',
   prefix: '/auth', // optional
   rewritePrefix: '/signon', // optional
-  http2: false // optional
+  replyOptions: {
+    http2: false // optional
+  }
 })
 
 // /user will be proxied to http://single-signon.example.com/signon/user
 server.register(proxy, {
   upstream: 'http://single-signon.example.com',
   rewritePrefix: '/signon', // optional
-  http2: false // optional
+  replyOptions: {
+    http2: false // optional
+  }
 })
 
 server.listen({ port: 3000 })

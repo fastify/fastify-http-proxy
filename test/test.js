@@ -663,9 +663,11 @@ async function run () {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
-      http: {
-        requestOptions: {
-          timeout: 300
+      replyOptions: {
+        http: {
+          requestOptions: {
+            timeout: 300
+          }
         }
       }
     })

@@ -230,18 +230,14 @@ async function fastifyHttpProxy (fastify, opts) {
   const preHandler = opts.preHandler || opts.beforeHandler
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
 
-  const fromOpts = Object.assign({}, opts)
-  fromOpts.base = opts.upstream
-  fromOpts.prefix = undefined
-
   const internalRewriteLocationHeader = opts.internalRewriteLocationHeader ?? true
   const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
-  const replyOpts = Object.assign({}, opts.replyOptions, {
-    rewriteHeaders
-  })
-  fromOpts.rewriteHeaders = rewriteHeaders
 
-  fastify.register(From, fromOpts)
+  const replyOptions = Object.assign({}, opts.replyOptions)
+  replyOptions.base = opts.upstream
+  replyOptions.rewriteHeaders = rewriteHeaders
+
+  fastify.register(From, replyOptions)
 
   if (opts.proxyPayloads !== false) {
     fastify.addContentTypeParser('application/json', bodyParser)
@@ -313,7 +309,7 @@ async function fastifyHttpProxy (fastify, opts) {
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
     }
-    reply.from(dest || '/', replyOpts)
+    reply.from(dest || '/', replyOptions)
   }
 }
 

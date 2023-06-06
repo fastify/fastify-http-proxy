@@ -17,7 +17,9 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
   const registerProxy = async fastify => {
     fastify.register(proxy, {
       upstream: backendURL + backendPath,
-      http: true,
+      replyOptions: {
+        http: true
+      },
       ...proxyOptions
     })
   }
