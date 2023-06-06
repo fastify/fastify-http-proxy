@@ -42,11 +42,28 @@ app.register(fastifyHttpProxy, {
       timeout: 20000
     }
   },
-  constraints: { version: '1.0.2' }
+  constraints: { version: '1.0.2' },
+  websocket: true,
+  wsUpstream: 'ws://origin.asd/connection'
 });
 
 expectError(
   app.register(fastifyHttpProxy, {
     thisOptionDoesNotExist: 'triggers a typescript error'
+  })
+);
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    upstream: 'http://origin.asd',
+    wsUpstream: 'ws://origin.asd'
+  })
+);
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    upstream: 'http://origin.asd',
+    websocket: false,
+    wsUpstream: 'asdf'
   })
 );

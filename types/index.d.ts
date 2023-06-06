@@ -9,7 +9,19 @@ import {
 
 import { ClientOptions, ServerOptions } from 'ws';
 
-type FastifyHttpProxy = FastifyPluginCallback<fastifyHttpProxy.FastifyHttpProxyOptions>;
+interface FastifyHttpProxyWebsocketOptionsEnabled {
+  websocket: true;
+  wsUpstream?: string;
+}
+interface FastifyHttpProxyWebsocketOptionsDisabled {
+  websocket?: false | never;
+  wsUpstream?: never;
+}
+
+type FastifyHttpProxy = FastifyPluginCallback<
+  fastifyHttpProxy.FastifyHttpProxyOptions
+  & (FastifyHttpProxyWebsocketOptionsEnabled | FastifyHttpProxyWebsocketOptionsDisabled)
+>;
 
 declare namespace fastifyHttpProxy {
   export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
@@ -21,7 +33,6 @@ declare namespace fastifyHttpProxy {
     beforeHandler?: preHandlerHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
-    websocket?: boolean;
     wsClientOptions?: ClientOptions;
     wsServerOptions?: ServerOptions;
     httpMethods?: string[];
