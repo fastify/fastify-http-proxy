@@ -133,11 +133,12 @@ class WebSocketProxy {
     this.prefixList = []
   }
 
-  addUpstream (prefix, rewritePrefix, upstream, wsClientOptions) {
+  addUpstream (prefix, rewritePrefix, upstream, wsUpstream, wsClientOptions) {
     this.prefixList.push({
       prefix: new URL(prefix, 'ws://127.0.0.1').pathname,
       rewritePrefix,
       upstream: convertUrlToWebSocket(upstream),
+      wsUpstream: wsUpstream ? convertUrlToWebSocket(wsUpstream) : '',
       wsClientOptions
     })
 
@@ -148,18 +149,15 @@ class WebSocketProxy {
   findUpstream (request) {
     const source = new URL(request.url, 'ws://127.0.0.1')
 
-    for (const { prefix, rewritePrefix, upstream, wsClientOptions } of this.prefixList) {
-      // If the "upstream" have path then need get the Base of url, otherwise the "target" path will be broken.
-      // Example: upstream is "ws://localhost:22/some/path" and after this code
-      // "target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)"
-      // The target.pathname will be "some/some/path"
-      const upstreamUrl = new URL(upstream)
-      const upstreamBase = upstreamUrl.pathname && upstreamUrl.pathname !== '/'
-        ? upstreamUrl.href.replace(upstreamUrl.pathname, '')
-        : upstream
+    for (const { prefix, rewritePrefix, upstream, wsUpstream, wsClientOptions } of this.prefixList) {
+      if (wsUpstream) {
+        const target = new URL(wsUpstream)
+        target.search = source.search
+        return { target, wsClientOptions }
+      }
 
       if (source.pathname.startsWith(prefix)) {
-        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstreamBase)
+        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
         target.search = source.search
         return { target, wsClientOptions }
       }
@@ -212,7 +210,8 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
     wsProxy.addUpstream(
       fastify.prefix,
       rewritePrefix,
-      options.wsUpstream ? options.wsUpstream : options.upstream,
+      options.upstream,
+      options.wsUpstream,
       options.wsClientOptions
     )
     // The else block is validate earlier in the code
