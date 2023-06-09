@@ -421,19 +421,21 @@ test('Proxy websocket with custom upstream url', async (t) => {
   wss.on('connection', (ws, request) => {
     ws.on('message', (message, binary) => {
       // Also need save request.url for check from what url the message is coming.
-      serverMessages.push([message.toString(), binary, request.url])
+      serverMessages.push([message.toString(), binary, request.headers.host.split(':')[0], request.url])
       ws.send(message, { binary })
     })
   })
 
   await promisify(origin.listen.bind(origin))({ port: 0 })
+  // Host for wsUpstream and for later check.
+  const host = '127.0.0.1'
   // Path for wsUpstream and for later check.
   const path = '/some/path'
   const server = Fastify()
   server.register(proxy, {
     upstream: `ws://localhost:${origin.address().port}`,
     // Start proxy with different upstream, added path.
-    wsUpstream: `ws://localhost:${origin.address().port}${path}`,
+    wsUpstream: `ws://${host}:${origin.address().port}${path}`,
     websocket: true
   })
 
@@ -441,7 +443,7 @@ test('Proxy websocket with custom upstream url', async (t) => {
   t.teardown(server.close.bind(server))
 
   // Start websocket with different upstream for connect, added path.
-  const ws = new WebSocket(`ws://localhost:${server.server.address().port}${path}`)
+  const ws = new WebSocket(`ws://${host}:${server.server.address().port}${path}`)
   await once(ws, 'open')
 
   const data = [{ message: 'hello', binary: false }, { message: 'fastify', binary: true, isBuffer: true }]
@@ -463,8 +465,8 @@ test('Proxy websocket with custom upstream url', async (t) => {
   }
   // Also check "path", must be the same.
   t.strictSame(serverMessages, [
-    ['hello', false, path],
-    ['fastify', true, path]
+    ['hello', false, host, path],
+    ['fastify', true, host, path]
   ])
 
   await Promise.all([
