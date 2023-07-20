@@ -260,13 +260,11 @@ async function fastifyHttpProxy (fastify, opts) {
 
   fastify.register(From, fromOpts)
 
-  if (opts.preValidation === undefined && opts.proxyPayloads !== false) {
-    fastify.addContentTypeParser('application/json', bodyParser)
-    fastify.addContentTypeParser('*', bodyParser)
-  }
-
   if (opts.preValidation) {
     fastify.addHook('preValidation', opts.preValidation)
+  } else if (opts.proxyPayloads !== false) {
+    fastify.addContentTypeParser('application/json', bodyParser)
+    fastify.addContentTypeParser('*', bodyParser)
   }
 
   function rewriteHeaders (headers, req) {
