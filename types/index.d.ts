@@ -1,6 +1,6 @@
 /// <reference types='node' />
 
-import { FastifyPluginCallback, preHandlerHookHandler } from 'fastify';
+import { FastifyPluginCallback, preHandlerHookHandler, preValidationHookHandler } from 'fastify';
 
 import {
   FastifyReplyFromOptions,
@@ -31,6 +31,7 @@ declare namespace fastifyHttpProxy {
     proxyPayloads?: boolean;
     preHandler?: preHandlerHookHandler;
     beforeHandler?: preHandlerHookHandler;
+    preValidation?: preValidationHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
     wsClientOptions?: ClientOptions;

@@ -152,6 +152,21 @@ fastify.addContentTypeParser('application/xml', (req, done) => {
 })
 ```
 
+### `preValidation`
+
+Specify preValidation function to perform the validation of the request before the proxy is executed (e.g. check request payload).
+
+```javascript
+fastify.register(proxy, {
+      upstream: `http://your-target-upstream.com`,
+      preValidation: async (request, reply) => {
+        if (request.body.method !== 'invalid_method') {
+          reply.code(400).send({ message: 'payload contains invalid method' })
+        }
+      }
+    })
+```
+
 ### `config`
 
 An object accessible within the `preHandler` via `reply.context.config`.

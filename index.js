@@ -5,7 +5,15 @@ const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 const fp = require('fastify-plugin')
 
-const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
+const httpMethods = [
+  'DELETE',
+  'GET',
+  'HEAD',
+  'PATCH',
+  'POST',
+  'PUT',
+  'OPTIONS'
+]
 const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
@@ -49,26 +57,28 @@ function proxyWebSockets (source, target) {
     closeWebSocket(target, code, reason)
   }
 
-  source.on('message', (data, binary) => waitConnection(target, () => target.send(data, { binary })))
+  source.on('message', (data, binary) =>
+    waitConnection(target, () => target.send(data, { binary }))
+  )
   /* istanbul ignore next */
-  source.on('ping', data => waitConnection(target, () => target.ping(data)))
+  source.on('ping', (data) => waitConnection(target, () => target.ping(data)))
   /* istanbul ignore next */
-  source.on('pong', data => waitConnection(target, () => target.pong(data)))
+  source.on('pong', (data) => waitConnection(target, () => target.pong(data)))
   source.on('close', close)
   /* istanbul ignore next */
-  source.on('error', error => close(1011, error.message))
+  source.on('error', (error) => close(1011, error.message))
   /* istanbul ignore next */
   source.on('unexpected-response', () => close(1011, 'unexpected response'))
 
   // source WebSocket is already connected because it is created by ws server
   target.on('message', (data, binary) => source.send(data, { binary }))
   /* istanbul ignore next */
-  target.on('ping', data => source.ping(data))
+  target.on('ping', (data) => source.ping(data))
   /* istanbul ignore next */
-  target.on('pong', data => source.pong(data))
+  target.on('pong', (data) => source.pong(data))
   target.on('close', close)
   /* istanbul ignore next */
-  target.on('error', error => close(1011, error.message))
+  target.on('error', (error) => close(1011, error.message))
   /* istanbul ignore next */
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
@@ -97,10 +107,15 @@ class WebSocketProxy {
     })
 
     this.handleUpgrade = (request, cb) => {
-      wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
-        this.handleConnection(socket, request)
-        cb()
-      })
+      wss.handleUpgrade(
+        request.raw,
+        request.raw[kWs],
+        request.raw[kWsHead],
+        (socket) => {
+          this.handleConnection(socket, request)
+          cb()
+        }
+      )
     }
 
     // To be able to close the HTTP server,
@@ -149,7 +164,13 @@ class WebSocketProxy {
   findUpstream (request) {
     const source = new URL(request.url, 'ws://127.0.0.1')
 
-    for (const { prefix, rewritePrefix, upstream, wsUpstream, wsClientOptions } of this.prefixList) {
+    for (const {
+      prefix,
+      rewritePrefix,
+      upstream,
+      wsUpstream,
+      wsClientOptions
+    } of this.prefixList) {
       if (wsUpstream) {
         const target = new URL(wsUpstream)
         target.search = source.search
@@ -157,20 +178,26 @@ class WebSocketProxy {
       }
 
       if (source.pathname.startsWith(prefix)) {
-        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
+        const target = new URL(
+          source.pathname.replace(prefix, rewritePrefix),
+          upstream
+        )
         target.search = source.search
         return { target, wsClientOptions }
       }
     }
 
     /* istanbul ignore next */
-    throw new Error(`no upstream found for ${request.url}. this should not happened. Please report to https://github.com/fastify/fastify-http-proxy`)
+    throw new Error(
+      `no upstream found for ${request.url}. this should not happened. Please report to https://github.com/fastify/fastify-http-proxy`
+    )
   }
 
   handleConnection (source, request) {
     const upstream = this.findUpstream(request)
     const { target: url, wsClientOptions } = upstream
-    const rewriteRequestHeaders = wsClientOptions?.rewriteRequestHeaders || defaultWsHeadersRewrite
+    const rewriteRequestHeaders =
+      wsClientOptions?.rewriteRequestHeaders || defaultWsHeadersRewrite
     const headersToRewrite = wsClientOptions?.headers || {}
 
     const subprotocols = []
@@ -230,7 +257,9 @@ function setupWebSocketProxy (fastify, options, rewritePrefix) {
 }
 
 function generateRewritePrefix (prefix, opts) {
-  let rewritePrefix = opts.rewritePrefix || (opts.upstream ? new URL(opts.upstream).pathname : '/')
+  let rewritePrefix =
+    opts.rewritePrefix ||
+    (opts.upstream ? new URL(opts.upstream).pathname : '/')
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
     rewritePrefix = rewritePrefix.slice(0, -1)
@@ -240,7 +269,14 @@ function generateRewritePrefix (prefix, opts) {
 }
 
 async function fastifyHttpProxy (fastify, opts) {
-  if (!opts.upstream && !(opts.upstream === '' && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
+  if (
+    !opts.upstream &&
+    !(
+      opts.upstream === '' &&
+      opts.replyOptions &&
+      typeof opts.replyOptions.getUpstream === 'function'
+    )
+  ) {
     throw new Error('upstream must be specified')
   }
 
@@ -251,7 +287,8 @@ async function fastifyHttpProxy (fastify, opts) {
   fromOpts.base = opts.upstream
   fromOpts.prefix = undefined
 
-  const internalRewriteLocationHeader = opts.internalRewriteLocationHeader ?? true
+  const internalRewriteLocationHeader =
+    opts.internalRewriteLocationHeader ?? true
   const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
   const replyOpts = Object.assign({}, opts.replyOptions, {
     rewriteHeaders
@@ -260,9 +297,13 @@ async function fastifyHttpProxy (fastify, opts) {
 
   fastify.register(From, fromOpts)
 
-  if (opts.proxyPayloads !== false) {
+  if (opts.preValidation === undefined && opts.proxyPayloads !== false) {
     fastify.addContentTypeParser('application/json', bodyParser)
     fastify.addContentTypeParser('*', bodyParser)
+  }
+
+  if (opts.preValidation) {
+    fastify.addHook('preValidation', opts.preValidation)
   }
 
   function rewriteHeaders (headers, req) {
@@ -315,15 +356,24 @@ async function fastifyHttpProxy (fastify, opts) {
       return
     }
     const queryParamIndex = request.raw.url.indexOf('?')
-    let dest = request.raw.url.slice(0, queryParamIndex !== -1 ? queryParamIndex : undefined)
+    let dest = request.raw.url.slice(
+      0,
+      queryParamIndex !== -1 ? queryParamIndex : undefined
+    )
 
     if (this.prefix.includes(':')) {
       const requestedPathElements = request.url.split('/')
-      const prefixPathWithVariables = this.prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      const prefixPathWithVariables = this.prefix
+        .split('/')
+        .map((_, index) => requestedPathElements[index])
+        .join('/')
 
       let rewritePrefixWithVariables = rewritePrefix
       for (const [name, value] of Object.entries(request.params)) {
-        rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
+        rewritePrefixWithVariables = rewritePrefixWithVariables.replace(
+          `:${name}`,
+          value
+        )
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)

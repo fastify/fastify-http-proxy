@@ -235,6 +235,62 @@ async function run () {
     t.same(resultRoot.body, { something: 'posted' })
   })
 
+  test('preValidation post payload contains invalid data', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      preValidation: async (request, reply) => {
+        if (request.body.hello !== 'world') {
+          reply.code(400).send({ message: 'invalid body.hello value' })
+        }
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.teardown(server.close.bind(server))
+
+    try {
+      await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'invalid' },
+        responseType: 'json'
+      }
+      )
+    } catch (err) {
+      t.equal(err.response.statusCode, 400)
+      t.same(err.response.body, { message: 'invalid body.hello value' })
+      return
+    }
+    t.fail()
+  })
+
+  test('preValidation post payload contains valid data', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      preValidation: async (request, reply) => {
+        if (request.body.hello !== 'world') {
+          reply.code(400).send({ message: 'invalid body.hello value' })
+        }
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.teardown(server.close.bind(server))
+
+    const resultRoot = await got(
+      `http://localhost:${server.server.address().port}/this-has-data`,
+      {
+        method: 'POST',
+        json: { hello: 'world' },
+        responseType: 'json'
+      }
+    )
+    t.same(resultRoot.body, { something: 'posted' })
+  })
+
   test('dynamic upstream for posting stuff', async t => {
     const server = Fastify()
     server.register(proxy, {
