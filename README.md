@@ -27,16 +27,16 @@ npm i @fastify/http-proxy fastify
 ## Example
 
 ```js
-const Fastify = require('fastify')
-const server = Fastify()
+const Fastify = require('fastify');
+const server = Fastify();
 
 server.register(require('@fastify/http-proxy'), {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
-  http2: false // optional
-})
+  http2: false, // optional
+});
 
-server.listen({ port: 3000 })
+server.listen({ port: 3000 });
 ```
 
 This will proxy any request starting with `/api` to `http://my-api.example.com`. For instance `http://localhost:3000/api/users` will be proxied to `http://my-api.example.com/users`.
@@ -44,41 +44,41 @@ This will proxy any request starting with `/api` to `http://my-api.example.com`.
 If you want to have different proxies on different prefixes you can register multiple instances of the plugin as shown in the following snippet:
 
 ```js
-const Fastify = require('fastify')
-const server = Fastify()
-const proxy = require('@fastify/http-proxy')
+const Fastify = require('fastify');
+const server = Fastify();
+const proxy = require('@fastify/http-proxy');
 
 // /api/x will be proxied to http://my-api.example.com/x
 server.register(proxy, {
   upstream: 'http://my-api.example.com',
   prefix: '/api', // optional
-  http2: false // optional
-})
+  http2: false, // optional
+});
 
 // /rest-api/123/endpoint will be proxied to http://my-rest-api.example.com/123/endpoint
 server.register(proxy, {
   upstream: 'http://my-rest-api.example.com',
   prefix: '/rest-api/:id/endpoint', // optional
   rewritePrefix: '/:id/endpoint', // optional
-  http2: false // optional
-})
+  http2: false, // optional
+});
 
 // /auth/user will be proxied to http://single-signon.example.com/signon/user
 server.register(proxy, {
   upstream: 'http://single-signon.example.com',
   prefix: '/auth', // optional
   rewritePrefix: '/signon', // optional
-  http2: false // optional
-})
+  http2: false, // optional
+});
 
 // /user will be proxied to http://single-signon.example.com/signon/user
 server.register(proxy, {
   upstream: 'http://single-signon.example.com',
   rewritePrefix: '/signon', // optional
-  http2: false // optional
-})
+  http2: false, // optional
+});
 
-server.listen({ port: 3000 })
+server.listen({ port: 3000 });
 ```
 
 Notice that in this case it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
@@ -92,20 +92,22 @@ For other examples, see [`example.js`](examples/example.js).
 `@fastify/http-proxy` can track and pipe the `request-id` across the upstreams. Using the [`hyperid`](https://www.npmjs.com/package/hyperid) module and the [`@fastify/reply-from`](https://github.com/fastify/fastify-reply-from) built-in options a fairly simple example would look like this:
 
 ```js
-const Fastify = require('fastify')
-const proxy = require('@fastify/http-proxy')
-const hyperid = require('hyperid')
+const Fastify = require('fastify');
+const proxy = require('@fastify/http-proxy');
+const hyperid = require('hyperid');
 
-const server = Fastify()
-const uuid = hyperid()
+const server = Fastify();
+const uuid = hyperid();
 
 server.register(proxy, {
   upstream: 'http://localhost:4001',
   replyOptions: {
-    rewriteRequestHeaders: (originalReq, headers) => ({...headers, 'request-id': uuid()})
-  }
-})
-
+    rewriteRequestHeaders: (originalReq, headers) => ({
+      ...headers,
+      'request-id': uuid(),
+    }),
+  },
+});
 
 server.listen({ port: 3000 });
 ```
@@ -115,8 +117,8 @@ server.listen({ port: 3000 });
 This `fastify` plugin supports _all_ the options of
 [`@fastify/reply-from`](https://github.com/fastify/fastify-reply-from) plus the following.
 
-*Note that this plugin is fully encapsulated, and non-JSON payloads will
-be streamed directly to the destination.*
+_Note that this plugin is fully encapsulated, and non-JSON payloads will
+be streamed directly to the destination._
 
 ### `upstream`
 
@@ -147,9 +149,9 @@ For example, if you are expecting a payload of type `application/xml`, then you 
 
 ```javascript
 fastify.addContentTypeParser('application/xml', (req, done) => {
-  const parsedBody = parsingCode(req)
-  done(null, parsedBody)
-})
+  const parsedBody = parsingCode(req);
+  done(null, parsedBody);
+});
 ```
 
 ### `preValidation`
@@ -158,13 +160,13 @@ Specify preValidation function to perform the validation of the request before t
 
 ```javascript
 fastify.register(proxy, {
-      upstream: `http://your-target-upstream.com`,
-      preValidation: async (request, reply) => {
-        if (request.body.method !== 'invalid_method') {
-          reply.code(400).send({ message: 'payload contains invalid method' })
-        }
-      }
-    })
+  upstream: `http://your-target-upstream.com`,
+  preValidation: async (request, reply) => {
+    if (request.body.method === 'invalid_method') {
+      reply.code(400).send({ message: 'payload contains invalid method' });
+    }
+  },
+});
 ```
 
 ### `config`
@@ -179,6 +181,7 @@ configuration passed to the route.
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `@fastify/reply-from`.
 
 ### `internalRewriteLocationHeader`
+
 By default, `@fastify/http-proxy` will rewrite the `location` header when a request redirects to a relative path.
 In other words, the [prefix](https://github.com/fastify/fastify-http-proxy#prefix) will be added to the relative path.
 
@@ -187,12 +190,13 @@ If you want to preserve the original path, this option will disable this interna
 Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rewriteheadersheaders-request) option of [`@fastify/reply-from`](http://npm.im/fastify-reply-from) will retrieve headers modified (reminder: only `location` is updated among all headers) in parameter but with this option, the headers are unchanged.
 
 ### `httpMethods`
+
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
 ### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a
-`websocket` boolean option. 
+`websocket` boolean option.
 
 A few things are missing:
 
@@ -203,6 +207,7 @@ A few things are missing:
 Pull requests are welcome to finish this feature.
 
 ### `wsUpstream`
+
 Working only if property `websocket` is `true`.
 
 An URL (including protocol) that represents the target websockets to use for proxying websockets.
@@ -229,19 +234,19 @@ The default implementation forwards the `cookie` header.
 
 The following benchmarks where generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:
 
-| __Framework__ | req/sec |
-| :----------------- | :------------------------- |
-| `express-http-proxy` | 2557 |
-| `http-proxy` | 9519 |
-| `@fastify/http-proxy` | 15919 |
+| **Framework**         | req/sec |
+| :-------------------- | :------ |
+| `express-http-proxy`  | 2557    |
+| `http-proxy`          | 9519    |
+| `@fastify/http-proxy` | 15919   |
 
 The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
 
 ## TODO
 
-* [ ] Perform validations for incoming data
-* [ ] Finish implementing websocket
+- [ ] Perform validations for incoming data
+- [ ] Finish implementing websocket
 
 ## License
 
