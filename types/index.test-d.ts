@@ -1,11 +1,14 @@
-import fastify, { RawReplyDefaultExpression, RawRequestDefaultExpression } from 'fastify';
+import fastify, {
+  RawReplyDefaultExpression,
+  RawRequestDefaultExpression,
+} from 'fastify';
 import { expectError, expectType } from 'tsd';
 import fastifyHttpProxy from '..';
 
 const app = fastify();
 
 app.register(fastifyHttpProxy, {
-  upstream: 'http://origin.asd'
+  upstream: 'http://origin.asd',
 });
 
 app.register(fastifyHttpProxy, {
@@ -24,6 +27,10 @@ app.register(fastifyHttpProxy, {
     expectType<RawRequestDefaultExpression>(request.raw);
     expectType<RawReplyDefaultExpression>(reply.raw);
   },
+  preValidation: (request, reply) => {
+    expectType<RawRequestDefaultExpression>(request.raw);
+    expectType<RawReplyDefaultExpression>(reply.raw);
+  },
   base: 'whatever',
   cacheURLs: 10,
   undici: {
@@ -31,32 +38,32 @@ app.register(fastifyHttpProxy, {
     pipelining: 1,
     keepAliveTimeout: 60 * 1000,
     connect: {
-      rejectUnauthorized: false
-    }
+      rejectUnauthorized: false,
+    },
   },
   http: {
     agentOptions: {
-      keepAliveMsecs: 10 * 60 * 1000
+      keepAliveMsecs: 10 * 60 * 1000,
     },
     requestOptions: {
-      timeout: 20000
-    }
+      timeout: 20000,
+    },
   },
   constraints: { version: '1.0.2' },
   websocket: true,
-  wsUpstream: 'ws://origin.asd/connection'
+  wsUpstream: 'ws://origin.asd/connection',
 });
 
 expectError(
   app.register(fastifyHttpProxy, {
-    thisOptionDoesNotExist: 'triggers a typescript error'
+    thisOptionDoesNotExist: 'triggers a typescript error',
   })
 );
 
 expectError(
   app.register(fastifyHttpProxy, {
     upstream: 'http://origin.asd',
-    wsUpstream: 'ws://origin.asd'
+    wsUpstream: 'ws://origin.asd',
   })
 );
 
@@ -64,6 +71,6 @@ expectError(
   app.register(fastifyHttpProxy, {
     upstream: 'http://origin.asd',
     websocket: false,
-    wsUpstream: 'asdf'
+    wsUpstream: 'asdf',
   })
 );
