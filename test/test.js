@@ -5,7 +5,7 @@ const Fastify = require('fastify')
 const proxy = require('../')
 const got = require('got')
 const { Unauthorized } = require('http-errors')
-const Transform = require('stream').Transform
+const Transform = require('node:stream').Transform
 
 async function run () {
   const origin = Fastify()

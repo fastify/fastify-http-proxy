@@ -1,7 +1,7 @@
 'use strict'
 
 const t = require('tap')
-const { once } = require('events')
+const { once } = require('node:events')
 
 const Fastify = require('fastify')
 const fastifyWebSocket = require('@fastify/websocket')

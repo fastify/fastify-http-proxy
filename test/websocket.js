@@ -4,9 +4,9 @@ const { test } = require('tap')
 const Fastify = require('fastify')
 const proxy = require('../')
 const WebSocket = require('ws')
-const { createServer } = require('http')
-const { promisify } = require('util')
-const { once } = require('events')
+const { createServer } = require('node:http')
+const { promisify } = require('node:util')
+const { once } = require('node:events')
 const cookieValue = 'foo=bar'
 const subprotocolValue = 'foo-subprotocol'
 

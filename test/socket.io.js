@@ -5,9 +5,9 @@ const Fastify = require('fastify')
 const proxy = require('../')
 const ioServer = require('socket.io')
 const ioClient = require('socket.io-client')
-const { createServer } = require('http')
-const { promisify } = require('util')
-const { once } = require('events')
+const { createServer } = require('node:http')
+const { promisify } = require('node:util')
+const { once } = require('node:events')
 
 test('proxy socket.io', async t => {
   t.plan(2)
