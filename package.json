@@ -34,7 +34,7 @@
     "@typescript-eslint/eslint-plugin": "^6.2.1",
     "@typescript-eslint/parser": "^6.2.1",
     "express": "^4.17.2",
-    "express-http-proxy": "^1.6.3",
+    "express-http-proxy": "^2.0.0",
     "fast-proxy": "^2.1.0",
     "fastify": "^4.0.0-rc.2",
     "got": "^11.8.3",
