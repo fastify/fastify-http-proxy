@@ -4,6 +4,7 @@ const { ServerResponse } = require('node:http')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 const fp = require('fastify-plugin')
+const querystring = require('node:querystring')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
@@ -305,6 +306,22 @@ async function fastifyHttpProxy (fastify, opts) {
     wsProxy = setupWebSocketProxy(fastify, opts, rewritePrefix)
   }
 
+  function extractUrlComponents (urlString) {
+    const components = {
+      path: '',
+      queryParams: {}
+    }
+
+    const [path, queryString] = urlString.split('?')
+    components.path = path
+
+    if (queryString) {
+      components.queryParams = querystring.parse(queryString)
+    }
+
+    return components
+  }
+
   function handler (request, reply) {
     if (request.raw[kWs]) {
       reply.hijack()
@@ -319,8 +336,9 @@ async function fastifyHttpProxy (fastify, opts) {
     const queryParamIndex = request.raw.url.indexOf('?')
     let dest = request.raw.url.slice(0, queryParamIndex !== -1 ? queryParamIndex : undefined)
 
+    const { path, queryParams } = extractUrlComponents(request.url)
     if (this.prefix.includes(':')) {
-      const requestedPathElements = request.url.split('/')
+      const requestedPathElements = path.split('/')
       const prefixPathWithVariables = this.prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
 
       let rewritePrefixWithVariables = rewritePrefix
@@ -329,6 +347,9 @@ async function fastifyHttpProxy (fastify, opts) {
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
+      if (Object.keys(queryParams).length) {
+        dest = `${dest}?${querystring.stringify(queryParams)}`
+      }
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
     }
