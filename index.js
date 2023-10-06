@@ -307,13 +307,11 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function extractUrlComponents (urlString) {
+    const [path, queryString] = urlString.split('?')
     const components = {
-      path: '',
+      path,
       queryParams: {}
     }
-
-    const [path, queryString] = urlString.split('?')
-    components.path = path
 
     if (queryString) {
       components.queryParams = querystring.parse(queryString)
@@ -347,8 +345,8 @@ async function fastifyHttpProxy (fastify, opts) {
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
-      if (Object.keys(queryParams).length) {
-        dest = `${dest}?${querystring.stringify(queryParams)}`
+      if (queryParamIndex !== -1) {
+        dest += `?${querystring.stringify(queryParams)}`
       }
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
