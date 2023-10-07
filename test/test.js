@@ -6,7 +6,7 @@ const proxy = require('../')
 const got = require('got')
 const { Unauthorized } = require('http-errors')
 const Transform = require('node:stream').Transform
-const querystring = require('node:querystring')
+const qs = require('fast-querystring')
 
 async function run () {
   const origin = Fastify()
@@ -914,7 +914,7 @@ async function run () {
     const firstProxyPrefix = await got(
       `http://localhost:${proxyServer.server.address().port}/api/123/endpoint?foo=bar&foo=baz&abc=qux`
     )
-    const queryParams = JSON.stringify(querystring.parse('foo=bar&foo=baz&abc=qux'))
+    const queryParams = JSON.stringify(qs.parse('foo=bar&foo=baz&abc=qux'))
     t.equal(firstProxyPrefix.body, `this is "variable-api" endpoint with id 123 and query params ${queryParams}`)
   })
 }

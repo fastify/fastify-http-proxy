@@ -4,7 +4,7 @@ const { ServerResponse } = require('node:http')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 const fp = require('fastify-plugin')
-const querystring = require('node:querystring')
+const qs = require('fast-querystring')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
@@ -314,7 +314,7 @@ async function fastifyHttpProxy (fastify, opts) {
     }
 
     if (queryString) {
-      components.queryParams = querystring.parse(queryString)
+      components.queryParams = qs.parse(queryString)
     }
 
     return components
@@ -346,7 +346,7 @@ async function fastifyHttpProxy (fastify, opts) {
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
       if (queryParamIndex !== -1) {
-        dest += `?${querystring.stringify(queryParams)}`
+        dest += `?${qs.stringify(queryParams)}`
       }
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
