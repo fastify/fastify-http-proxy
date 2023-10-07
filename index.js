@@ -310,7 +310,7 @@ async function fastifyHttpProxy (fastify, opts) {
     const [path, queryString] = urlString.split('?')
     const components = {
       path,
-      queryParams: {}
+      queryParams: null
     }
 
     if (queryString) {
@@ -331,10 +331,9 @@ async function fastifyHttpProxy (fastify, opts) {
       }
       return
     }
-    const queryParamIndex = request.raw.url.indexOf('?')
-    let dest = request.raw.url.slice(0, queryParamIndex !== -1 ? queryParamIndex : undefined)
-
     const { path, queryParams } = extractUrlComponents(request.url)
+    let dest = path
+
     if (this.prefix.includes(':')) {
       const requestedPathElements = path.split('/')
       const prefixPathWithVariables = this.prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
@@ -345,7 +344,7 @@ async function fastifyHttpProxy (fastify, opts) {
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
-      if (queryParamIndex !== -1) {
+      if (queryParams) {
         dest += `?${qs.stringify(queryParams)}`
       }
     } else {
