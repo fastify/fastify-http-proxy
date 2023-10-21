@@ -421,7 +421,7 @@ test('Proxy websocket with custom upstream url', async (t) => {
   wss.on('connection', (ws, request) => {
     ws.on('message', (message, binary) => {
       // Also need save request.url for check from what url the message is coming.
-      serverMessages.push([message.toString(), binary, request.headers.host.split(':')[0], request.url])
+      serverMessages.push([message.toString(), binary, request.headers.host.split(':', 1)[0], request.url])
       ws.send(message, { binary })
     })
   })
