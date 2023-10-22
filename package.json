@@ -53,6 +53,7 @@
   },
   "dependencies": {
     "@fastify/reply-from": "^9.0.0",
+    "fast-querystring": "^1.1.2",
     "fastify-plugin": "^4.5.0",
     "ws": "^8.4.2"
   },

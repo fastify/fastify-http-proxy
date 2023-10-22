@@ -6,6 +6,7 @@ const proxy = require('../')
 const got = require('got')
 const { Unauthorized } = require('http-errors')
 const Transform = require('node:stream').Transform
+const qs = require('fast-querystring')
 
 async function run () {
   const origin = Fastify()
@@ -40,6 +41,10 @@ async function run () {
 
   origin.get('/variable-api/:id/endpoint', async (request, reply) => {
     return `this is "variable-api" endpoint with id ${request.params.id}`
+  })
+
+  origin.get('/variable-api/:id/endpoint-with-query', async (request, reply) => {
+    return `this is "variable-api" endpoint with id ${request.params.id} and query params ${JSON.stringify(request.query)}`
   })
 
   origin.get('/timeout', async (request, reply) => {
@@ -889,6 +894,28 @@ async function run () {
       `${proxyAddress}/second-service/foo?lang=en`
     )
     t.equal(resultFooRoute.body, 'Hello World (foo) - lang = en')
+  })
+
+  test('keep the query params on proxy', { only: true }, async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api/:id/endpoint',
+      rewritePrefix: '/variable-api/:id/endpoint-with-query'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.teardown(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/123/endpoint?foo=bar&foo=baz&abc=qux`
+    )
+    const queryParams = JSON.stringify(qs.parse('foo=bar&foo=baz&abc=qux'))
+    t.equal(firstProxyPrefix.body, `this is "variable-api" endpoint with id 123 and query params ${queryParams}`)
   })
 }
 
