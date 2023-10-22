@@ -307,7 +307,7 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function extractUrlComponents (urlString) {
-    const [path, queryString] = urlString.split('?')
+    const [path, queryString] = urlString.split('?', 2)
     const components = {
       path,
       queryParams: null
