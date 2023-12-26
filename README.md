@@ -163,7 +163,7 @@ fastify.register(proxy, {
   upstream: `http://your-target-upstream.com`,
   preValidation: async (request, reply) => {
     if (request.body.method === 'invalid_method') {
-      reply.code(400).send({ message: 'payload contains invalid method' });
+      return reply.code(400).send({ message: 'payload contains invalid method' });
     }
   },
 });
