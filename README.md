@@ -5,7 +5,7 @@
 [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat)](https://standardjs.com/)
 
 Proxy your HTTP requests to another server, with hooks.
-This [`fastify`](https://www.fastify.io) plugin forwards all requests
+This [`fastify`](https://www.fastify.dev) plugin forwards all requests
 received with a given prefix (or none) to an upstream. All Fastify hooks are still applied.
 
 `@fastify/http-proxy` is built on top of
@@ -172,7 +172,7 @@ fastify.register(proxy, {
 ### `config`
 
 An object accessible within the `preHandler` via `reply.context.config`.
-See [Config](https://www.fastify.io/docs/v4.8.x/Reference/Routes/#config) in the Fastify
+See [Config](https://www.fastify.dev/docs/v4.8.x/Reference/Routes/#config) in the Fastify
 documentation for information on this option. Note: this is merged with other
 configuration passed to the route.
 
