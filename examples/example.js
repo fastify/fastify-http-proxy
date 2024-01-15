@@ -11,7 +11,7 @@ async function startOrigin () {
   })
 
   origin.get('/redirect', async (request, reply) => {
-    return reply.redirect(302, 'https://fastify.io')
+    return reply.redirect(302, 'https://fastify.dev')
   })
 
   origin.get('/a', async (request, reply) => {

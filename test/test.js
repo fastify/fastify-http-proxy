@@ -19,7 +19,7 @@ async function run () {
   })
 
   origin.get('/redirect', async (request, reply) => {
-    return reply.redirect(302, 'https://fastify.io')
+    return reply.redirect(302, 'https://fastify.dev')
   })
 
   origin.post('/this-has-data', async (request, reply) => {
@@ -121,7 +121,7 @@ async function run () {
         followRedirect: false
       }
     )
-    t.equal(location, 'https://fastify.io')
+    t.equal(location, 'https://fastify.dev')
     t.equal(statusCode, 302)
   })
 
@@ -147,7 +147,7 @@ async function run () {
         followRedirect: false
       }
     )
-    t.equal(location, 'https://fastify.io')
+    t.equal(location, 'https://fastify.dev')
     t.equal(statusCode, 302)
   })
 
