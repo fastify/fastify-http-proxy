@@ -10,6 +10,7 @@ const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
+const kWsUpgradeListener = Symbol('wsUpgradeListener')
 
 function liftErrorCode (code) {
   /* istanbul ignore next */
@@ -74,32 +75,46 @@ function proxyWebSockets (source, target) {
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
 }
 
+function handleUpgrade (fastify, rawRequest, socket, head) {
+  // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
+  rawRequest[kWs] = socket
+  rawRequest[kWsHead] = head
+
+  const rawResponse = new ServerResponse(rawRequest)
+  rawResponse.assignSocket(socket)
+  fastify.routing(rawRequest, rawResponse)
+
+  rawResponse.on('finish', () => {
+    socket.destroy()
+  })
+}
+
 class WebSocketProxy {
-  constructor (fastify, wsServerOptions) {
+  constructor (fastify, { wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
+    this.wsClientOptions = {
+      rewriteRequestHeaders: defaultWsHeadersRewrite,
+      headers: {},
+      ...wsClientOptions
+    }
+    this.upstream = convertUrlToWebSocket(upstream)
+    this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
+    this.getUpstream = getUpstream
 
     const wss = new WebSocket.Server({
       noServer: true,
       ...wsServerOptions
     })
 
-    fastify.server.on('upgrade', (rawRequest, socket, head) => {
-      // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
-      rawRequest[kWs] = socket
-      rawRequest[kWsHead] = head
+    if (!fastify.server[kWsUpgradeListener]) {
+      fastify.server[kWsUpgradeListener] = (rawRequest, socket, head) =>
+        handleUpgrade(fastify, rawRequest, socket, head)
+      fastify.server.on('upgrade', fastify.server[kWsUpgradeListener])
+    }
 
-      const rawResponse = new ServerResponse(rawRequest)
-      rawResponse.assignSocket(socket)
-      fastify.routing(rawRequest, rawResponse)
-
-      rawResponse.on('finish', () => {
-        socket.destroy()
-      })
-    })
-
-    this.handleUpgrade = (request, cb) => {
+    this.handleUpgrade = (request, dest, cb) => {
       wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
-        this.handleConnection(socket, request)
+        this.handleConnection(socket, request, dest)
         cb()
       })
     }
@@ -134,45 +149,28 @@ class WebSocketProxy {
     this.prefixList = []
   }
 
-  addUpstream (prefix, rewritePrefix, upstream, wsUpstream, wsClientOptions) {
-    this.prefixList.push({
-      prefix: new URL(prefix, 'ws://127.0.0.1').pathname,
-      rewritePrefix,
-      upstream: convertUrlToWebSocket(upstream),
-      wsUpstream: wsUpstream ? convertUrlToWebSocket(wsUpstream) : '',
-      wsClientOptions
-    })
-
-    // sort by decreasing prefix length, so that findUpstreamUrl() does longest prefix match
-    this.prefixList.sort((a, b) => b.prefix.length - a.prefix.length)
-  }
-
-  findUpstream (request) {
-    const source = new URL(request.url, 'ws://127.0.0.1')
-
-    for (const { prefix, rewritePrefix, upstream, wsUpstream, wsClientOptions } of this.prefixList) {
-      if (wsUpstream) {
-        const target = new URL(wsUpstream)
-        target.search = source.search
-        return { target, wsClientOptions }
-      }
-
-      if (source.pathname.startsWith(prefix)) {
-        const target = new URL(source.pathname.replace(prefix, rewritePrefix), upstream)
-        target.search = source.search
-        return { target, wsClientOptions }
-      }
+  findUpstream (request, dest) {
+    if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
+      const target = new URL(this.wsUpstream)
+      target.search = new URL(request.url, 'ws://127.0.0.1').search
+      return target
     }
 
+    if (typeof this.upstream === 'string' && this.upstream !== '') {
+      return new URL(dest, this.upstream)
+    }
+
+    const upstream = this.getUpstream(request, '')
+    const target = new URL(dest, upstream)
     /* istanbul ignore next */
-    throw new Error(`no upstream found for ${request.url}. this should not happened. Please report to https://github.com/fastify/fastify-http-proxy`)
+    target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
+    return target
   }
 
-  handleConnection (source, request) {
-    const upstream = this.findUpstream(request)
-    const { target: url, wsClientOptions } = upstream
-    const rewriteRequestHeaders = wsClientOptions?.rewriteRequestHeaders || defaultWsHeadersRewrite
-    const headersToRewrite = wsClientOptions?.headers || {}
+  handleConnection (source, request, dest) {
+    const url = this.findUpstream(request, dest)
+    const rewriteRequestHeaders = this.wsClientOptions.rewriteRequestHeaders
+    const headersToRewrite = this.wsClientOptions.headers
 
     const subprotocols = []
     if (source.protocol) {
@@ -180,7 +178,7 @@ class WebSocketProxy {
     }
 
     const headers = rewriteRequestHeaders(headersToRewrite, request)
-    const optionsWs = { ...(wsClientOptions || {}), headers }
+    const optionsWs = { ...this.wsClientOptions, headers }
 
     const target = new WebSocket(url, subprotocols, optionsWs)
     this.logger.debug({ url: url.href }, 'proxy websocket')
@@ -193,41 +191,6 @@ function defaultWsHeadersRewrite (headers, request) {
     return { ...headers, cookie: request.headers.cookie }
   }
   return { ...headers }
-}
-
-const httpWss = new WeakMap() // http.Server => WebSocketProxy
-
-function setupWebSocketProxy (fastify, options, rewritePrefix) {
-  let wsProxy = httpWss.get(fastify.server)
-  if (!wsProxy) {
-    wsProxy = new WebSocketProxy(fastify, options.wsServerOptions)
-    httpWss.set(fastify.server, wsProxy)
-  }
-
-  if (
-    (typeof options.wsUpstream === 'string' && options.wsUpstream !== '') ||
-    (typeof options.upstream === 'string' && options.upstream !== '')
-  ) {
-    wsProxy.addUpstream(
-      fastify.prefix,
-      rewritePrefix,
-      options.upstream,
-      options.wsUpstream,
-      options.wsClientOptions
-    )
-    // The else block is validate earlier in the code
-  } else {
-    wsProxy.findUpstream = function (request) {
-      const source = new URL(request.url, 'ws://127.0.0.1')
-      const upstream = options.replyOptions.getUpstream(request, '')
-      const target = new URL(source.pathname, upstream)
-      /* istanbul ignore next */
-      target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
-      target.search = source.search
-      return { target, wsClientOptions: options.wsClientOptions }
-    }
-  }
-  return wsProxy
 }
 
 function generateRewritePrefix (prefix, opts) {
@@ -303,7 +266,7 @@ async function fastifyHttpProxy (fastify, opts) {
   let wsProxy
 
   if (opts.websocket) {
-    wsProxy = setupWebSocketProxy(fastify, opts, rewritePrefix)
+    wsProxy = new WebSocketProxy(fastify, opts)
   }
 
   function extractUrlComponents (urlString) {
@@ -321,16 +284,6 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function handler (request, reply) {
-    if (request.raw[kWs]) {
-      reply.hijack()
-      try {
-        wsProxy.handleUpgrade(request, noop)
-      } catch (err) {
-        /* istanbul ignore next */
-        request.log.warn({ err }, 'websocket proxy error')
-      }
-      return
-    }
     const { path, queryParams } = extractUrlComponents(request.url)
     let dest = path
 
@@ -349,6 +302,17 @@ async function fastifyHttpProxy (fastify, opts) {
       }
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
+    }
+
+    if (request.raw[kWs]) {
+      reply.hijack()
+      try {
+        wsProxy.handleUpgrade(request, dest || '/', noop)
+      } catch (err) {
+        /* istanbul ignore next */
+        request.log.warn({ err }, 'websocket proxy error')
+      }
+      return
     }
     reply.from(dest || '/', replyOpts)
   }
