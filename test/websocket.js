@@ -522,7 +522,7 @@ test('multiple websocket upstreams with host constraints', async (t) => {
 })
 
 test('multiple websocket upstreams with distinct server options', async (t) => {
-  t.plan(2)
+  t.plan(4)
 
   const server = Fastify()
 
@@ -532,7 +532,8 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
     t.teardown(wss.close.bind(wss))
     t.teardown(origin.close.bind(origin))
 
-    wss.once('connection', (ws) => {
+    wss.once('connection', (ws, req) => {
+      t.equal(req.url, `/?q=${name}`)
       ws.once('message', message => {
         // echo
         ws.send(message)

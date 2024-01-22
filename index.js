@@ -150,20 +150,25 @@ class WebSocketProxy {
   }
 
   findUpstream (request, dest) {
+    const search = new URL(request.url, 'ws://127.0.0.1').search
+
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
       const target = new URL(this.wsUpstream)
-      target.search = new URL(request.url, 'ws://127.0.0.1').search
+      target.search = search
       return target
     }
 
     if (typeof this.upstream === 'string' && this.upstream !== '') {
-      return new URL(dest, this.upstream)
+      const target = new URL(dest, this.upstream)
+      target.search = search
+      return target
     }
 
     const upstream = this.getUpstream(request, '')
     const target = new URL(dest, upstream)
     /* istanbul ignore next */
     target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
+    target.search = search
     return target
   }
 
