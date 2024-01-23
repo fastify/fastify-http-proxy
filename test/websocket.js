@@ -564,6 +564,8 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
       { headers: { host: name } }
     )
     await once(ws, 'open')
+    ws.send(`hello ${name}`)
+    await once(ws, 'message')
     wsClients.push(ws)
   }
 
