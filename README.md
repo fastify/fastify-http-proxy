@@ -219,9 +219,6 @@ Note that if property `wsUpstream` not specified then proxy will try to connect 
 
 The options passed to [`new ws.Server()`](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocketserver).
 
-In case multiple websocket proxies are attached to the same HTTP server at different paths.
-In this case, only the first `wsServerOptions` is applied.
-
 ### `wsClientOptions`
 
 The options passed to the [`WebSocket` constructor](https://github.com/websockets/ws/blob/HEAD/doc/ws.md#class-websocket) for outgoing websockets.

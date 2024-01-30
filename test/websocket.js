@@ -474,3 +474,103 @@ test('Proxy websocket with custom upstream url', async (t) => {
     server.close()
   ])
 })
+
+test('multiple websocket upstreams with host constraints', async (t) => {
+  t.plan(4)
+
+  const server = Fastify()
+
+  for (const name of ['foo', 'bar']) {
+    const origin = createServer()
+    const wss = new WebSocket.Server({ server: origin })
+    t.teardown(wss.close.bind(wss))
+    t.teardown(origin.close.bind(origin))
+
+    wss.once('connection', (ws) => {
+      ws.once('message', message => {
+        t.equal(message.toString(), `hello ${name}`)
+        // echo
+        ws.send(message)
+      })
+    })
+
+    await promisify(origin.listen.bind(origin))({ port: 0, host: '127.0.0.1' })
+    server.register(proxy, {
+      upstream: `ws://127.0.0.1:${origin.address().port}`,
+      websocket: true,
+      constraints: { host: name }
+    })
+  }
+
+  await server.listen({ port: 0, host: '127.0.0.1' })
+  t.teardown(server.close.bind(server))
+
+  const wsClients = []
+  for (const name of ['foo', 'bar']) {
+    const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, { headers: { host: name } })
+    await once(ws, 'open')
+    ws.send(`hello ${name}`)
+    const [reply] = await once(ws, 'message')
+    t.equal(reply.toString(), `hello ${name}`)
+    wsClients.push(ws)
+  }
+
+  await Promise.all([
+    ...wsClients.map(ws => once(ws, 'close')),
+    server.close()
+  ])
+})
+
+test('multiple websocket upstreams with distinct server options', async (t) => {
+  t.plan(4)
+
+  const server = Fastify()
+
+  for (const name of ['foo', 'bar']) {
+    const origin = createServer()
+    const wss = new WebSocket.Server({ server: origin })
+    t.teardown(wss.close.bind(wss))
+    t.teardown(origin.close.bind(origin))
+
+    wss.once('connection', (ws, req) => {
+      t.equal(req.url, `/?q=${name}`)
+      ws.once('message', message => {
+        // echo
+        ws.send(message)
+      })
+    })
+
+    await promisify(origin.listen.bind(origin))({ port: 0, host: '127.0.0.1' })
+    server.register(proxy, {
+      upstream: `ws://127.0.0.1:${origin.address().port}`,
+      websocket: true,
+      constraints: { host: name },
+      wsServerOptions: {
+        verifyClient: ({ req }) => {
+          t.equal(req.url, `/?q=${name}`)
+          return true
+        }
+      }
+    })
+  }
+
+  await server.listen({ port: 0, host: '127.0.0.1' })
+  t.teardown(server.close.bind(server))
+
+  const wsClients = []
+  for (const name of ['foo', 'bar']) {
+    const ws = new WebSocket(
+      `ws://127.0.0.1:${server.server.address().port}/?q=${name}`,
+      { headers: { host: name } }
+    )
+    await once(ws, 'open')
+    ws.send(`hello ${name}`)
+    await once(ws, 'message')
+    wsClients.push(ws)
+  }
+
+  await Promise.all([
+    ...wsClients.map(ws => once(ws, 'close')),
+    server.close()
+  ])
+})
