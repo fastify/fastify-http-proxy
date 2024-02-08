@@ -145,6 +145,9 @@ yarn.lock
 .vscode
 .idea
 
+#tap files
+.tap/
+
 # diag files
 *clinic*
 *0x*
