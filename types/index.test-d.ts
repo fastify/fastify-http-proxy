@@ -52,6 +52,7 @@ app.register(fastifyHttpProxy, {
   constraints: { version: '1.0.2' },
   websocket: true,
   wsUpstream: 'ws://origin.asd/connection',
+  internalRewriteLocationHeader: true,
 });
 
 expectError(
@@ -72,5 +73,13 @@ expectError(
     upstream: 'http://origin.asd',
     websocket: false,
     wsUpstream: 'asdf',
+  })
+);
+
+expectError(
+  app.register(fastifyHttpProxy, {
+    upstream: 'http://origin.asd',
+    websocket: false,
+    internalRewriteLocationHeader: 'NON_BOOLEAN_VALUE'
   })
 );
