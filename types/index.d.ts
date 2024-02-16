@@ -38,6 +38,7 @@ declare namespace fastifyHttpProxy {
     wsServerOptions?: ServerOptions;
     httpMethods?: string[];
     constraints?: { [name: string]: any };
+    internalRewriteLocationHeader?: boolean;
   }
   
   export const fastifyHttpProxy: FastifyHttpProxy
