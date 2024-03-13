@@ -382,7 +382,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       config: { foo: 'bar' },
       async preHandler (request, reply) {
-        t.same(reply.context.config, {
+        t.same(request.routeOptions.config, {
           foo: 'bar',
           url: '/',
           method: [
