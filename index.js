@@ -150,11 +150,12 @@ class WebSocketProxy {
   }
 
   findUpstream (request, dest) {
-    const search = new URL(request.url, 'ws://127.0.0.1').search
+    const { search, pathname } = new URL(request.url, 'ws://127.0.0.1')
 
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
       const target = new URL(this.wsUpstream)
       target.search = search
+      target.pathname = target.pathname === '/' ? pathname : target.pathname
       return target
     }
 
