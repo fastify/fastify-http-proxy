@@ -6,6 +6,7 @@ const { createServer } = require('node:http')
 const { promisify } = require('node:util')
 const { once } = require('node:events')
 
+// TODO: this test is flaky, probably because of promise resolution
 test('keep proxy websocket pathname', async (t) => {
   t.plan(5)
 
