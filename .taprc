@@ -1,5 +1,3 @@
-ts: false
-jsx: false
-flow: false
-coverage: true
-check-coverage: true
+disable-coverage: true
+files:
+  - test/**/*.js

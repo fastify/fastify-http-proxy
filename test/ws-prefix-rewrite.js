@@ -74,9 +74,12 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
       handler: (req, reply) => {
         reply.send(req.url)
       },
-      wsHandler: (conn, req) => {
-        conn.write(req.url)
-        conn.end()
+      wsHandler: (socket, req) => {
+        socket.send(req.url)
+
+        socket.once('message', chunk => {
+          socket.close()
+        })
       }
     })
 
