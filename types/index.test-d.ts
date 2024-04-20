@@ -1,6 +1,9 @@
 import fastify, {
   RawReplyDefaultExpression,
   RawRequestDefaultExpression,
+  type FastifyRequest,
+  type RawServerBase,
+  type RequestGenericInterface,
 } from 'fastify';
 import { expectError, expectType } from 'tsd';
 import fastifyHttpProxy from '..';
@@ -52,6 +55,14 @@ app.register(fastifyHttpProxy, {
   constraints: { version: '1.0.2' },
   websocket: true,
   wsUpstream: 'ws://origin.asd/connection',
+  wsClientOptions: {
+    queryString(search, reqUrl, request) {
+      expectType<string | undefined>(search);
+      expectType<string>(reqUrl);
+      expectType<FastifyRequest<RequestGenericInterface, RawServerBase>>(request);
+      return '';
+    },
+  },
   internalRewriteLocationHeader: true,
 });
 
