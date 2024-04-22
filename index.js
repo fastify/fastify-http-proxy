@@ -175,6 +175,9 @@ class WebSocketProxy {
 
   handleConnection (source, request, dest) {
     const url = this.findUpstream(request, dest)
+    const queryString = getQueryString(url.search, request.url, this.wsClientOptions, request)
+    url.search = queryString
+
     const rewriteRequestHeaders = this.wsClientOptions.rewriteRequestHeaders
     const headersToRewrite = this.wsClientOptions.headers
 
@@ -190,6 +193,22 @@ class WebSocketProxy {
     this.logger.debug({ url: url.href }, 'proxy websocket')
     proxyWebSockets(source, target)
   }
+}
+
+function getQueryString (search, reqUrl, opts, request) {
+  if (typeof opts.queryString === 'function') {
+    return '?' + opts.queryString(search, reqUrl, request)
+  }
+
+  if (opts.queryString) {
+    return '?' + qs.stringify(opts.queryString)
+  }
+
+  if (search.length > 0) {
+    return search
+  }
+
+  return ''
 }
 
 function defaultWsHeadersRewrite (headers, request) {

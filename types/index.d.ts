@@ -1,6 +1,13 @@
 /// <reference types='node' />
 
-import { FastifyPluginCallback, preHandlerHookHandler, preValidationHookHandler } from 'fastify';
+import {
+  FastifyPluginCallback,
+  FastifyRequest,
+  preHandlerHookHandler,
+  preValidationHookHandler,
+  RawServerBase,
+  RequestGenericInterface,
+} from 'fastify';
 
 import {
   FastifyReplyFromOptions,
@@ -24,6 +31,12 @@ type FastifyHttpProxy = FastifyPluginCallback<
 >;
 
 declare namespace fastifyHttpProxy {
+  type QueryStringFunction = (
+    search: string | undefined,
+    reqUrl: string,
+    request: FastifyRequest<RequestGenericInterface, RawServerBase>
+  ) => string;
+
   export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
     upstream: string;
     prefix?: string;
@@ -34,7 +47,7 @@ declare namespace fastifyHttpProxy {
     preValidation?: preValidationHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
-    wsClientOptions?: ClientOptions;
+    wsClientOptions?: ClientOptions & { queryString?: { [key: string]: unknown } | QueryStringFunction; };
     wsServerOptions?: ServerOptions;
     httpMethods?: string[];
     constraints?: { [name: string]: any };
