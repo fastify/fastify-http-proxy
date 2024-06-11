@@ -229,7 +229,7 @@ function generateRewritePrefix (prefix, opts) {
 }
 
 async function fastifyHttpProxy (fastify, opts) {
-  if (!opts.upstream && !(opts.upstream === '' && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
+  if (!opts.upstream && !opts.websocket && !((opts.upstream === '' || opts.wsUpstream === '') && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
     throw new Error('upstream must be specified')
   }
 
