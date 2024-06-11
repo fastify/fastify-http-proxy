@@ -97,7 +97,7 @@ class WebSocketProxy {
       headers: {},
       ...wsClientOptions
     }
-    this.upstream = convertUrlToWebSocket(upstream)
+    this.upstream = upstream ? convertUrlToWebSocket(upstream) : ''
     this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
     this.getUpstream = getUpstream
 
