@@ -13,7 +13,7 @@ const kWsHead = Symbol('wsHead')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
 
 function liftErrorCode (code) {
-  /* istanbul ignore next */
+  /* c8 ignore start */
   if (typeof code !== 'number') {
     // Sometimes "close" event emits with a non-numeric value
     return 1011
@@ -23,6 +23,7 @@ function liftErrorCode (code) {
   } else {
     return code
   }
+  /* c8 ignore stop */
 }
 
 function closeWebSocket (socket, code, reason) {
@@ -52,27 +53,27 @@ function proxyWebSockets (source, target) {
   }
 
   source.on('message', (data, binary) => waitConnection(target, () => target.send(data, { binary })))
-  /* istanbul ignore next */
+  /* c8 ignore start */
   source.on('ping', data => waitConnection(target, () => target.ping(data)))
-  /* istanbul ignore next */
   source.on('pong', data => waitConnection(target, () => target.pong(data)))
+  /* c8 ignore stop */
   source.on('close', close)
-  /* istanbul ignore next */
+  /* c8 ignore start */
   source.on('error', error => close(1011, error.message))
-  /* istanbul ignore next */
   source.on('unexpected-response', () => close(1011, 'unexpected response'))
+  /* c8 ignore stop */
 
   // source WebSocket is already connected because it is created by ws server
   target.on('message', (data, binary) => source.send(data, { binary }))
-  /* istanbul ignore next */
+  /* c8 ignore start */
   target.on('ping', data => source.ping(data))
-  /* istanbul ignore next */
+  /* c8 ignore stop */
   target.on('pong', data => source.pong(data))
   target.on('close', close)
-  /* istanbul ignore next */
+  /* c8 ignore start */
   target.on('error', error => close(1011, error.message))
-  /* istanbul ignore next */
   target.on('unexpected-response', () => close(1011, 'unexpected response'))
+  /* c8 ignore stop */
 }
 
 function handleUpgrade (fastify, rawRequest, socket, head) {
@@ -129,7 +130,6 @@ class WebSocketProxy {
       fastify.server.close = function (done) {
         wss.close(() => {
           oldClose.call(this, (err) => {
-            /* istanbul ignore next */
             done && done(err)
           })
         })
@@ -139,11 +139,11 @@ class WebSocketProxy {
       }
     }
 
-    /* istanbul ignore next */
+    /* c8 ignore start */
     wss.on('error', (err) => {
-      /* istanbul ignore next */
       this.logger.error(err)
     })
+    /* c8 ignore stop */
 
     this.wss = wss
     this.prefixList = []
@@ -167,7 +167,7 @@ class WebSocketProxy {
 
     const upstream = this.getUpstream(request, '')
     const target = new URL(dest, upstream)
-    /* istanbul ignore next */
+    /* c8 ignore next */
     target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
     target.search = search
     return target
@@ -333,10 +333,9 @@ async function fastifyHttpProxy (fastify, opts) {
       reply.hijack()
       try {
         wsProxy.handleUpgrade(request, dest || '/', noop)
-      } catch (err) {
-        /* istanbul ignore next */
+      } /* c8 ignore start */ catch (err) {
         request.log.warn({ err }, 'websocket proxy error')
-      }
+      } /* c8 ignore stop */
       return
     }
     reply.from(dest || '/', replyOpts)
