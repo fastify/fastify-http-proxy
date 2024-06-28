@@ -57,6 +57,9 @@
     "fastify-plugin": "^4.5.1",
     "ws": "^8.16.0"
   },
+  "peerDependencies": {
+    "fastify": "^4.26.2"
+  },
   "tsd": {
     "directory": "test/types"
   },
