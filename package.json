@@ -49,7 +49,7 @@
     "tap": "^18.7.2",
     "tsd": "^0.31.0",
     "typescript": "^5.4.5",
-    "why-is-node-running": "^2.2.2"
+    "why-is-node-running": "^3.0.0"
   },
   "dependencies": {
     "@fastify/reply-from": "^10.0.0-pre.fv5.1",
