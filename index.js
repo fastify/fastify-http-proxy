@@ -322,11 +322,12 @@ async function fastifyHttpProxy (fastify, opts) {
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
-      if (queryParams) {
-        dest += `?${qs.stringify(queryParams)}`
-      }
     } else {
       dest = dest.replace(this.prefix, rewritePrefix)
+    }
+
+    if (queryParams) {
+      dest += `?${qs.stringify(queryParams)}`
     }
 
     if (request.raw[kWs]) {
