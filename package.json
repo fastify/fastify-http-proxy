@@ -1,6 +1,6 @@
 {
   "name": "@fastify/http-proxy",
-  "version": "10.0.0-pre.fv5.2",
+  "version": "10.0.0",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "type": "commonjs",
@@ -37,7 +37,7 @@
     "express": "^4.19.2",
     "express-http-proxy": "^2.0.0",
     "fast-proxy": "^2.1.0",
-    "fastify": "^5.0.0-alpha.3",
+    "fastify": "^5.0.0-alpha.4",
     "got": "^11.8.6",
     "http-errors": "^2.0.0",
     "http-proxy": "^1.18.1",
@@ -52,9 +52,9 @@
     "why-is-node-running": "^3.0.0"
   },
   "dependencies": {
-    "@fastify/reply-from": "^10.0.0-pre.fv5.1",
+    "@fastify/reply-from": "^11.0.0",
     "fast-querystring": "^1.1.2",
-    "fastify-plugin": "^5.0.0-pre.fv5.1",
+    "fastify-plugin": "^5.0.0",
     "ws": "^8.16.0"
   },
   "tsd": {

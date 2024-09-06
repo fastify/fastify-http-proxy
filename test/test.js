@@ -19,7 +19,7 @@ async function run () {
   })
 
   origin.get('/redirect', async (request, reply) => {
-    return reply.redirect(302, 'https://fastify.dev')
+    return reply.redirect('https://fastify.dev', 302)
   })
 
   origin.post('/this-has-data', async (request, reply) => {
@@ -666,7 +666,7 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/api',
       replyOptions: {
-        onResponse (request, reply, stream) {
+        onResponse (request, reply, { stream }) {
           return reply.send(
             stream.pipe(
               new Transform({
