@@ -37,7 +37,7 @@
     "express": "^4.19.2",
     "express-http-proxy": "^2.0.0",
     "fast-proxy": "^2.1.0",
-    "fastify": "^5.0.0-alpha.4",
+    "fastify": "^5.0.0",
     "got": "^11.8.6",
     "http-errors": "^2.0.0",
     "http-proxy": "^1.18.1",
