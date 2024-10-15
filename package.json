@@ -29,7 +29,7 @@
   "homepage": "https://github.com/fastify/fastify-http-proxy#readme",
   "devDependencies": {
     "@fastify/pre-commit": "^2.1.0",
-    "@fastify/websocket": "^10.0.1",
+    "@fastify/websocket": "^11.0.0",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^7.6.0",
