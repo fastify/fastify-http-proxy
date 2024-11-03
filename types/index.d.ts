@@ -53,7 +53,7 @@ declare namespace fastifyHttpProxy {
     constraints?: { [name: string]: any };
     internalRewriteLocationHeader?: boolean;
   }
-  
+
   export const fastifyHttpProxy: FastifyHttpProxy
   export { fastifyHttpProxy as default }
 }
