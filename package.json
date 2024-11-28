@@ -1,6 +1,6 @@
 {
   "name": "@fastify/http-proxy",
-  "version": "10.0.2",
+  "version": "11.0.0",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "type": "commonjs",
