@@ -7,14 +7,14 @@ import {
   preValidationHookHandler,
   RawServerBase,
   RequestGenericInterface,
-} from 'fastify';
+} from 'fastify'
 
 import {
   FastifyReplyFromOptions,
   FastifyReplyFromHooks,
-} from '@fastify/reply-from';
+} from '@fastify/reply-from'
 
-import { ClientOptions, ServerOptions } from 'ws';
+import { ClientOptions, ServerOptions } from 'ws'
 
 interface FastifyHttpProxyWebsocketOptionsEnabled {
   websocket: true;
@@ -28,14 +28,14 @@ interface FastifyHttpProxyWebsocketOptionsDisabled {
 type FastifyHttpProxy = FastifyPluginCallback<
   fastifyHttpProxy.FastifyHttpProxyOptions
   & (FastifyHttpProxyWebsocketOptionsEnabled | FastifyHttpProxyWebsocketOptionsDisabled)
->;
+>
 
 declare namespace fastifyHttpProxy {
   type QueryStringFunction = (
     search: string | undefined,
     reqUrl: string,
     request: FastifyRequest<RequestGenericInterface, RawServerBase>
-  ) => string;
+  ) => string
 
   export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
     upstream: string;
@@ -58,5 +58,5 @@ declare namespace fastifyHttpProxy {
   export { fastifyHttpProxy as default }
 }
 
-declare function fastifyHttpProxy(...params: Parameters<FastifyHttpProxy>): ReturnType<FastifyHttpProxy>
+declare function fastifyHttpProxy (...params: Parameters<FastifyHttpProxy>): ReturnType<FastifyHttpProxy>
 export = fastifyHttpProxy

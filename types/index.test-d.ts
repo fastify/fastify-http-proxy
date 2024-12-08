@@ -4,15 +4,15 @@ import fastify, {
   type FastifyRequest,
   type RawServerBase,
   type RequestGenericInterface,
-} from 'fastify';
-import { expectError, expectType } from 'tsd';
-import fastifyHttpProxy from '..';
+} from 'fastify'
+import { expectError, expectType } from 'tsd'
+import fastifyHttpProxy from '..'
 
-const app = fastify();
+const app = fastify()
 
 app.register(fastifyHttpProxy, {
   upstream: 'http://origin.asd',
-});
+})
 
 app.register(fastifyHttpProxy, {
   upstream: 'http://origin.asd',
@@ -23,16 +23,16 @@ app.register(fastifyHttpProxy, {
   replyOptions: { contentType: 'application/json' },
   httpMethods: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
   preHandler: (request, reply) => {
-    expectType<RawRequestDefaultExpression>(request.raw);
-    expectType<RawReplyDefaultExpression>(reply.raw);
+    expectType<RawRequestDefaultExpression>(request.raw)
+    expectType<RawReplyDefaultExpression>(reply.raw)
   },
   beforeHandler: (request, reply) => {
-    expectType<RawRequestDefaultExpression>(request.raw);
-    expectType<RawReplyDefaultExpression>(reply.raw);
+    expectType<RawRequestDefaultExpression>(request.raw)
+    expectType<RawReplyDefaultExpression>(reply.raw)
   },
   preValidation: (request, reply) => {
-    expectType<RawRequestDefaultExpression>(request.raw);
-    expectType<RawReplyDefaultExpression>(reply.raw);
+    expectType<RawRequestDefaultExpression>(request.raw)
+    expectType<RawReplyDefaultExpression>(reply.raw)
   },
   base: 'whatever',
   cacheURLs: 10,
@@ -56,28 +56,28 @@ app.register(fastifyHttpProxy, {
   websocket: true,
   wsUpstream: 'ws://origin.asd/connection',
   wsClientOptions: {
-    queryString(search, reqUrl, request) {
-      expectType<string | undefined>(search);
-      expectType<string>(reqUrl);
-      expectType<FastifyRequest<RequestGenericInterface, RawServerBase>>(request);
-      return '';
+    queryString (search, reqUrl, request) {
+      expectType<string | undefined>(search)
+      expectType<string>(reqUrl)
+      expectType<FastifyRequest<RequestGenericInterface, RawServerBase>>(request)
+      return ''
     },
   },
   internalRewriteLocationHeader: true,
-});
+})
 
 expectError(
   app.register(fastifyHttpProxy, {
     thisOptionDoesNotExist: 'triggers a typescript error',
   })
-);
+)
 
 expectError(
   app.register(fastifyHttpProxy, {
     upstream: 'http://origin.asd',
     wsUpstream: 'ws://origin.asd',
   })
-);
+)
 
 expectError(
   app.register(fastifyHttpProxy, {
@@ -85,7 +85,7 @@ expectError(
     websocket: false,
     wsUpstream: 'asdf',
   })
-);
+)
 
 expectError(
   app.register(fastifyHttpProxy, {
@@ -93,4 +93,4 @@ expectError(
     websocket: false,
     internalRewriteLocationHeader: 'NON_BOOLEAN_VALUE'
   })
-);
+)
