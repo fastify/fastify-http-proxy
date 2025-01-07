@@ -266,7 +266,7 @@ async function fastifyHttpProxy (fastify, opts) {
     return headers
   }
 
-  function bodyParser (req, payload, done) {
+  function bodyParser (_req, payload, done) {
     done(null, payload)
   }
 

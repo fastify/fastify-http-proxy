@@ -284,7 +284,7 @@ test('websocket proxy trigger hooks', async (t) => {
   await promisify(origin.listen.bind(origin))({ port: 0, host: '127.0.0.1' })
 
   const server = Fastify()
-  server.addHook('onRequest', (request, reply, done) => {
+  server.addHook('onRequest', (_request, _reply, done) => {
     t.pass('onRequest')
     done()
   })
@@ -347,7 +347,7 @@ test('websocket proxy with rewriteRequestHeaders', async (t) => {
     upstream: `ws://127.0.0.1:${origin.address().port}`,
     websocket: true,
     wsClientOptions: {
-      rewriteRequestHeaders: (headers, request) => {
+      rewriteRequestHeaders: (headers) => {
         return {
           ...headers,
           myauth: 'myauth'
@@ -461,7 +461,7 @@ test('Should gracefully close when clients attempt to connect after calling clos
   server.server.close = function (cb) {
     const ws = new WebSocket('ws://127.0.0.1:' + server.server.address().port)
 
-    p = once(ws, 'unexpected-response').then(([req, res]) => {
+    p = once(ws, 'unexpected-response').then(([_req, res]) => {
       t.equal(res.statusCode, 503)
       oldClose.call(this, cb)
     })

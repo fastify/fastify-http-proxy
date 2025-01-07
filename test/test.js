@@ -10,15 +10,15 @@ const qs = require('fast-querystring')
 
 async function run () {
   const origin = Fastify()
-  origin.get('/', async (request, reply) => {
+  origin.get('/', async () => {
     return 'this is root'
   })
 
-  origin.get('/a', async (request, reply) => {
+  origin.get('/a', async () => {
     return 'this is a'
   })
 
-  origin.get('/redirect', async (request, reply) => {
+  origin.get('/redirect', async (_request, reply) => {
     return reply.redirect('https://fastify.dev', 302)
   })
 
@@ -30,24 +30,24 @@ async function run () {
     throw new Error('kaboom')
   })
 
-  origin.post('/redirect-to-relative-url', async (request, reply) => {
+  origin.post('/redirect-to-relative-url', async (_request, reply) => {
     reply.header('location', '/relative-url')
     return { status: 'ok' }
   })
 
-  origin.get('/api2/a', async (request, reply) => {
+  origin.get('/api2/a', async () => {
     return 'this is /api2/a'
   })
 
-  origin.get('/variable-api/:id/endpoint', async (request, reply) => {
+  origin.get('/variable-api/:id/endpoint', async (request) => {
     return `this is "variable-api" endpoint with id ${request.params.id}`
   })
 
-  origin.get('/variable-api/:id/endpoint-with-query', async (request, reply) => {
+  origin.get('/variable-api/:id/endpoint-with-query', async (request) => {
     return `this is "variable-api" endpoint with id ${request.params.id} and query params ${JSON.stringify(request.query)}`
   })
 
-  origin.get('/timeout', async (request, reply) => {
+  origin.get('/timeout', async () => {
     await new Promise((resolve) => setTimeout(resolve, 600))
     return 'this is never received'
   })
@@ -84,7 +84,7 @@ async function run () {
         t.fail('should never be called')
       },
       replyOptions: {
-        getUpstream: function (original, base) {
+        getUpstream: function () {
           return `http://localhost:${origin.server.address().port}`
         }
       }
@@ -130,7 +130,7 @@ async function run () {
     server.register(proxy, {
       upstream: '',
       replyOptions: {
-        getUpstream: function (original, base) {
+        getUpstream: function () {
           return `http://localhost:${origin.server.address().port}`
         }
       }
@@ -195,7 +195,7 @@ async function run () {
       upstream: '',
       prefix: '/my-prefix',
       replyOptions: {
-        getUpstream: function (original, base) {
+        getUpstream: function () {
           return `http://localhost:${origin.server.address().port}`
         }
       }
@@ -301,7 +301,7 @@ async function run () {
     server.register(proxy, {
       upstream: '',
       replyOptions: {
-        getUpstream: function (original, base) {
+        getUpstream: function () {
           return `http://localhost:${origin.server.address().port}`
         }
       }
@@ -326,7 +326,7 @@ async function run () {
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
       proxyPayloads: false,
-      preHandler (request, reply, next) {
+      preHandler (request, _reply, next) {
         t.same(request.body, { hello: 'world' })
         next()
       }
@@ -349,7 +349,7 @@ async function run () {
     const server = Fastify()
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
-      async preHandler (request, reply) {
+      async preHandler () {
         throw new Unauthorized()
       }
     })
@@ -381,7 +381,7 @@ async function run () {
     server.register(proxy, {
       upstream: `http://localhost:${origin.server.address().port}`,
       config: { foo: 'bar' },
-      async preHandler (request, reply) {
+      async preHandler (request) {
         t.same(request.routeOptions.config, {
           foo: 'bar',
           url: '/',
@@ -415,7 +415,7 @@ async function run () {
   test('multiple prefixes with multiple plugins', async t => {
     const origin2 = Fastify()
 
-    origin2.get('/', async (request, reply) => {
+    origin2.get('/', async () => {
       return 'this is root for origin2'
     })
 
@@ -666,11 +666,11 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/api',
       replyOptions: {
-        onResponse (request, reply, { stream }) {
+        onResponse (_request, reply, { stream }) {
           return reply.send(
             stream.pipe(
               new Transform({
-                transform: function (chunk, enc, cb) {
+                transform: function (chunk, _enc, cb) {
                   this.push(chunk.toString().toUpperCase())
                   cb()
                 }
@@ -788,8 +788,8 @@ async function run () {
         empty: () => { headerValues = {} }
       }
     },
-    validate (value) { return true },
-    deriveConstraint: (req, ctx) => {
+    validate () { return true },
+    deriveConstraint: (req) => {
       return req.headers['test-header']
     }
   })
@@ -867,10 +867,10 @@ async function run () {
   test('prefixed proxy with query search', async t => {
     const appServer = Fastify()
 
-    appServer.get('/second-service', async (request, reply) => {
+    appServer.get('/second-service', async (request) => {
       return `Hello World - lang = ${request.query.lang}`
     })
-    appServer.get('/second-service/foo', async (request, reply) => {
+    appServer.get('/second-service/foo', async (request) => {
       return `Hello World (foo) - lang = ${request.query.lang}`
     })
     const address = await appServer.listen({ port: 0 })

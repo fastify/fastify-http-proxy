@@ -6,19 +6,19 @@ const proxy = require('..')
 async function startOrigin () {
   const origin = Fastify()
 
-  origin.get('/', async (request, reply) => {
+  origin.get('/', async () => {
     return 'this is root'
   })
 
-  origin.get('/redirect', async (request, reply) => {
+  origin.get('/redirect', async (_request, reply) => {
     return reply.redirect(302, 'https://fastify.dev')
   })
 
-  origin.get('/a', async (request, reply) => {
+  origin.get('/a', async () => {
     return 'this is a'
   })
 
-  origin.post('/this-has-data', async (request, reply) => {
+  origin.post('/this-has-data', async (request) => {
     if (request.body.hello === 'world') {
       return { something: 'posted' }
     }
