@@ -49,7 +49,7 @@ async function processRequest (t, frontendURL, path, expected) {
       t.comment('websocket closed')
       wsResult = 'error'
     }
-  } catch (e) {
+  } catch {
     wsResult = 'error'
     ws.terminate()
   }
@@ -57,7 +57,7 @@ async function processRequest (t, frontendURL, path, expected) {
   try {
     const result = await got(url)
     gotResult = result.body
-  } catch (e) {
+  } catch {
     gotResult = 'error'
   }
 
@@ -77,7 +77,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
       wsHandler: (socket, req) => {
         socket.send(req.url)
 
-        socket.once('message', chunk => {
+        socket.once('message', () => {
           socket.close()
         })
       }
