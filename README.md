@@ -172,7 +172,7 @@ fastify.register(proxy, {
 ### `config`
 
 An object accessible within the `preHandler` via `reply.context.config`.
-See [Config](https://fastify.dev/docs/v4.8.x/Reference/Routes/#config) in the Fastify
+See [Config](https://fastify.dev/docs/latest/Reference/Routes/#config) in the Fastify
 documentation for information on this option. Note: this is merged with other
 configuration passed to the route.
 
