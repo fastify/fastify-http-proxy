@@ -11,7 +11,7 @@ received with a given prefix (or none) to an upstream. All Fastify hooks are sti
 `@fastify/http-proxy` is built on top of
 [`@fastify/reply-from`](https://npm.im/@fastify/reply-from), which enables single route proxying.
 
-This plugin can be used in a variety of circumstances, for example if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
+This plugin can be used in a variety of circumstances, for example, if you have to proxy an internal domain to an external domain (useful to avoid CORS problems) or to implement your own API gateway for a microservices architecture.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ server.register(require('@fastify/http-proxy'), {
 server.listen({ port: 3000 });
 ```
 
-This will proxy any request starting with `/api` to `http://my-api.example.com`. For instance `http://localhost:3000/api/users` will be proxied to `http://my-api.example.com/users`.
+This will proxy any request starting with `/api` to `http://my-api.example.com`. For instance, `http://localhost:3000/api/users` will be proxied to `http://my-api.example.com/users`.
 
 If you want to have different proxies on different prefixes you can register multiple instances of the plugin as shown in the following snippet:
 
@@ -81,9 +81,9 @@ server.register(proxy, {
 server.listen({ port: 3000 });
 ```
 
-Notice that in this case it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
+Notice that in this case, it is important to use the `prefix` option to tell the proxy how to properly route the requests across different upstreams.
 
-Also notice paths in `upstream` are ignored, so you need to use `rewritePrefix` to specify the target base path.
+Also, notice paths in `upstream` are ignored, so you need to use `rewritePrefix` to specify the target base path.
 
 For other examples, see [`example.js`](examples/example.js).
 
@@ -229,7 +229,7 @@ The default implementation forwards the `cookie` header.
 
 ## Benchmarks
 
-The following benchmarks where generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:
+The following benchmarks were generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:
 
 | **Framework**         | req/sec |
 | :-------------------- | :------ |
@@ -247,4 +247,4 @@ URL`.
 
 ## License
 
-MIT
+Licensed under [MIT](./LICENSE).
