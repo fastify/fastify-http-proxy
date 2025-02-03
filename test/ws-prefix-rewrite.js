@@ -1,6 +1,6 @@
 'use strict'
 
-const t = require('tap')
+const { test } = require('node:test')
 const { once } = require('node:events')
 
 const Fastify = require('fastify')
@@ -20,8 +20,6 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
     })
   }
 
-  t.comment('starting proxy to ' + backendURL + backendPath)
-
   if (wrapperOptions) {
     await frontend.register(registerProxy, wrapperOptions)
   } else {
@@ -33,20 +31,18 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
 
 async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
-  t.comment('ws connecting to ' + url.toString())
   const wsUrl = url.href.replace('http:', 'ws:')
   const ws = new WebSocket(wsUrl)
   let wsResult, gotResult
 
   try {
     await once(ws, 'open')
-    t.pass('socket connected')
+    t.assert.ok('socket connected')
 
     const [buf] = await Promise.race([once(ws, 'message'), once(ws, 'close')])
     if (buf instanceof Buffer) {
       wsResult = buf.toString()
     } else {
-      t.comment('websocket closed')
       wsResult = 'error'
     }
   } catch {
@@ -61,12 +57,12 @@ async function processRequest (t, frontendURL, path, expected) {
     gotResult = 'error'
   }
 
-  t.equal(wsResult, expected)
-  t.equal(gotResult, expected)
+  t.assert.equal(wsResult, expected)
+  t.assert.equal(gotResult, expected)
 }
 
 async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
-  t.test(info, async function (t) {
+  test(info, async function (t) {
     const backend = Fastify({ logger: { level } })
     await backend.register(fastifyWebSocket)
 
@@ -87,7 +83,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
 
     const [frontend, frontendURL] = await proxyServer(t, backendURL, backendPath, proxyOptions, wrapperOptions)
 
-    t.teardown(async () => {
+    t.after(async () => {
       // Close the frontend before the backend to avoid timeouts
       await frontend.close()
       await backend.close()
@@ -96,8 +92,6 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
     for (const path of paths) {
       await processRequest(t, frontendURL, path, expected(path))
     }
-
-    t.end()
   })
 }
 
