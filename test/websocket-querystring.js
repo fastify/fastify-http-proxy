@@ -1,6 +1,6 @@
 'use strict'
 
-const { test } = require('tap')
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const proxy = require('../')
 const WebSocket = require('ws')
@@ -16,13 +16,13 @@ test('websocket proxy with object queryString', async (t) => {
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
-  t.teardown(wss.close.bind(wss))
-  t.teardown(origin.close.bind(origin))
+  t.after(() => { wss.close() })
+  t.after(() => { origin.close() })
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.equal(ws.protocol, subprotocolValue)
-    t.equal(request.url, '/?q=test')
+    t.assert.equal(ws.protocol, subprotocolValue)
+    t.assert.equal(request.url, '/?q=test')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -42,22 +42,22 @@ test('websocket proxy with object queryString', async (t) => {
   })
 
   await server.listen({ port: 0, host: '127.0.0.1' })
-  t.teardown(server.close.bind(server))
+  t.after(() => { server.close() })
 
   const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, [subprotocolValue])
   await once(ws, 'open')
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.equal(reply0.toString(), 'hello')
-  t.equal(binary0, false)
+  t.assert.equal(reply0.toString(), 'hello')
+  t.assert.equal(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.equal(reply1.toString(), 'fastify')
-  t.equal(binary1, true)
+  t.assert.equal(reply1.toString(), 'fastify')
+  t.assert.equal(binary1, true)
 
-  t.strictSame(serverMessages, [
+  t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
     ['fastify', true]
   ])
@@ -73,13 +73,13 @@ test('websocket proxy with function queryString', async (t) => {
 
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
-  t.teardown(wss.close.bind(wss))
-  t.teardown(origin.close.bind(origin))
+  t.after(() => { wss.close() })
+  t.after(() => { origin.close() })
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.equal(ws.protocol, subprotocolValue)
-    t.equal(request.url, '/?q=test')
+    t.assert.equal(ws.protocol, subprotocolValue)
+    t.assert.equal(request.url, '/?q=test')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -99,22 +99,22 @@ test('websocket proxy with function queryString', async (t) => {
   })
 
   await server.listen({ port: 0, host: '127.0.0.1' })
-  t.teardown(server.close.bind(server))
+  t.after(() => { server.close() })
 
   const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, [subprotocolValue])
   await once(ws, 'open')
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.equal(reply0.toString(), 'hello')
-  t.equal(binary0, false)
+  t.assert.equal(reply0.toString(), 'hello')
+  t.assert.equal(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.equal(reply1.toString(), 'fastify')
-  t.equal(binary1, true)
+  t.assert.equal(reply1.toString(), 'fastify')
+  t.assert.equal(binary1, true)
 
-  t.strictSame(serverMessages, [
+  t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
     ['fastify', true]
   ])
