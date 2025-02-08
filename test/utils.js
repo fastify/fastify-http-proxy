@@ -15,6 +15,6 @@ test('convertUrlToWebSocket', function (t) {
   ]
   t.plan(testData.length)
   for (const { input, expected } of testData) {
-    t.assert.equal(convertUrlToWebSocket(input), expected)
+    t.assert.strictEqual(convertUrlToWebSocket(input), expected)
   }
 })

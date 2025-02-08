@@ -38,7 +38,7 @@ test('proxy socket.io', async (t) => {
 
   srvSocket.on('connection', (socket) => {
     socket.on('hello', (data) => {
-      t.assert.equal(data, 'world')
+      t.assert.strictEqual(data, 'world')
       socket.emit('hi', 'socket')
     })
   })
@@ -53,7 +53,7 @@ test('proxy socket.io', async (t) => {
   cliSocket.emit('hello', 'world')
 
   const [out] = await once(cliSocket, 'hi')
-  t.assert.equal(out, 'socket')
+  t.assert.strictEqual(out, 'socket')
 
   await Promise.all([once(cliSocket, 'disconnect'), srvProxy.close()])
 })

@@ -59,8 +59,8 @@ async function processRequest (t, frontendURL, path, expected) {
     gotResult = 'error'
   }
 
-  t.assert.equal(wsResult, expected)
-  t.assert.equal(gotResult, expected)
+  t.assert.strictEqual(wsResult, expected)
+  t.assert.strictEqual(gotResult, expected)
 }
 
 async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {

@@ -20,8 +20,8 @@ test('basic websocket proxy', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.cookie, cookieValue)
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.cookie, cookieValue)
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -45,13 +45,13 @@ test('basic websocket proxy', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -77,7 +77,7 @@ test('multiple websocket upstreams', async (t) => {
 
     wss.once('connection', (ws) => {
       ws.once('message', message => {
-        t.assert.equal(message.toString(), `hello ${name}`)
+        t.assert.strictEqual(message.toString(), `hello ${name}`)
         // echo
         ws.send(message)
       })
@@ -100,7 +100,7 @@ test('multiple websocket upstreams', async (t) => {
     await once(ws, 'open')
     ws.send(`hello ${name}`)
     const [reply] = await once(ws, 'message')
-    t.assert.equal(reply.toString(), `hello ${name}`)
+    t.assert.strictEqual(reply.toString(), `hello ${name}`)
     wsClients.push(ws)
   }
 
@@ -135,8 +135,8 @@ test('getUpstream', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.cookie, cookieValue)
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.cookie, cookieValue)
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -157,8 +157,8 @@ test('getUpstream', async (t) => {
     upstream: '',
     replyOptions: {
       getUpstream: function (original) {
-        t.assert.notEqual(original, _req)
-        t.assert.equal(original.raw, _req)
+        t.assert.notStrictEqual(original, _req)
+        t.assert.strictEqual(original.raw, _req)
         return `http://127.0.0.1:${origin.address().port}`
       }
     },
@@ -174,13 +174,13 @@ test('getUpstream', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -203,8 +203,8 @@ test('getUpstream with unset wsUpstream', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.cookie, cookieValue)
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.cookie, cookieValue)
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -225,8 +225,8 @@ test('getUpstream with unset wsUpstream', async (t) => {
     wsUpstream: '',
     replyOptions: {
       getUpstream: function (original) {
-        t.assert.notEqual(original, _req)
-        t.assert.equal(original.raw, _req)
+        t.assert.notStrictEqual(original, _req)
+        t.assert.strictEqual(original.raw, _req)
         return `http://127.0.0.1:${origin.address().port}`
       }
     },
@@ -242,13 +242,13 @@ test('getUpstream with unset wsUpstream', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -271,8 +271,8 @@ test('websocket proxy trigger hooks', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.cookie, cookieValue)
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.cookie, cookieValue)
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -301,13 +301,13 @@ test('websocket proxy trigger hooks', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -330,8 +330,8 @@ test('websocket proxy with rewriteRequestHeaders', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.myauth, 'myauth')
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.myauth, 'myauth')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -363,13 +363,13 @@ test('websocket proxy with rewriteRequestHeaders', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -392,8 +392,8 @@ test('websocket proxy custom headers', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.headers.myauth, 'myauth')
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.headers.myauth, 'myauth')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -422,13 +422,13 @@ test('websocket proxy custom headers', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -461,7 +461,7 @@ test('Should gracefully close when clients attempt to connect after calling clos
     const ws = new WebSocket('ws://127.0.0.1:' + server.server.address().port)
 
     p = once(ws, 'unexpected-response').then(([_req, res]) => {
-      t.assert.equal(res.statusCode, 503)
+      t.assert.strictEqual(res.statusCode, 503)
       oldClose.call(this, cb)
     })
   }
@@ -527,8 +527,8 @@ test('Proxy websocket with custom upstream url', async (t) => {
 
     const [reply, binaryAnswer] = await once(ws, 'message')
 
-    t.assert.equal(reply.toString(), msg)
-    t.assert.equal(binaryAnswer, binary)
+    t.assert.strictEqual(reply.toString(), msg)
+    t.assert.strictEqual(binaryAnswer, binary)
   }
   // Also check "path", must be the same.
   t.assert.deepStrictEqual(serverMessages, [
@@ -596,8 +596,8 @@ test('Proxy websocket with custom upstream url', async (t) => {
 
     const [reply, binaryAnswer] = await once(ws, 'message')
 
-    t.assert.equal(reply.toString(), msg)
-    t.assert.equal(binaryAnswer, binary)
+    t.assert.strictEqual(reply.toString(), msg)
+    t.assert.strictEqual(binaryAnswer, binary)
   }
   // Also check "path", must be the same.
   t.assert.deepStrictEqual(serverMessages, [
@@ -624,7 +624,7 @@ test('multiple websocket upstreams with host constraints', async (t) => {
 
     wss.once('connection', (ws) => {
       ws.once('message', message => {
-        t.assert.equal(message.toString(), `hello ${name}`)
+        t.assert.strictEqual(message.toString(), `hello ${name}`)
         // echo
         ws.send(message)
       })
@@ -647,7 +647,7 @@ test('multiple websocket upstreams with host constraints', async (t) => {
     await once(ws, 'open')
     ws.send(`hello ${name}`)
     const [reply] = await once(ws, 'message')
-    t.assert.equal(reply.toString(), `hello ${name}`)
+    t.assert.strictEqual(reply.toString(), `hello ${name}`)
     wsClients.push(ws)
   }
 
@@ -669,7 +669,7 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
     t.after(() => { origin.close() })
 
     wss.once('connection', (ws, req) => {
-      t.assert.equal(req.url, `/?q=${name}`)
+      t.assert.strictEqual(req.url, `/?q=${name}`)
       ws.once('message', message => {
         // echo
         ws.send(message)
@@ -683,7 +683,7 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
       constraints: { host: name },
       wsServerOptions: {
         verifyClient: ({ req }) => {
-          t.assert.equal(req.url, `/?q=${name}`)
+          t.assert.strictEqual(req.url, `/?q=${name}`)
           return true
         }
       }

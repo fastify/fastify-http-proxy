@@ -59,8 +59,8 @@ test('keep proxy websocket pathname', async (t) => {
 
     const [reply, binaryAnswer] = await once(ws, 'message')
 
-    t.assert.equal(reply.toString(), msg)
-    t.assert.equal(binaryAnswer, binary)
+    t.assert.strictEqual(reply.toString(), msg)
+    t.assert.strictEqual(binaryAnswer, binary)
   }
   // Also check "path", must be the same.
   t.assert.deepStrictEqual(serverMessages, [

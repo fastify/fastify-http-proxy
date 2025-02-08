@@ -21,8 +21,8 @@ test('websocket proxy with object queryString', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.url, '/?q=test')
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.url, '/?q=test')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -49,13 +49,13 @@ test('websocket proxy with object queryString', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
@@ -78,8 +78,8 @@ test('websocket proxy with function queryString', async (t) => {
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
-    t.assert.equal(ws.protocol, subprotocolValue)
-    t.assert.equal(request.url, '/?q=test')
+    t.assert.strictEqual(ws.protocol, subprotocolValue)
+    t.assert.strictEqual(request.url, '/?q=test')
     ws.on('message', (message, binary) => {
       serverMessages.push([message.toString(), binary])
       // echo
@@ -106,13 +106,13 @@ test('websocket proxy with function queryString', async (t) => {
 
   ws.send('hello', { binary: false })
   const [reply0, binary0] = await once(ws, 'message')
-  t.assert.equal(reply0.toString(), 'hello')
-  t.assert.equal(binary0, false)
+  t.assert.strictEqual(reply0.toString(), 'hello')
+  t.assert.strictEqual(binary0, false)
 
   ws.send(Buffer.from('fastify'), { binary: true })
   const [reply1, binary1] = await once(ws, 'message')
-  t.assert.equal(reply1.toString(), 'fastify')
-  t.assert.equal(binary1, true)
+  t.assert.strictEqual(reply1.toString(), 'fastify')
+  t.assert.strictEqual(binary1, true)
 
   t.assert.deepStrictEqual(serverMessages, [
     ['hello', false],
