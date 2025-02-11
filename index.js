@@ -76,59 +76,58 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
-function reconnect (targetParams) {
+function reconnect (logger, source, options, targetParams) {
   const { url, subprotocols, optionsWs } = targetParams
   const target = new WebSocket(url, subprotocols, optionsWs)
-  proxyWebSocketsWithReconnection(source, target, options, targetParams)
+  proxyWebSocketsWithReconnection(logger, source, target, options, targetParams)
 }
 
-function proxyWebSocketsWithReconnection (source, target, options, targetParams) {
-  function close (code, reason, closing) {
-    source.pingTimer && clearTimeout(source.pingTimer)
-    source.pingTimer = undefined
+// source is alive since it is created by the proxy service
+function proxyWebSocketsWithReconnection (logger, source, target, options, targetParams) {
+  function close (code, reason) {
+    target.pingTimer && clearTimeout(source.pingTimer)
+    target.pingTimer = undefined
 
-    closeWebSocket(source, code, reason)
-    closeWebSocket(target, code, reason)
+    if (target.broken) {
+      logger.warn({ msg: 'proxy ws reconnect on broken connection', target: targetParams.url })
 
-    if (closing) {
-      source.terminate()
-      target.terminate()
+      target.isAlive = false
+      reconnect(logger, source, options, targetParams)
       return
     }
 
-    console.log(' >>> reconnect')
-
-    source.isAlive = false
-    reconnect(targetParams)
+    logger.info({ msg: 'proxy ws close link' })
+    closeWebSocket(source, code, reason)
+    closeWebSocket(target, code, reason)
   }
 
-  source.isAlive = true
   source.on('message', (data, binary) => {
     source.isAlive = true
     waitConnection(target, () => target.send(data, { binary }))
   })
   /* c8 ignore start */
-  source.on('ping', data => waitConnection(target, () => target.ping(data)))
+  source.on('ping', data => {
+    waitConnection(target, () => target.ping(data))
+  })
   source.on('pong', data => {
-    console.log(' >>> pong')
     source.isAlive = true
     waitConnection(target, () => target.pong(data))
   })
   /* c8 ignore stop */
   source.on('close', (code, reason) => {
-    close(code, reason, true)
+    logger.warn({ msg: 'proxy ws source close', target: targetParams.url, code, reason })
+    close(code, reason)
   })
   /* c8 ignore start */
-  source.on('error', error => close(1011, error.message, false))
-  source.on('unexpected-response', () => close(1011, 'unexpected response', false))
+  source.on('error', error => {
+    logger.warn({ msg: 'proxy ws source error', target: targetParams.url, error: error.message })
+    close(1011, error.message)
+  })
+  source.on('unexpected-response', () => {
+    logger.warn({ msg: 'proxy ws source unexpected-response', target: targetParams.url })
+    close(1011, 'unexpected response')
+  })
   /* c8 ignore stop */
-
-  source.pingTimer = setInterval(() => {
-    console.log(' >>> ping')
-    if (source.isAlive === false) return source.terminate()
-    source.isAlive = false
-    source.ping()
-  }, options.pingInterval).unref()
 
   // source WebSocket is already connected because it is created by ws server
   target.on('message', (data, binary) => source.send(data, { binary }))
@@ -136,11 +135,33 @@ function proxyWebSocketsWithReconnection (source, target, options, targetParams)
   target.on('ping', data => source.ping(data))
   /* c8 ignore stop */
   target.on('pong', data => source.pong(data))
-  target.on('close', (code, reason) => close(code, reason, true))
+  target.on('close', (code, reason) => {
+    logger.warn({ msg: 'proxy ws target close', target: targetParams.url, code, reason })
+    close(code, reason)
+  })
   /* c8 ignore start */
-  target.on('error', error => close(1011, error.message, false))
-  target.on('unexpected-response', () => close(1011, 'unexpected response', false))
+  target.on('error', error => {
+    logger.warn({ msg: 'proxy ws target error', target: targetParams.url, error: error.message })
+    close(1011, error.message)
+  })
+  target.on('unexpected-response', () => {
+    logger.warn({ msg: 'proxy ws target unexpected-response', target: targetParams.url })
+    close(1011, 'unexpected response')
+  })
   /* c8 ignore stop */
+
+  target.isAlive = true
+  target.pingTimer = setInterval(() => {
+    if (target.isAlive === false) {
+      target.broken = true
+      logger.warn({ msg: 'proxy ws connection is broken', target: targetParams.url })
+      target.pingTimer && clearInterval(target.pingTimer)
+      target.pingTimer = undefined
+      return target.terminate()
+    }
+    target.isAlive = false
+    target.ping()
+  }, options.pingInterval).unref()
 }
 
 function handleUpgrade (fastify, rawRequest, socket, head) {
@@ -261,7 +282,7 @@ class WebSocketProxy {
 
     if (this.wsReconnect) {
       const targetParams = { url, subprotocols, optionsWs }
-      proxyWebSocketsWithReconnection(source, target, this.wsReconnect, targetParams)
+      proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, targetParams)
     } else {
       proxyWebSockets(source, target)
     }
