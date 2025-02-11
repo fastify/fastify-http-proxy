@@ -1,4 +1,5 @@
 'use strict'
+const { setTimeout: wait } = require('node:timers/promises')
 const From = require('@fastify/reply-from')
 const { ServerResponse } = require('node:http')
 const WebSocket = require('ws')
@@ -77,10 +78,32 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
-function reconnect (logger, source, options, targetParams) {
+async function reconnect (logger, source, options, targetParams) {
+  // TODO retry, maxReconnectionRetries
   const { url, subprotocols, optionsWs } = targetParams
-  const target = new WebSocket(url, subprotocols, optionsWs)
-  logger.info({ target: targetParams.url }, 'proxy ws reconnected on broken connection')
+
+  let attempts = 0
+  let target
+  do {
+    const reconnectWait = options.wsReconnect.reconnectInterval * options.wsReconnect.reconnectDecay
+    logger.info({ target: targetParams.url, attempts }, `proxy ws reconnecting in ${reconnectWait} ms`)
+    await wait(reconnectWait)
+    target = new WebSocket(url, subprotocols, optionsWs)
+    // TODO connectionTimeout
+    if (!target) {
+      attempts++
+      continue
+    }
+    break
+  } while (attempts < options.wsReconnect.maxReconnectAttempts)
+  
+  if (!target) {
+    logger.error({ target: targetParams.url }, 'proxy ws failed to reconnect')
+    // TODO onError hook?
+    return
+  }
+
+  logger.info({ target: targetParams.url }, 'proxy ws reconnected')
   proxyWebSocketsWithReconnection(logger, source, target, options, targetParams)
 }
 
@@ -95,6 +118,8 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
       reconnect(logger, source, options, targetParams)
       return
     }
+
+    // TODO if reconnectOnClose
 
     logger.info({ msg: 'proxy ws close link' })
     closeWebSocket(source, code, reason)

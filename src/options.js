@@ -33,8 +33,8 @@ function validateOptions (options) {
     }
     wsReconnect.maxReconnectionRetries = wsReconnect.maxReconnectionRetries ?? DEFAULT_MAX_RECONNECTION_RETRIES
 
-    if (wsReconnect.reconnectInterval !== undefined && (typeof wsReconnect.reconnectInterval !== 'number' || wsReconnect.reconnectInterval < 0)) {
-      throw new Error('wsReconnect.reconnectInterval must be a non-negative number')
+    if (wsReconnect.reconnectInterval !== undefined && (typeof wsReconnect.reconnectInterval !== 'number' || wsReconnect.reconnectInterval < 100)) {
+      throw new Error('wsReconnect.reconnectInterval (ms) must be a number greater than or equal to 100')
     }
     wsReconnect.reconnectInterval = wsReconnect.reconnectInterval ?? DEFAULT_RECONNECT_INTERVAL
 
