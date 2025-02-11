@@ -227,6 +227,27 @@ It also supports an additional `rewriteRequestHeaders(headers, request)` functio
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
 
+## `wsReconnect`
+
+The `wsReconnect` option contains the configuration for the WebSocket reconnection feature; is an object with the following properties:
+
+- `pingInterval`: The interval between ping messages in ms (default: `30_000`).
+- `maxReconnectAttempts`: The maximum number of reconnection attempts (default: `3`).
+- `maxReconnectionRetries`: The maximum number of reconnection retries (`1` to `Infinity`, default: `Infinity`).
+- `reconnectInterval`: The interval between reconnection attempts in ms (default: `1_000`).
+- `reconnectDecay`: The decay factor for the reconnection interval (default: `1.5`).
+- `connectionTimeout`: The timeout for the connection in ms (default: `5_000`).
+- `reconnectOnClose`: Whether to reconnect on close (default: `false`).
+
+Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections); the mechanism is based on ping/pong messages.
+It verifies the connection status from the service to the target.
+
+Example:
+
+```js
+TODO
+```
+
 ## Benchmarks
 
 The following benchmarks were generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:

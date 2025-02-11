@@ -44,7 +44,7 @@ function isExternalUrl (url) {
   return urlPattern.test(url)
 }
 
-function noop () {}
+function noop () { }
 
 function proxyWebSockets (source, target) {
   function close (code, reason) {
@@ -76,6 +76,73 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
+function reconnect (targetParams) {
+  const { url, subprotocols, optionsWs } = targetParams
+  const target = new WebSocket(url, subprotocols, optionsWs)
+  proxyWebSocketsWithReconnection(source, target, options, targetParams)
+}
+
+function proxyWebSocketsWithReconnection (source, target, options, targetParams) {
+  function close (code, reason, closing) {
+    source.pingTimer && clearTimeout(source.pingTimer)
+    source.pingTimer = undefined
+
+    closeWebSocket(source, code, reason)
+    closeWebSocket(target, code, reason)
+
+    if (closing) {
+      source.terminate()
+      target.terminate()
+      return
+    }
+
+    console.log(' >>> reconnect')
+
+    source.isAlive = false
+    reconnect(targetParams)
+  }
+
+  source.isAlive = true
+  source.on('message', (data, binary) => {
+    source.isAlive = true
+    waitConnection(target, () => target.send(data, { binary }))
+  })
+  /* c8 ignore start */
+  source.on('ping', data => waitConnection(target, () => target.ping(data)))
+  source.on('pong', data => {
+    console.log(' >>> pong')
+    source.isAlive = true
+    waitConnection(target, () => target.pong(data))
+  })
+  /* c8 ignore stop */
+  source.on('close', (code, reason) => {
+    close(code, reason, true)
+  })
+  /* c8 ignore start */
+  source.on('error', error => close(1011, error.message, false))
+  source.on('unexpected-response', () => close(1011, 'unexpected response', false))
+  /* c8 ignore stop */
+
+  source.pingTimer = setInterval(() => {
+    console.log(' >>> ping')
+    if (source.isAlive === false) return source.terminate()
+    source.isAlive = false
+    source.ping()
+  }, options.pingInterval).unref()
+
+  // source WebSocket is already connected because it is created by ws server
+  target.on('message', (data, binary) => source.send(data, { binary }))
+  /* c8 ignore start */
+  target.on('ping', data => source.ping(data))
+  /* c8 ignore stop */
+  target.on('pong', data => source.pong(data))
+  target.on('close', (code, reason) => close(code, reason, true))
+  /* c8 ignore start */
+  target.on('error', error => close(1011, error.message, false))
+  target.on('unexpected-response', () => close(1011, 'unexpected response', false))
+  /* c8 ignore stop */
+}
+
 function handleUpgrade (fastify, rawRequest, socket, head) {
   // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
   rawRequest[kWs] = socket
@@ -91,7 +158,7 @@ function handleUpgrade (fastify, rawRequest, socket, head) {
 }
 
 class WebSocketProxy {
-  constructor (fastify, { wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
+  constructor (fastify, { wsReconnect, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
     this.wsClientOptions = {
       rewriteRequestHeaders: defaultWsHeadersRewrite,
@@ -101,6 +168,7 @@ class WebSocketProxy {
     this.upstream = upstream ? convertUrlToWebSocket(upstream) : ''
     this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
     this.getUpstream = getUpstream
+    this.wsReconnect = wsReconnect
 
     const wss = new WebSocket.Server({
       noServer: true,
@@ -190,7 +258,13 @@ class WebSocketProxy {
 
     const target = new WebSocket(url, subprotocols, optionsWs)
     this.logger.debug({ url: url.href }, 'proxy websocket')
-    proxyWebSockets(source, target)
+
+    if (this.wsReconnect) {
+      const targetParams = { url, subprotocols, optionsWs }
+      proxyWebSocketsWithReconnection(source, target, this.wsReconnect, targetParams)
+    } else {
+      proxyWebSockets(source, target)
+    }
   }
 }
 
@@ -231,6 +305,8 @@ async function fastifyHttpProxy (fastify, opts) {
   if (!opts.upstream && !opts.websocket && !((opts.upstream === '' || opts.wsUpstream === '') && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
     throw new Error('upstream must be specified')
   }
+
+  // TODO validate opts.wsReconnect
 
   const preHandler = opts.preHandler || opts.beforeHandler
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
@@ -340,6 +416,8 @@ async function fastifyHttpProxy (fastify, opts) {
     reply.from(dest || '/', replyOpts)
   }
 }
+
+// TODO if reconnect on close, terminate connections on shutdown
 
 module.exports = fp(fastifyHttpProxy, {
   fastify: '5.x',
