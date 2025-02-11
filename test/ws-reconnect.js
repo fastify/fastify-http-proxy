@@ -74,7 +74,7 @@ test('should reconnect on broken connection', async (t) => {
 
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
-      // latency to break the connection
+      // add latency to break the connection
       await setTimeout(500)
       socket.pong()
     })

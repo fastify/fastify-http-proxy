@@ -5,6 +5,7 @@ const WebSocket = require('ws')
 const { convertUrlToWebSocket } = require('./utils')
 const fp = require('fastify-plugin')
 const qs = require('fast-querystring')
+const { validateOptions } = require('./src/options')
 
 const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
@@ -216,6 +217,7 @@ class WebSocketProxy {
     {
       const oldClose = fastify.server.close
       fastify.server.close = function (done) {
+        // TODO if reconnect on close, terminate connections on shutdown
         wss.close(() => {
           oldClose.call(this, (err) => {
             done && done(err)
@@ -322,11 +324,7 @@ function generateRewritePrefix (prefix, opts) {
 }
 
 async function fastifyHttpProxy (fastify, opts) {
-  if (!opts.upstream && !opts.websocket && !((opts.upstream === '' || opts.wsUpstream === '') && opts.replyOptions && typeof opts.replyOptions.getUpstream === 'function')) {
-    throw new Error('upstream must be specified')
-  }
-
-  // TODO validate opts.wsReconnect
+  opts = validateOptions(opts)
 
   const preHandler = opts.preHandler || opts.beforeHandler
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
@@ -436,8 +434,6 @@ async function fastifyHttpProxy (fastify, opts) {
     reply.from(dest || '/', replyOpts)
   }
 }
-
-// TODO if reconnect on close, terminate connections on shutdown
 
 module.exports = fp(fastifyHttpProxy, {
   fastify: '5.x',
