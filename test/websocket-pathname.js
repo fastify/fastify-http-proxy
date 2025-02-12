@@ -1,4 +1,4 @@
-const { test } = require('tap')
+const { test } = require('node:test')
 const Fastify = require('fastify')
 const proxy = require('..')
 const WebSocket = require('ws')
@@ -13,8 +13,8 @@ test('keep proxy websocket pathname', async (t) => {
   const origin = createServer()
   const wss = new WebSocket.Server({ server: origin })
 
-  t.teardown(wss.close.bind(wss))
-  t.teardown(origin.close.bind(origin))
+  t.after(() => { wss.close() })
+  t.after(() => { origin.close() })
 
   const serverMessages = []
   wss.on('connection', (ws, request) => {
@@ -39,7 +39,7 @@ test('keep proxy websocket pathname', async (t) => {
   })
 
   await server.listen({ port: 0, host: '127.0.0.1' })
-  t.teardown(server.close.bind(server))
+  t.after(() => { server.close() })
 
   // Start websocket with different upstream for connect, added path.
   const ws = new WebSocket(`ws://${host}:${server.server.address().port}${path}`)
@@ -59,11 +59,11 @@ test('keep proxy websocket pathname', async (t) => {
 
     const [reply, binaryAnswer] = await once(ws, 'message')
 
-    t.equal(reply.toString(), msg)
-    t.equal(binaryAnswer, binary)
+    t.assert.strictEqual(reply.toString(), msg)
+    t.assert.strictEqual(binaryAnswer, binary)
   }
   // Also check "path", must be the same.
-  t.strictSame(serverMessages, [
+  t.assert.deepStrictEqual(serverMessages, [
     ['hello', false, host, path],
     ['fastify', true, host, path]
   ])

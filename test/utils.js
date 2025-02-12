@@ -1,9 +1,9 @@
 'use strict'
 
-const t = require('tap')
+const { test } = require('node:test')
 const { convertUrlToWebSocket } = require('../utils')
 
-t.test('convertUrlToWebSocket', function (t) {
+test('convertUrlToWebSocket', function (t) {
   const testData = [
     { input: 'http://localhost', expected: 'ws://localhost' },
     { input: 'https://localhost', expected: 'wss://localhost' },
@@ -15,6 +15,6 @@ t.test('convertUrlToWebSocket', function (t) {
   ]
   t.plan(testData.length)
   for (const { input, expected } of testData) {
-    t.equal(convertUrlToWebSocket(input), expected)
+    t.assert.strictEqual(convertUrlToWebSocket(input), expected)
   }
 })
