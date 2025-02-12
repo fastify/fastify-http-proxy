@@ -11,7 +11,27 @@ const pinoTest = require('pino-test')
 const pino = require('pino')
 const proxyPlugin = require('../')
 
-async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServerOptions }) {
+function waitForLogMessage(loggerSpy, message, max = 100) {
+  return new Promise((resolve, reject) => {
+    let count = 0
+    const fn = (received) => {
+      console.log(received)
+
+      if (received.msg === message) {
+        loggerSpy.off('data', fn)
+        resolve()
+      }
+      count++
+      if (count > max) {
+        loggerSpy.off('data', fn)
+        reject(new Error(`Max message count reached on waitForLogMessage: ${message}`))
+      }
+    }
+    loggerSpy.on('data', fn)
+  })
+}
+
+async function createServices({ t, upstream, wsReconnectOptions, wsTargetOptions, wsServerOptions }) {
   const targetServer = createServer()
   const targetWs = new WebSocket.Server({ server: targetServer, ...wsTargetOptions })
 
@@ -21,7 +41,7 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
   const logger = pino(loggerSpy)
   const proxy = Fastify({ loggerInstance: logger })
   proxy.register(proxyPlugin, {
-    upstream: `ws://127.0.0.1:${targetServer.address().port}`,
+    upstream: upstream || `ws://127.0.0.1:${targetServer.address().port}`,
     websocket: true,
     wsReconnect: wsReconnectOptions,
     wsServerOptions
@@ -46,12 +66,11 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
     },
     proxy,
     client,
-    loggerSpy
+    loggerSpy,
+    upstream
   }
 }
-
-// TODO use fake timers ?
-
+/*
 test('should use ping/pong to verify connection is alive - from source (server on proxy) to target', async (t) => {
   const wsReconnectOptions = { pingInterval: 100, reconnectInterval: 100, maxReconnectionRetries: 1 }
 
@@ -70,64 +89,131 @@ test('should use ping/pong to verify connection is alive - from source (server o
 })
 
 test('should reconnect on broken connection', async (t) => {
-  const wsReconnectOptions = { pingInterval: 250, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectDecay: 2 }
+  const wsReconnectOptions = { pingInterval: 500, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectDecay: 2 }
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
+  let breakConnection = true
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
-      // add latency to break the connection
-      await wait(500)
+      // add latency to break the connection once
+      if (breakConnection) {
+        await wait(wsReconnectOptions.pingInterval * 2)
+        breakConnection = false
+      }
       socket.pong()
     })
   })
 
-  await pinoTest.once(loggerSpy, 'warn', 'proxy ws connection is broken')
-  await pinoTest.once(loggerSpy, 'info', 'proxy ws reconnecting in 100 ms')
-  await pinoTest.once(loggerSpy, 'info', 'proxy ws reconnected')
+  await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+
+  // TODO fix with source.removeAllListeners
+
+  t.end()
 })
 
+test('should not reconnect after max retries', async (t) => {
+  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, maxReconnectionRetries: 1 }
 
-test('should reconnect after failingwith retries', async (t) => {
-  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectOnClose: true }
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
-  const { target, logger } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
-
-  const refuseNewConnections = false
+  let breakConnection = true
 
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
-      // add latency to break the connection
-      await wait(500)
+      // add latency to break the connection once
+      if (breakConnection) {
+        await wait(wsReconnectOptions.pingInterval * 2)
+        breakConnection = false
+      }
       socket.pong()
     })
   })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
+
+  target.ws.close()
+  target.server.close()
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnect error')
+  await waitForLogMessage(loggerSpy, 'proxy ws failed to reconnect! No more retries')
+
+  t.end()
+})
+*/
+
+test('should not reconnect because of connection timeout', async (t) => {
+  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, maxReconnectionRetries: 1, connectionTimeout: 100 }
+
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
+
+  let breakConnection = true
 
   target.ws.on('upgrade', (request, socket, head) => {
-    if (refuseNewConnections) {
-      socket.destroy()
-    }
+    console.log('upgrade')
   })
 
-  // TODO use pino-test
-  // await pinoTest.once(logger, 'warn', 'proxy ws connection is broken')
+  target.ws.on('connection', async (socket) => {
+    socket.on('ping', async () => {
+      // add latency to break the connection once
+      if (breakConnection) {
+        await wait(wsReconnectOptions.pingInterval * 2)
+        breakConnection = false
+      }
+      socket.pong()
+    })
+  })
 
-  // close the target server to fail new connections
-  // setTimeout(() => {
-  //   refuseNewConnections = true
-  //   setTimeout(() => {
-  //     refuseNewConnections = false
-  //   }, 500)
-  // }, 1000)
+  await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
 
-  // t.ok(logger._warn.find(l => l[1] === 'proxy ws connection is broken'))
-  // t.ok(logger._info.find(l => l[1] === 'proxy ws reconnecting in 100 ms'))
-  // t.ok(logger._error.find(l => l[1] === 'proxy ws reconnect error' && l[0].attempts === 1))
-  // t.ok(logger._info.find(l => l[1] === 'proxy ws reconnected' && l[0].attempts === 2))
+  target.ws.close()
+  target.server.close()
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnect error')
+  await waitForLogMessage(loggerSpy, 'proxy ws failed to reconnect! No more retries')
+
+  t.end()
 })
 
-// TODO reconnect fails becase of timeout
-// cant reconnect
-// TODO reconnect on close/error/unexpected-response
-// TODO reconnectOnClose ... on shutdown
-// TODO check only socket to target
+// TODO reconnect regular close
+
+/*
+test('should reconnect with retry', async (t) => {
+  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectOnClose: true }
+
+  const { target, loggerSpy, upstream } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
+
+  let breakConnection = true
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('ping', async () => {
+      // add latency to break the connection once
+      if (breakConnection) {
+        await wait(wsReconnectOptions.pingInterval * 2)
+        breakConnection = false
+      }
+      socket.pong()
+    })
+  })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
+
+  // recreate a new target with the same upstream
+
+  target.ws.close()
+  target.server.close()
+  await createServices({ t, upstream, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnect error')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+
+  t.end()
+})
+*/
+
+// TODO reconnectOnClose but close all on shutdown

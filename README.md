@@ -232,7 +232,7 @@ The default implementation forwards the `cookie` header.
 The `wsReconnect` option contains the configuration for the WebSocket reconnection feature; is an object with the following properties:
 
 - `pingInterval`: The interval between ping messages in ms (default: `30_000`).
-- `maxReconnectionRetries`: The maximum number of reconnection attempts (default: `3`).
+- `maxReconnectionRetries`: The maximum number of reconnection attempts (default: `3`). The counter is reset when the connection is established.
 - `reconnectInterval`: The interval between reconnection attempts in ms (default: `1_000`).
 - `reconnectDecay`: The decay factor for the reconnection interval (default: `1.5`).
 - `connectionTimeout`: The timeout for the connection in ms (default: `5_000`).

@@ -29,12 +29,12 @@ function liftErrorCode (code) {
 }
 
 function closeWebSocket (socket, code, reason) {
+  socket.isAlive = false
   if (socket.readyState === WebSocket.OPEN) {
     socket.close(liftErrorCode(code), reason)
   }
 }
 
-// TODO timeout
 function waitConnection (socket, write) {
   if (socket.readyState === WebSocket.CONNECTING) {
     socket.once('open', write)
@@ -43,7 +43,6 @@ function waitConnection (socket, write) {
   }
 }
 
-// TODO timeout
 // TODO merge with waitConnection
 function waitForConnection (target, timeout) {
   return new Promise((resolve, reject) => {
@@ -115,7 +114,6 @@ async function reconnect (logger, source, wsReconnectOptions, targetParams) {
   let target
   do {
     const reconnectWait = wsReconnectOptions.reconnectInterval * (wsReconnectOptions.reconnectDecay * attempts || 1)
-    logger.info({ target: targetParams.url, attempts }, `proxy ws reconnecting in ${reconnectWait} ms`)
     await wait(reconnectWait)
 
     try {
@@ -129,7 +127,7 @@ async function reconnect (logger, source, wsReconnectOptions, targetParams) {
   } while (!target && attempts < wsReconnectOptions.maxReconnectionRetries)
 
   if (!target) {
-    logger.error({ target: targetParams.url, attempts }, 'proxy ws failed to reconnect')
+    logger.error({ target: targetParams.url, attempts }, 'proxy ws failed to reconnect! No more retries')
     return
   }
 
@@ -143,10 +141,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     target.pingTimer && clearTimeout(source.pingTimer)
     target.pingTimer = undefined
 
-    // endless reconnect on close
-    // as long as the source connection is active
+    // reconnect target as long as the source connection is active
     if (source.isAlive && (target.broken || options.reconnectOnClose)) {
       target.isAlive = false
+      target.removeAllListeners()
+      // TODO source.removeAllListeners()
       reconnect(logger, source, options, targetParams)
       return
     }
@@ -156,6 +155,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     closeWebSocket(target, code, reason)
   }
 
+  source.isAlive = true
   source.on('message', (data, binary) => {
     source.isAlive = true
     waitConnection(target, () => target.send(data, { binary }))
@@ -170,16 +170,16 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   })
   /* c8 ignore stop */
   source.on('close', (code, reason) => {
-    logger.warn({ target: targetParams.url, code, reason }, 'proxy ws source close')
+    logger.warn({ target: targetParams.url, code, reason }, 'proxy ws source close event')
     close(code, reason)
   })
   /* c8 ignore start */
   source.on('error', error => {
-    logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws source error')
+    logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws source error event')
     close(1011, error.message)
   })
   source.on('unexpected-response', () => {
-    logger.warn({ target: targetParams.url }, 'proxy ws source unexpected-response')
+    logger.warn({ target: targetParams.url }, 'proxy ws source unexpected-response event')
     close(1011, 'unexpected response')
   })
   /* c8 ignore stop */
@@ -191,16 +191,16 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   /* c8 ignore stop */
   target.on('pong', data => source.pong(data))
   target.on('close', (code, reason) => {
-    logger.warn({ target: targetParams.url, code, reason }, 'proxy ws target close')
+    logger.warn({ target: targetParams.url, code, reason }, 'proxy ws target close event')
     close(code, reason)
   })
   /* c8 ignore start */
   target.on('error', error => {
-    logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws target error')
+    logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws target error event')
     close(1011, error.message)
   })
   target.on('unexpected-response', () => {
-    logger.warn({ target: targetParams.url }, 'proxy ws target unexpected-response')
+    logger.warn({ target: targetParams.url }, 'proxy ws target unexpected-response event')
     close(1011, 'unexpected response')
   })
   /* c8 ignore stop */
