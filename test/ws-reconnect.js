@@ -1,10 +1,11 @@
 'use strict'
 
+const { test } = require('node:test')
+const assert = require('node:assert')
 const { createServer } = require('node:http')
 const { promisify } = require('node:util')
 const { once } = require('node:events')
 const { setTimeout: wait } = require('node:timers/promises')
-const { test } = require('tap')
 const Fastify = require('fastify')
 const WebSocket = require('ws')
 const pinoTest = require('pino-test')
@@ -52,7 +53,7 @@ async function createServices ({ t, upstream, wsReconnectOptions, wsTargetOption
   const client = new WebSocket(`ws://127.0.0.1:${proxy.server.address().port}`)
   await once(client, 'open')
 
-  t.teardown(async () => {
+  t.after(async () => {
     client.close()
     targetWs.close()
     targetServer.close()
@@ -85,7 +86,7 @@ test('should use ping/pong to verify connection is alive - from source (server o
 
   await wait(250)
 
-  t.ok(counter > 0)
+  assert.ok(counter > 0)
 })
 
 test('should reconnect on broken connection', async (t) => {
@@ -108,8 +109,6 @@ test('should reconnect on broken connection', async (t) => {
   await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
   await waitForLogMessage(loggerSpy, 'proxy ws target close event')
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
-
-  // TODO fix with source.removeAllListeners
 })
 
 test('should not reconnect after max retries', async (t) => {
