@@ -7,8 +7,9 @@ const { setTimeout: wait } = require('node:timers/promises')
 const { test } = require('tap')
 const Fastify = require('fastify')
 const WebSocket = require('ws')
+const pinoTest = require('pino-test')
+const pino = require('pino')
 const proxyPlugin = require('../')
-const { createLoggerSpy } = require('./helper/helper')
 
 async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServerOptions }) {
   const targetServer = createServer()
@@ -16,7 +17,8 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
 
   await promisify(targetServer.listen.bind(targetServer))({ port: 0, host: '127.0.0.1' })
 
-  const logger = createLoggerSpy()
+  const loggerSpy = pinoTest.sink()
+  const logger = pino(loggerSpy)
   const proxy = Fastify({ loggerInstance: logger })
   proxy.register(proxyPlugin, {
     upstream: `ws://127.0.0.1:${targetServer.address().port}`,
@@ -44,13 +46,12 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
     },
     proxy,
     client,
-    logger
+    loggerSpy
   }
 }
 
 // TODO use fake timers ?
 
-/*
 test('should use ping/pong to verify connection is alive - from source (server on proxy) to target', async (t) => {
   const wsReconnectOptions = { pingInterval: 100, reconnectInterval: 100, maxReconnectionRetries: 1 }
 
@@ -71,7 +72,7 @@ test('should use ping/pong to verify connection is alive - from source (server o
 test('should reconnect on broken connection', async (t) => {
   const wsReconnectOptions = { pingInterval: 250, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectDecay: 2 }
 
-  const { target, logger } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
@@ -80,13 +81,12 @@ test('should reconnect on broken connection', async (t) => {
       socket.pong()
     })
   })
-  await wait(1000)
 
-  t.ok(logger._warn.find(l => l[1] === 'proxy ws connection is broken'))
-  t.ok(logger._info.find(l => l[1] === 'proxy ws reconnecting in 100 ms'))
-  t.ok(logger._info.find(l => l[1] === 'proxy ws reconnected'))
+  await pinoTest.once(loggerSpy, 'warn', 'proxy ws connection is broken')
+  await pinoTest.once(loggerSpy, 'info', 'proxy ws reconnecting in 100 ms')
+  await pinoTest.once(loggerSpy, 'info', 'proxy ws reconnected')
 })
-*/
+
 
 test('should reconnect after failingwith retries', async (t) => {
   const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectOnClose: true }
