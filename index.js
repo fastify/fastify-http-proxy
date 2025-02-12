@@ -34,12 +34,42 @@ function closeWebSocket (socket, code, reason) {
   }
 }
 
+// TODO timeout
 function waitConnection (socket, write) {
   if (socket.readyState === WebSocket.CONNECTING) {
     socket.once('open', write)
   } else {
     write()
   }
+}
+
+// TODO timeout
+// TODO merge with waitConnection
+function waitForConnection (target, timeout) {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error('WebSocket connection timeout'))
+    }, timeout)
+
+    if (target.readyState === WebSocket.OPEN) {
+      clearTimeout(timeoutId)
+      return resolve()
+    }
+
+    if (target.readyState === WebSocket.CONNECTING) {
+      target.once('open', () => {
+        clearTimeout(timeoutId)
+        resolve()
+      })
+      target.once('error', (err) => {
+        clearTimeout(timeoutId)
+        reject(err)
+      })
+    } else {
+      clearTimeout(timeoutId)
+      reject(new Error('WebSocket is closed'))
+    }
+  })
 }
 
 function isExternalUrl (url) {
@@ -78,33 +108,33 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
-async function reconnect (logger, source, options, targetParams) {
-  // TODO retry, maxReconnectionRetries
+async function reconnect (logger, source, wsReconnectOptions, targetParams) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
   let target
   do {
-    const reconnectWait = options.wsReconnect.reconnectInterval * options.wsReconnect.reconnectDecay
+    const reconnectWait = wsReconnectOptions.reconnectInterval * (wsReconnectOptions.reconnectDecay * attempts || 1)
     logger.info({ target: targetParams.url, attempts }, `proxy ws reconnecting in ${reconnectWait} ms`)
     await wait(reconnectWait)
-    target = new WebSocket(url, subprotocols, optionsWs)
-    // TODO connectionTimeout
-    if (!target) {
+
+    try {
+      target = new WebSocket(url, subprotocols, optionsWs)
+      await waitForConnection(target, wsReconnectOptions.connectionTimeout)
+    } catch (err) {
+      logger.error({ target: targetParams.url, err, attempts }, 'proxy ws reconnect error')
       attempts++
-      continue
+      target = undefined
     }
-    break
-  } while (attempts < options.wsReconnect.maxReconnectAttempts)
-  
+  } while (!target && attempts < wsReconnectOptions.maxReconnectionRetries)
+
   if (!target) {
-    logger.error({ target: targetParams.url }, 'proxy ws failed to reconnect')
-    // TODO onError hook?
+    logger.error({ target: targetParams.url, attempts }, 'proxy ws failed to reconnect')
     return
   }
 
-  logger.info({ target: targetParams.url }, 'proxy ws reconnected')
-  proxyWebSocketsWithReconnection(logger, source, target, options, targetParams)
+  logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
+  proxyWebSocketsWithReconnection(logger, source, target, wsReconnectOptions, targetParams)
 }
 
 // source is alive since it is created by the proxy service
@@ -113,13 +143,13 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     target.pingTimer && clearTimeout(source.pingTimer)
     target.pingTimer = undefined
 
-    if (target.broken) {
+    // endless reconnect on close
+    // as long as the source connection is active
+    if (source.isAlive && (target.broken || options.reconnectOnClose)) {
       target.isAlive = false
       reconnect(logger, source, options, targetParams)
       return
     }
-
-    // TODO if reconnectOnClose
 
     logger.info({ msg: 'proxy ws close link' })
     closeWebSocket(source, code, reason)
@@ -242,7 +272,6 @@ class WebSocketProxy {
     {
       const oldClose = fastify.server.close
       fastify.server.close = function (done) {
-        // TODO if reconnect on close, terminate connections on shutdown
         wss.close(() => {
           oldClose.call(this, (err) => {
             done && done(err)

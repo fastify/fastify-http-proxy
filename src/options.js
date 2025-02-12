@@ -12,7 +12,7 @@ function validateOptions (options) {
   if (!options.upstream && !options.websocket && !((options.upstream === '' || options.wsUpstream === '') && options.replyOptions && typeof options.replyOptions.getUpstream === 'function')) {
     throw new Error('upstream must be specified')
   }
-  
+
   if (options.wsReconnect) {
     const wsReconnect = options.wsReconnect
 
@@ -21,17 +21,10 @@ function validateOptions (options) {
     }
     wsReconnect.pingInterval = wsReconnect.pingInterval ?? DEFAULT_PING_INTERVAL
 
-    if (wsReconnect.maxReconnectAttempts !== undefined && (typeof wsReconnect.maxReconnectAttempts !== 'number' || wsReconnect.maxReconnectAttempts < 0)) {
-      throw new Error('wsReconnect.maxReconnectAttempts must be a non-negative number')
+    if (wsReconnect.maxReconnectionRetries !== undefined && (typeof wsReconnect.maxReconnectionRetries !== 'number' || wsReconnect.maxReconnectionRetries < 0)) {
+      throw new Error('wsReconnect.maxReconnectionRetries must be a non-negative number')
     }
-    wsReconnect.maxReconnectAttempts = wsReconnect.maxReconnectAttempts ?? DEFAULT_MAX_RECONNECT_ATTEMPTS
-
-    if (wsReconnect.maxReconnectionRetries !== undefined) {
-      if (typeof wsReconnect.maxReconnectionRetries !== 'number' || wsReconnect.maxReconnectionRetries < 1) {
-        throw new Error('wsReconnect.maxReconnectionRetries must be a number greater than or equal to 1')
-      }
-    }
-    wsReconnect.maxReconnectionRetries = wsReconnect.maxReconnectionRetries ?? DEFAULT_MAX_RECONNECTION_RETRIES
+    wsReconnect.maxReconnectionRetries = wsReconnect.maxReconnectionRetries ?? DEFAULT_MAX_RECONNECT_ATTEMPTS
 
     if (wsReconnect.reconnectInterval !== undefined && (typeof wsReconnect.reconnectInterval !== 'number' || wsReconnect.reconnectInterval < 100)) {
       throw new Error('wsReconnect.reconnectInterval (ms) must be a number greater than or equal to 100')
@@ -55,9 +48,15 @@ function validateOptions (options) {
   }
 
   return options
-
 }
 
 module.exports = {
-  validateOptions
+  validateOptions,
+  DEFAULT_PING_INTERVAL,
+  DEFAULT_MAX_RECONNECT_ATTEMPTS,
+  DEFAULT_MAX_RECONNECTION_RETRIES,
+  DEFAULT_RECONNECT_INTERVAL,
+  DEFAULT_RECONNECT_DECAY,
+  DEFAULT_CONNECTION_TIMEOUT,
+  DEFAULT_RECONNECT_ON_CLOSE
 }
