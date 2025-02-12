@@ -43,7 +43,6 @@ function waitConnection (socket, write) {
   }
 }
 
-// TODO merge with waitConnection
 function waitForConnection (target, timeout) {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
@@ -145,7 +144,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     if (source.isAlive && (target.broken || options.reconnectOnClose)) {
       target.isAlive = false
       target.removeAllListeners()
-      // TODO source.removeAllListeners()
+      // TODO FIXME! source.removeAllListeners()
       reconnect(logger, source, options, targetParams)
       return
     }
@@ -185,11 +184,17 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   /* c8 ignore stop */
 
   // source WebSocket is already connected because it is created by ws server
-  target.on('message', (data, binary) => source.send(data, { binary }))
+  target.on('message', (data, binary) => {
+    target.isAlive = true
+    source.send(data, { binary })
+  })
   /* c8 ignore start */
   target.on('ping', data => source.ping(data))
   /* c8 ignore stop */
-  target.on('pong', data => source.pong(data))
+  target.on('pong', data => {
+    target.isAlive = true
+    source.pong(data)
+  })
   target.on('close', (code, reason) => {
     logger.warn({ target: targetParams.url, code, reason }, 'proxy ws target close event')
     close(code, reason)

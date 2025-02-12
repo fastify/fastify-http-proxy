@@ -1,7 +1,6 @@
 'use strict'
 
 const DEFAULT_PING_INTERVAL = 30_000
-const DEFAULT_MAX_RECONNECT_ATTEMPTS = 3
 const DEFAULT_MAX_RECONNECTION_RETRIES = Infinity
 const DEFAULT_RECONNECT_INTERVAL = 1_000
 const DEFAULT_RECONNECT_DECAY = 1.5
@@ -21,10 +20,10 @@ function validateOptions (options) {
     }
     wsReconnect.pingInterval = wsReconnect.pingInterval ?? DEFAULT_PING_INTERVAL
 
-    if (wsReconnect.maxReconnectionRetries !== undefined && (typeof wsReconnect.maxReconnectionRetries !== 'number' || wsReconnect.maxReconnectionRetries < 0)) {
-      throw new Error('wsReconnect.maxReconnectionRetries must be a non-negative number')
+    if (wsReconnect.maxReconnectionRetries !== undefined && (typeof wsReconnect.maxReconnectionRetries !== 'number' || wsReconnect.maxReconnectionRetries < 1)) {
+      throw new Error('wsReconnect.maxReconnectionRetries must be a number greater than or equal to 1')
     }
-    wsReconnect.maxReconnectionRetries = wsReconnect.maxReconnectionRetries ?? DEFAULT_MAX_RECONNECT_ATTEMPTS
+    wsReconnect.maxReconnectionRetries = wsReconnect.maxReconnectionRetries ?? DEFAULT_MAX_RECONNECTION_RETRIES
 
     if (wsReconnect.reconnectInterval !== undefined && (typeof wsReconnect.reconnectInterval !== 'number' || wsReconnect.reconnectInterval < 100)) {
       throw new Error('wsReconnect.reconnectInterval (ms) must be a number greater than or equal to 100')
@@ -53,7 +52,6 @@ function validateOptions (options) {
 module.exports = {
   validateOptions,
   DEFAULT_PING_INTERVAL,
-  DEFAULT_MAX_RECONNECT_ATTEMPTS,
   DEFAULT_MAX_RECONNECTION_RETRIES,
   DEFAULT_RECONNECT_INTERVAL,
   DEFAULT_RECONNECT_DECAY,
