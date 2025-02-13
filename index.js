@@ -138,7 +138,7 @@ async function reconnect (logger, source, wsReconnectOptions, oldTarget, targetP
   }
 
   wsReconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  wsReconnectOptions.onReconnect(oldTarget, target)
+  await wsReconnectOptions.onReconnect(oldTarget, target)
   proxyWebSocketsWithReconnection(logger, source, target, wsReconnectOptions, targetParams)
 }
 
