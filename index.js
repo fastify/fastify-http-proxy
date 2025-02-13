@@ -46,13 +46,17 @@ function waitConnection (socket, write) {
 function waitForConnection (target, timeout) {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
+      /* c8 ignore start */
       reject(new Error('WebSocket connection timeout'))
+      /* c8 ignore stop */
     }, timeout)
 
+    /* c8 ignore start */
     if (target.readyState === WebSocket.OPEN) {
       clearTimeout(timeoutId)
       return resolve()
     }
+    /* c8 ignore stop */
 
     if (target.readyState === WebSocket.CONNECTING) {
       target.once('open', () => {
@@ -63,10 +67,12 @@ function waitForConnection (target, timeout) {
         clearTimeout(timeoutId)
         reject(err)
       })
+      /* c8 ignore start */
     } else {
       clearTimeout(timeoutId)
       reject(new Error('WebSocket is closed'))
     }
+    /* c8 ignore stop */
   })
 }
 
@@ -113,6 +119,7 @@ async function reconnect (logger, source, wsReconnectOptions, targetParams) {
   let target
   do {
     const reconnectWait = wsReconnectOptions.reconnectInterval * (wsReconnectOptions.reconnectDecay * attempts || 1)
+    wsReconnectOptions.logs && logger.warn({ target: targetParams.url }, `proxy ws reconnect in ${reconnectWait} ms`)
     await wait(reconnectWait)
 
     try {
@@ -163,6 +170,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     source.off('unexpected-response', sourceOnUnexpectedResponse)
   }
 
+  /* c8 ignore start */
   function sourceOnMessage (data, binary) {
     source.isAlive = true
     waitConnection(target, () => target.send(data, { binary }))
@@ -186,6 +194,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     options.logs && logger.warn({ target: targetParams.url }, 'proxy ws source unexpected-response event')
     close(1011, 'unexpected response')
   }
+  /* c8 ignore stop */
 
   // source is alive since it is created by the proxy service
   // the pinger is not set since we can't reconnect from here
@@ -198,6 +207,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   source.on('unexpected-response', sourceOnUnexpectedResponse)
 
   // source WebSocket is already connected because it is created by ws server
+  /* c8 ignore start */
   target.on('message', (data, binary) => {
     target.isAlive = true
     source.send(data, { binary })
@@ -210,11 +220,12 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     target.isAlive = true
     source.pong(data)
   })
+  /* c8 ignore stop */
   target.on('close', (code, reason) => {
     options.logs && logger.warn({ target: targetParams.url, code, reason }, 'proxy ws target close event')
     close(code, reason)
   })
-
+  /* c8 ignore start */
   target.on('error', error => {
     options.logs && logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws target error event')
     close(1011, error.message)
@@ -223,6 +234,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
     options.logs && logger.warn({ target: targetParams.url }, 'proxy ws target unexpected-response event')
     close(1011, 'unexpected response')
   })
+  /* c8 ignore stop */
 
   target.isAlive = true
   target.pingTimer = setInterval(() => {

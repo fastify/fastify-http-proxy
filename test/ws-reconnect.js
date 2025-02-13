@@ -16,8 +16,6 @@ function waitForLogMessage (loggerSpy, message, max = 100) {
   return new Promise((resolve, reject) => {
     let count = 0
     const fn = (received) => {
-      console.log(received)
-
       if (received.msg === message) {
         loggerSpy.off('data', fn)
         resolve()
@@ -32,17 +30,27 @@ function waitForLogMessage (loggerSpy, message, max = 100) {
   })
 }
 
-async function createServices ({ t, upstream, wsReconnectOptions, wsTargetOptions, wsServerOptions }) {
+async function createTargetServer (t, wsTargetOptions, port = 0) {
   const targetServer = createServer()
   const targetWs = new WebSocket.Server({ server: targetServer, ...wsTargetOptions })
+  await promisify(targetServer.listen.bind(targetServer))({ port, host: '127.0.0.1' })
 
-  await promisify(targetServer.listen.bind(targetServer))({ port: 0, host: '127.0.0.1' })
+  t.after(() => {
+    targetWs.close()
+    targetServer.close()
+  })
+
+  return { targetServer, targetWs }
+}
+
+async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServerOptions, targetPort = 0 }) {
+  const { targetServer, targetWs } = await createTargetServer(t, wsTargetOptions, targetPort)
 
   const loggerSpy = pinoTest.sink()
   const logger = pino(loggerSpy)
   const proxy = Fastify({ loggerInstance: logger })
   proxy.register(proxyPlugin, {
-    upstream: upstream || `ws://127.0.0.1:${targetServer.address().port}`,
+    upstream: `ws://127.0.0.1:${targetServer.address().port}`,
     websocket: true,
     wsReconnect: wsReconnectOptions,
     wsServerOptions
@@ -55,8 +63,6 @@ async function createServices ({ t, upstream, wsReconnectOptions, wsTargetOption
 
   t.after(async () => {
     client.close()
-    targetWs.close()
-    targetServer.close()
     await proxy.close()
   })
 
@@ -67,8 +73,7 @@ async function createServices ({ t, upstream, wsReconnectOptions, wsTargetOption
     },
     proxy,
     client,
-    loggerSpy,
-    upstream
+    loggerSpy
   }
 }
 
@@ -94,13 +99,13 @@ test('should reconnect on broken connection', async (t) => {
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
-  const breakConnection = true
+  let breakConnection = true
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
       // add latency to break the connection once
       if (breakConnection) {
         await wait(wsReconnectOptions.pingInterval * 2)
-        // breakConnection = false
+        breakConnection = false
       }
       socket.pong()
     })
@@ -157,12 +162,11 @@ test('should reconnect on regular target connection close', async (t) => {
   await waitForLogMessage(loggerSpy, 'proxy ws close link')
 })
 
-/*
-TODO fix
-test('should reconnect with retry', async (t) => {
-  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectOnClose: true }
+test('should reconnect retrying after a few failures', async (t) => {
+  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectDecay: 2, logs: true, maxReconnectionRetries: Infinity }
 
-  const { target, loggerSpy, upstream } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
+  const wsTargetOptions = { autoPong: false }
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions })
 
   let breakConnection = true
 
@@ -179,14 +183,17 @@ test('should reconnect with retry', async (t) => {
 
   await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
 
-  // recreate a new target with the same upstream
-
+  // recreate a new target
+  const targetPort = target.server.address().port
   target.ws.close()
   target.server.close()
-  await createServices({ t, upstream, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
   await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  // make reconnection fail 2 times
   await waitForLogMessage(loggerSpy, 'proxy ws reconnect error')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnect in 200 ms')
+
+  // recreate the target
+  await createTargetServer(t, { autoPong: true }, targetPort)
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
 })
-*/
