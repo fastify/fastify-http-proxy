@@ -106,8 +106,6 @@ test('should reconnect on broken connection', async (t) => {
     })
   })
 
-  await wait(10_000)
-
   await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
   await waitForLogMessage(loggerSpy, 'proxy ws target close event')
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
