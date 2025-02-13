@@ -237,7 +237,7 @@ The `wsReconnect` option contains the configuration for the WebSocket reconnecti
 - `reconnectDecay`: The decay factor for the reconnection interval (default: `1.5`).
 - `connectionTimeout`: The timeout for establishing the connection in ms (default: `5_000`).
 - `reconnectOnClose`: Whether to reconnect on close, as long as the connection from the related client to the proxy is active (default: `false`).
-- TODO logs option?
+- `logs`: Whether to log the reconnection process (default: `false`).
 
 Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections).
 The connection is considered broken if the target does not respond to the ping messages or no data is received from the target.

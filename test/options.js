@@ -3,7 +3,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const { validateOptions } = require('../src/options')
-const { DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE } = require('../src/options')
+const { DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS } = require('../src/options')
 
 test('validateOptions', (t) => {
   const requiredOptions = {
@@ -38,8 +38,13 @@ test('validateOptions', (t) => {
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { reconnectOnClose: '1' } }), /wsReconnect.reconnectOnClose must be a boolean/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { reconnectOnClose: true } }))
 
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { pingInterval: 1, maxReconnectionRetries: 1, reconnectInterval: 100, reconnectDecay: 1, connectionTimeout: 1, reconnectOnClose: true } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: '1' } }), /wsReconnect.logs must be a boolean/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: true } }))
 
+  // set all values
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { pingInterval: 1, maxReconnectionRetries: 1, reconnectInterval: 100, reconnectDecay: 1, connectionTimeout: 1, reconnectOnClose: true, logs: true } }))
+
+  // get default values
   assert.deepEqual(validateOptions({ ...requiredOptions, wsReconnect: { } }), {
     ...requiredOptions,
     wsReconnect: {
@@ -48,7 +53,8 @@ test('validateOptions', (t) => {
       reconnectInterval: DEFAULT_RECONNECT_INTERVAL,
       reconnectDecay: DEFAULT_RECONNECT_DECAY,
       connectionTimeout: DEFAULT_CONNECTION_TIMEOUT,
-      reconnectOnClose: DEFAULT_RECONNECT_ON_CLOSE
+      reconnectOnClose: DEFAULT_RECONNECT_ON_CLOSE,
+      logs: DEFAULT_LOGS
     }
   })
 })

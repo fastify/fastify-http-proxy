@@ -90,7 +90,7 @@ test('should use ping/pong to verify connection is alive - from source (server o
 })
 
 test('should reconnect on broken connection', async (t) => {
-  const wsReconnectOptions = { pingInterval: 500, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectDecay: 2 }
+  const wsReconnectOptions = { pingInterval: 500, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectDecay: 2, logs: true }
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
@@ -112,7 +112,7 @@ test('should reconnect on broken connection', async (t) => {
 })
 
 test('should not reconnect after max retries', async (t) => {
-  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, maxReconnectionRetries: 1 }
+  const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, maxReconnectionRetries: 1, logs: true }
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
@@ -140,7 +140,7 @@ test('should not reconnect after max retries', async (t) => {
 })
 
 test('should reconnect on regular target connection close', async (t) => {
-  const wsReconnectOptions = { pingInterval: 200, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectOnClose: false }
+  const wsReconnectOptions = { pingInterval: 200, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectOnClose: false, logs: true }
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions })
 
@@ -158,7 +158,7 @@ test('should reconnect on regular target connection close', async (t) => {
 })
 
 /*
-TODO fix!
+TODO fix
 test('should reconnect with retry', async (t) => {
   const wsReconnectOptions = { pingInterval: 150, reconnectInterval: 100, reconnectOnClose: true }
 
