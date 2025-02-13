@@ -73,7 +73,8 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
     },
     proxy,
     client,
-    loggerSpy
+    loggerSpy,
+    logger
   }
 }
 
@@ -144,7 +145,7 @@ test('should not reconnect after max retries', async (t) => {
   await waitForLogMessage(loggerSpy, 'proxy ws failed to reconnect! No more retries')
 })
 
-test('should reconnect on regular target connection close', async (t) => {
+test('should not reconnect when the target connection is closed and reconnectOnClose is off', async (t) => {
   const wsReconnectOptions = { pingInterval: 200, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectOnClose: false, logs: true }
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions })
@@ -154,7 +155,7 @@ test('should reconnect on regular target connection close', async (t) => {
       socket.pong()
     })
 
-    await wait(1_000)
+    await wait(500)
     socket.close()
   })
 
@@ -196,4 +197,51 @@ test('should reconnect retrying after a few failures', async (t) => {
   // recreate the target
   await createTargetServer(t, { autoPong: true }, targetPort)
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+})
+
+test('should reconnect when the target connection is closed gracefully and reconnectOnClose is on', async (t) => {
+  const wsReconnectOptions = { pingInterval: 200, reconnectInterval: 100, maxReconnectionRetries: 1, reconnectOnClose: true, logs: true }
+
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('ping', async () => {
+      socket.pong()
+    })
+
+    await wait(500)
+    socket.close()
+  })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+})
+
+test('should call onReconnect hook function when the connection is reconnected', async (t) => {
+  const onReconnect = (oldSocket, newSocket) => {
+    logger.info('onReconnect called')
+  }
+  const wsReconnectOptions = {
+    pingInterval: 100,
+    reconnectInterval: 100,
+    maxReconnectionRetries: 1,
+    reconnectOnClose: true,
+    logs: true,
+    onReconnect
+  }
+
+  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('ping', async () => {
+      socket.pong()
+    })
+
+    await wait(500)
+    socket.close()
+  })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+  await waitForLogMessage(loggerSpy, 'onReconnect called')
 })

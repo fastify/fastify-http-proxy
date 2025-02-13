@@ -229,7 +229,13 @@ The default implementation forwards the `cookie` header.
 
 ## `wsReconnect`
 
-The `wsReconnect` option contains the configuration for the WebSocket reconnection feature; is an object with the following properties:
+**Experimental.** (default: `disabled`)
+
+Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections).
+The connection is considered broken if the target does not respond to the ping messages or no data is received from the target.
+
+The `wsReconnect` option contains the configuration for the WebSocket reconnection feature.
+To enable the feature, set the `wsReconnect` option to an object with the following properties:
 
 - `pingInterval`: The interval between ping messages in ms (default: `30_000`).
 - `maxReconnectionRetries`: The maximum number of reconnection retries (`1` to `Infinity`, default: `Infinity`).
@@ -238,9 +244,7 @@ The `wsReconnect` option contains the configuration for the WebSocket reconnecti
 - `connectionTimeout`: The timeout for establishing the connection in ms (default: `5_000`).
 - `reconnectOnClose`: Whether to reconnect on close, as long as the connection from the related client to the proxy is active (default: `false`).
 - `logs`: Whether to log the reconnection process (default: `false`).
-
-Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections).
-The connection is considered broken if the target does not respond to the ping messages or no data is received from the target.
+- `onReconnect`: A hook function that is called when the connection is reconnected `async onReconnect(oldSocket, newSocket)` (default: `undefined`).
 
 ## Benchmarks
 

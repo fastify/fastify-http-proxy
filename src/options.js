@@ -7,6 +7,9 @@ const DEFAULT_RECONNECT_DECAY = 1.5
 const DEFAULT_CONNECTION_TIMEOUT = 5_000
 const DEFAULT_RECONNECT_ON_CLOSE = false
 const DEFAULT_LOGS = false
+const DEFAULT_ON_RECONNECT = noop
+
+function noop () {}
 
 function validateOptions (options) {
   if (!options.upstream && !options.websocket && !((options.upstream === '' || options.wsUpstream === '') && options.replyOptions && typeof options.replyOptions.getUpstream === 'function')) {
@@ -50,6 +53,11 @@ function validateOptions (options) {
       throw new Error('wsReconnect.logs must be a boolean')
     }
     wsReconnect.logs = wsReconnect.logs ?? DEFAULT_LOGS
+
+    if (wsReconnect.onReconnect !== undefined && typeof wsReconnect.onReconnect !== 'function') {
+      throw new Error('wsReconnect.onReconnect must be a function')
+    }
+    wsReconnect.onReconnect = wsReconnect.onReconnect ?? DEFAULT_ON_RECONNECT
   }
 
   return options
@@ -63,5 +71,6 @@ module.exports = {
   DEFAULT_RECONNECT_DECAY,
   DEFAULT_CONNECTION_TIMEOUT,
   DEFAULT_RECONNECT_ON_CLOSE,
-  DEFAULT_LOGS
+  DEFAULT_LOGS,
+  DEFAULT_ON_RECONNECT
 }

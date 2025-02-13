@@ -112,7 +112,7 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
-async function reconnect (logger, source, wsReconnectOptions, targetParams) {
+async function reconnect (logger, source, wsReconnectOptions, oldTarget, targetParams) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
@@ -138,21 +138,24 @@ async function reconnect (logger, source, wsReconnectOptions, targetParams) {
   }
 
   wsReconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
+  wsReconnectOptions.onReconnect(oldTarget, target)
   proxyWebSocketsWithReconnection(logger, source, target, wsReconnectOptions, targetParams)
 }
 
-function proxyWebSocketsWithReconnection (logger, source, target, options, targetParams, fromReconnection = false) {
+function proxyWebSocketsWithReconnection (logger, source, target, options, targetParams) {
   function close (code, reason) {
     target.pingTimer && clearTimeout(source.pingTimer)
     target.pingTimer = undefined
 
     // reconnect target as long as the source connection is active
     if (source.isAlive && (target.broken || options.reconnectOnClose)) {
+      // clean up the target and related source listeners
       target.isAlive = false
       target.removeAllListeners()
       // need to specify the listeners to remove
       removeSourceListeners(source)
-      reconnect(logger, source, options, targetParams)
+
+      reconnect(logger, source, options, target, targetParams)
       return
     }
 
