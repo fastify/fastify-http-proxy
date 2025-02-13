@@ -242,12 +242,6 @@ The `wsReconnect` option contains the configuration for the WebSocket reconnecti
 Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections).
 The connection is considered broken if the target does not respond to the ping messages or no data is received from the target.
 
-Example:
-
-```js
-TODO
-```
-
 ## Benchmarks
 
 The following benchmarks were generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:

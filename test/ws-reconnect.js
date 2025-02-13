@@ -16,7 +16,7 @@ function waitForLogMessage (loggerSpy, message, max = 100) {
   return new Promise((resolve, reject) => {
     let count = 0
     const fn = (received) => {
-      // console.log(received)
+      console.log(received)
 
       if (received.msg === message) {
         loggerSpy.off('data', fn)
@@ -94,17 +94,19 @@ test('should reconnect on broken connection', async (t) => {
 
   const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsTargetOptions: { autoPong: false } })
 
-  let breakConnection = true
+  const breakConnection = true
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
       // add latency to break the connection once
       if (breakConnection) {
         await wait(wsReconnectOptions.pingInterval * 2)
-        breakConnection = false
+        // breakConnection = false
       }
       socket.pong()
     })
   })
+
+  await wait(10_000)
 
   await waitForLogMessage(loggerSpy, 'proxy ws connection is broken')
   await waitForLogMessage(loggerSpy, 'proxy ws target close event')
