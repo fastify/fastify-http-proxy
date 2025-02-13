@@ -218,7 +218,7 @@ test('should reconnect when the target connection is closed gracefully and recon
 })
 
 test('should call onReconnect hook function when the connection is reconnected', async (t) => {
-  const onReconnect = (oldSocket, newSocket) => {
+  const onReconnect = (source, target) => {
     logger.info('onReconnect called')
   }
   const wsReconnectOptions = {
@@ -245,3 +245,36 @@ test('should call onReconnect hook function when the connection is reconnected',
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
   await waitForLogMessage(loggerSpy, 'onReconnect called')
 })
+
+test('should call onTargetRequest hook function when the request is received from the client', async (t) => {
+  const message = 'query () { ... }'
+  const response = 'data ...'
+  const onTargetRequest = ({ data, binary }) => {
+    assert.strictEqual(data, message)
+    assert.strictEqual(binary, false)
+    logger.info('onTargetRequest called')
+  }
+  const wsReconnectOptions = {
+    pingInterval: 100,
+    reconnectInterval: 100,
+    maxReconnectionRetries: 1,
+    reconnectOnClose: true,
+    logs: true,
+    onTargetRequest
+  }
+
+  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+  await waitForLogMessage(loggerSpy, 'onTargetRequest called')
+})
+
+
+// TODO onTargetResponse

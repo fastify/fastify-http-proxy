@@ -138,7 +138,7 @@ async function reconnect (logger, source, wsReconnectOptions, oldTarget, targetP
   }
 
   wsReconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  await wsReconnectOptions.onReconnect(oldTarget, target)
+  await wsReconnectOptions.onReconnect(source, target)
   proxyWebSocketsWithReconnection(logger, source, target, wsReconnectOptions, targetParams)
 }
 
@@ -174,9 +174,14 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   }
 
   /* c8 ignore start */
-  function sourceOnMessage (data, binary) {
+  async function sourceOnMessage (data, binary) {
     source.isAlive = true
-    waitConnection(target, () => target.send(data, { binary }))
+    if (options.onTargetRequest) {
+      await options.onTargetRequest({ data, binary })
+    }
+    waitConnection(target, () => {
+      target.send(data, { binary })
+    })
   }
   function sourceOnPing (data) {
     waitConnection(target, () => target.ping(data))
@@ -211,8 +216,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
 
   // source WebSocket is already connected because it is created by ws server
   /* c8 ignore start */
-  target.on('message', (data, binary) => {
+  target.on('message', async (data, binary) => {
     target.isAlive = true
+    if (options.onTargetResponse) {
+      await options.onTargetResponse({ data, binary })
+    }
     source.send(data, { binary })
   })
   target.on('ping', data => {

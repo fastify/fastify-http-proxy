@@ -8,6 +8,8 @@ const DEFAULT_CONNECTION_TIMEOUT = 5_000
 const DEFAULT_RECONNECT_ON_CLOSE = false
 const DEFAULT_LOGS = false
 const DEFAULT_ON_RECONNECT = noop
+const DEFAULT_ON_TARGET_REQUEST = noop
+const DEFAULT_ON_TARGET_RESPONSE = noop
 
 function noop () {}
 
@@ -58,6 +60,16 @@ function validateOptions (options) {
       throw new Error('wsReconnect.onReconnect must be a function')
     }
     wsReconnect.onReconnect = wsReconnect.onReconnect ?? DEFAULT_ON_RECONNECT
+
+    if (wsReconnect.onTargetRequest !== undefined && typeof wsReconnect.onTargetRequest !== 'function') {
+      throw new Error('wsReconnect.onTargetRequest must be a function')
+    }
+    wsReconnect.onTargetRequest = wsReconnect.onTargetRequest ?? DEFAULT_ON_TARGET_REQUEST
+
+    if (wsReconnect.onTargetResponse !== undefined && typeof wsReconnect.onTargetResponse !== 'function') {
+      throw new Error('wsReconnect.onTargetResponse must be a function')
+    }
+    wsReconnect.onTargetResponse = wsReconnect.onTargetResponse ?? DEFAULT_ON_TARGET_RESPONSE
   }
 
   return options
@@ -72,5 +84,7 @@ module.exports = {
   DEFAULT_CONNECTION_TIMEOUT,
   DEFAULT_RECONNECT_ON_CLOSE,
   DEFAULT_LOGS,
-  DEFAULT_ON_RECONNECT
+  DEFAULT_ON_RECONNECT,
+  DEFAULT_ON_TARGET_REQUEST,
+  DEFAULT_ON_TARGET_RESPONSE
 }

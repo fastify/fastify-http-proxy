@@ -3,7 +3,10 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const { validateOptions } = require('../src/options')
-const { DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS, DEFAULT_ON_RECONNECT } = require('../src/options')
+const {
+  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS,
+  DEFAULT_ON_RECONNECT, DEFAULT_ON_TARGET_REQUEST, DEFAULT_ON_TARGET_RESPONSE
+} = require('../src/options')
 
 test('validateOptions', (t) => {
   const requiredOptions = {
@@ -44,6 +47,12 @@ test('validateOptions', (t) => {
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onReconnect: '1' } }), /wsReconnect.onReconnect must be a function/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onReconnect: () => { } } }))
 
+  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetRequest: '1' } }), /wsReconnect.onTargetRequest must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetRequest: () => { } } }))
+
+  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetResponse: '1' } }), /wsReconnect.onTargetResponse must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetResponse: () => { } } }))
+
   // set all values
   assert.doesNotThrow(() => validateOptions({
     ...requiredOptions,
@@ -55,7 +64,9 @@ test('validateOptions', (t) => {
       connectionTimeout: 1,
       reconnectOnClose: true,
       logs: true,
-      onReconnect: () => { }
+      onReconnect: () => { },
+      onTargetRequest: () => { },
+      onTargetResponse: () => { }
     }
   }))
 
@@ -70,7 +81,9 @@ test('validateOptions', (t) => {
       connectionTimeout: DEFAULT_CONNECTION_TIMEOUT,
       reconnectOnClose: DEFAULT_RECONNECT_ON_CLOSE,
       logs: DEFAULT_LOGS,
-      onReconnect: DEFAULT_ON_RECONNECT
+      onReconnect: DEFAULT_ON_RECONNECT,
+      onTargetRequest: DEFAULT_ON_TARGET_REQUEST,
+      onTargetResponse: DEFAULT_ON_TARGET_RESPONSE
     }
   })
 })
