@@ -82,13 +82,22 @@ function isExternalUrl (url) {
 
 function noop () { }
 
-function proxyWebSockets (source, target) {
+function proxyWebSockets (logger, source, target, hooks) {
   function close (code, reason) {
     closeWebSocket(source, code, reason)
     closeWebSocket(target, code, reason)
   }
 
-  source.on('message', (data, binary) => waitConnection(target, () => target.send(data, { binary })))
+  source.on('message', async (data, binary) => {
+    if (hooks.onTargetRequest) {
+      try {
+        await hooks.onTargetRequest({ data, binary })
+      } catch (err) {
+        logger.error({ err }, 'proxy ws error from onTargetRequest hook')
+      }
+    }
+    waitConnection(target, () => target.send(data, { binary }))
+  })
   /* c8 ignore start */
   source.on('ping', data => waitConnection(target, () => target.ping(data)))
   source.on('pong', data => waitConnection(target, () => target.pong(data)))
@@ -100,7 +109,16 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 
   // source WebSocket is already connected because it is created by ws server
-  target.on('message', (data, binary) => source.send(data, { binary }))
+  target.on('message', async (data, binary) => {
+    if (hooks.onTargetResponse) {
+      try {
+        await hooks.onTargetResponse({ data, binary })
+      } catch (err) {
+        logger.error({ err }, 'proxy ws error from onTargetResponse hook')
+      }
+    }
+    source.send(data, { binary })
+  })
   /* c8 ignore start */
   target.on('ping', data => source.ping(data))
   /* c8 ignore stop */
@@ -112,37 +130,41 @@ function proxyWebSockets (source, target) {
   /* c8 ignore stop */
 }
 
-async function reconnect (logger, source, wsReconnectOptions, oldTarget, targetParams) {
+async function reconnect (logger, source, reconnectOptions, hooks, targetParams) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
   let target
   do {
-    const reconnectWait = wsReconnectOptions.reconnectInterval * (wsReconnectOptions.reconnectDecay * attempts || 1)
-    wsReconnectOptions.logs && logger.warn({ target: targetParams.url }, `proxy ws reconnect in ${reconnectWait} ms`)
+    const reconnectWait = reconnectOptions.reconnectInterval * (reconnectOptions.reconnectDecay * attempts || 1)
+    reconnectOptions.logs && logger.warn({ target: targetParams.url }, `proxy ws reconnect in ${reconnectWait} ms`)
     await wait(reconnectWait)
 
     try {
       target = new WebSocket(url, subprotocols, optionsWs)
-      await waitForConnection(target, wsReconnectOptions.connectionTimeout)
+      await waitForConnection(target, reconnectOptions.connectionTimeout)
     } catch (err) {
-      wsReconnectOptions.logs && logger.error({ target: targetParams.url, err, attempts }, 'proxy ws reconnect error')
+      reconnectOptions.logs && logger.error({ target: targetParams.url, err, attempts }, 'proxy ws reconnect error')
       attempts++
       target = undefined
     }
-  } while (!target && attempts < wsReconnectOptions.maxReconnectionRetries)
+  } while (!target && attempts < reconnectOptions.maxReconnectionRetries)
 
   if (!target) {
     logger.error({ target: targetParams.url, attempts }, 'proxy ws failed to reconnect! No more retries')
     return
   }
 
-  wsReconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  await wsReconnectOptions.onReconnect(source, target)
-  proxyWebSocketsWithReconnection(logger, source, target, wsReconnectOptions, targetParams)
+  reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
+  try {
+    await hooks.onReconnect(source, target)
+  } catch (err) {
+    reconnectOptions.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
+  }
+  proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams)
 }
 
-function proxyWebSocketsWithReconnection (logger, source, target, options, targetParams) {
+function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams) {
   function close (code, reason) {
     target.pingTimer && clearTimeout(source.pingTimer)
     target.pingTimer = undefined
@@ -155,7 +177,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
       // need to specify the listeners to remove
       removeSourceListeners(source)
 
-      reconnect(logger, source, options, target, targetParams)
+      reconnect(logger, source, options, hooks, targetParams)
       return
     }
 
@@ -176,12 +198,14 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   /* c8 ignore start */
   async function sourceOnMessage (data, binary) {
     source.isAlive = true
-    if (options.onTargetRequest) {
-      await options.onTargetRequest({ data, binary })
+    if (hooks.onTargetRequest) {
+      try {
+        await hooks.onTargetRequest({ data, binary })
+      } catch (err) {
+        logger.error({ target: targetParams.url, err }, 'proxy ws error from onTargetRequest hook')
+      }
     }
-    waitConnection(target, () => {
-      target.send(data, { binary })
-    })
+    waitConnection(target, () => target.send(data, { binary }))
   }
   function sourceOnPing (data) {
     waitConnection(target, () => target.ping(data))
@@ -218,8 +242,12 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, targe
   /* c8 ignore start */
   target.on('message', async (data, binary) => {
     target.isAlive = true
-    if (options.onTargetResponse) {
-      await options.onTargetResponse({ data, binary })
+    if (hooks.onTargetResponse) {
+      try {
+        await hooks.onTargetResponse({ data, binary })
+      } catch (err) {
+        logger.error({ target: targetParams.url, err }, 'proxy ws error from onTargetResponse hook')
+      }
     }
     source.send(data, { binary })
   })
@@ -276,7 +304,7 @@ function handleUpgrade (fastify, rawRequest, socket, head) {
 }
 
 class WebSocketProxy {
-  constructor (fastify, { wsReconnect, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
+  constructor (fastify, { wsReconnect, wsHooks, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
     this.wsClientOptions = {
       rewriteRequestHeaders: defaultWsHeadersRewrite,
@@ -287,7 +315,7 @@ class WebSocketProxy {
     this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
     this.getUpstream = getUpstream
     this.wsReconnect = wsReconnect
-
+    this.wsHooks = wsHooks
     const wss = new WebSocket.Server({
       noServer: true,
       ...wsServerOptions
@@ -379,9 +407,9 @@ class WebSocketProxy {
 
     if (this.wsReconnect) {
       const targetParams = { url, subprotocols, optionsWs }
-      proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, targetParams)
+      proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams)
     } else {
-      proxyWebSockets(source, target)
+      proxyWebSockets(this.logger, source, target, this.wsHooks)
     }
   }
 }

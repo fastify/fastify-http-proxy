@@ -44,14 +44,14 @@ test('validateOptions', (t) => {
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: '1' } }), /wsReconnect.logs must be a boolean/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: true } }))
 
-  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onReconnect: '1' } }), /wsReconnect.onReconnect must be a function/)
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onReconnect: () => { } } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: '1' } }), /wsHooks.onReconnect must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: () => { } } }))
 
-  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetRequest: '1' } }), /wsReconnect.onTargetRequest must be a function/)
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetRequest: () => { } } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetRequest: '1' } }), /wsHooks.onTargetRequest must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetRequest: () => { } } }))
 
-  assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetResponse: '1' } }), /wsReconnect.onTargetResponse must be a function/)
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { onTargetResponse: () => { } } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetResponse: '1' } }), /wsHooks.onTargetResponse must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetResponse: () => { } } }))
 
   // set all values
   assert.doesNotThrow(() => validateOptions({
@@ -64,6 +64,8 @@ test('validateOptions', (t) => {
       connectionTimeout: 1,
       reconnectOnClose: true,
       logs: true,
+    },
+    wsHooks: {
       onReconnect: () => { },
       onTargetRequest: () => { },
       onTargetResponse: () => { }
@@ -81,6 +83,8 @@ test('validateOptions', (t) => {
       connectionTimeout: DEFAULT_CONNECTION_TIMEOUT,
       reconnectOnClose: DEFAULT_RECONNECT_ON_CLOSE,
       logs: DEFAULT_LOGS,
+    },
+    wsHooks: {
       onReconnect: DEFAULT_ON_RECONNECT,
       onTargetRequest: DEFAULT_ON_TARGET_REQUEST,
       onTargetResponse: DEFAULT_ON_TARGET_RESPONSE

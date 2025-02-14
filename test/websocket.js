@@ -1,12 +1,14 @@
 'use strict'
 
 const { test } = require('node:test')
+const assert = require('node:assert')
 const Fastify = require('fastify')
 const proxy = require('../')
 const WebSocket = require('ws')
 const { createServer } = require('node:http')
 const { promisify } = require('node:util')
 const { once } = require('node:events')
+const { waitForLogMessage, createServices } = require('./helper/helper')
 const cookieValue = 'foo=bar'
 const subprotocolValue = 'foo-subprotocol'
 
@@ -709,4 +711,60 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
     ...wsClients.map(ws => once(ws, 'close')),
     server.close()
   ])
+})
+
+test('should call onTargetRequest and onTargetResponse hooks', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onTargetRequest = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    logger.info('onTargetRequest called')
+  }
+  const onTargetResponse = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    logger.info('onTargetResponse called')
+  }
+
+  const { target, loggerSpy, logger, client } = await createServices({ t, wsHooks: { onTargetRequest, onTargetResponse } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  client.send(request)
+
+  await waitForLogMessage(loggerSpy, 'onTargetRequest called')
+  await waitForLogMessage(loggerSpy, 'onTargetResponse called')
+})
+
+test('should handle throwing an error in onTargetRequest and onTargetResponse hooks', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onTargetRequest = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    throw new Error('onTargetRequest error')
+  }
+  const onTargetResponse = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    throw new Error('onTargetResponse error')
+  }
+
+  const { target, loggerSpy, client } = await createServices({ t, wsHooks: { onTargetRequest, onTargetResponse } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  client.send(request)
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetRequest hook')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetResponse hook')
 })

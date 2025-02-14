@@ -2,81 +2,8 @@
 
 const { test } = require('node:test')
 const assert = require('node:assert')
-const { createServer } = require('node:http')
-const { promisify } = require('node:util')
-const { once } = require('node:events')
 const { setTimeout: wait } = require('node:timers/promises')
-const Fastify = require('fastify')
-const WebSocket = require('ws')
-const pinoTest = require('pino-test')
-const pino = require('pino')
-const proxyPlugin = require('../')
-
-function waitForLogMessage (loggerSpy, message, max = 100) {
-  return new Promise((resolve, reject) => {
-    let count = 0
-    const fn = (received) => {
-      if (received.msg === message) {
-        loggerSpy.off('data', fn)
-        resolve()
-      }
-      count++
-      if (count > max) {
-        loggerSpy.off('data', fn)
-        reject(new Error(`Max message count reached on waitForLogMessage: ${message}`))
-      }
-    }
-    loggerSpy.on('data', fn)
-  })
-}
-
-async function createTargetServer (t, wsTargetOptions, port = 0) {
-  const targetServer = createServer()
-  const targetWs = new WebSocket.Server({ server: targetServer, ...wsTargetOptions })
-  await promisify(targetServer.listen.bind(targetServer))({ port, host: '127.0.0.1' })
-
-  t.after(() => {
-    targetWs.close()
-    targetServer.close()
-  })
-
-  return { targetServer, targetWs }
-}
-
-async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServerOptions, targetPort = 0 }) {
-  const { targetServer, targetWs } = await createTargetServer(t, wsTargetOptions, targetPort)
-
-  const loggerSpy = pinoTest.sink()
-  const logger = pino(loggerSpy)
-  const proxy = Fastify({ loggerInstance: logger })
-  proxy.register(proxyPlugin, {
-    upstream: `ws://127.0.0.1:${targetServer.address().port}`,
-    websocket: true,
-    wsReconnect: wsReconnectOptions,
-    wsServerOptions
-  })
-
-  await proxy.listen({ port: 0, host: '127.0.0.1' })
-
-  const client = new WebSocket(`ws://127.0.0.1:${proxy.server.address().port}`)
-  await once(client, 'open')
-
-  t.after(async () => {
-    client.close()
-    await proxy.close()
-  })
-
-  return {
-    target: {
-      ws: targetWs,
-      server: targetServer
-    },
-    proxy,
-    client,
-    loggerSpy,
-    logger
-  }
-}
+const { waitForLogMessage, createTargetServer, createServices } = require('./helper/helper')
 
 test('should use ping/pong to verify connection is alive - from source (server on proxy) to target', async (t) => {
   const wsReconnectOptions = { pingInterval: 100, reconnectInterval: 100, maxReconnectionRetries: 1 }
@@ -217,7 +144,7 @@ test('should reconnect when the target connection is closed gracefully and recon
   await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
 })
 
-test('should call onReconnect hook function when the connection is reconnected', async (t) => {
+test('should call onReconnect hook when the connection is reconnected', async (t) => {
   const onReconnect = (source, target) => {
     logger.info('onReconnect called')
   }
@@ -227,10 +154,9 @@ test('should call onReconnect hook function when the connection is reconnected',
     maxReconnectionRetries: 1,
     reconnectOnClose: true,
     logs: true,
-    onReconnect
   }
 
-  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions })
+  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions, wsHooks: { onReconnect } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
@@ -246,13 +172,9 @@ test('should call onReconnect hook function when the connection is reconnected',
   await waitForLogMessage(loggerSpy, 'onReconnect called')
 })
 
-test('should call onTargetRequest hook function when the request is received from the client', async (t) => {
-  const message = 'query () { ... }'
-  const response = 'data ...'
-  const onTargetRequest = ({ data, binary }) => {
-    assert.strictEqual(data, message)
-    assert.strictEqual(binary, false)
-    logger.info('onTargetRequest called')
+test('should handle throwing an error in onReconnect hook', async (t) => {
+  const onReconnect = (source, target) => {
+    throw new Error('onReconnect error')
   }
   const wsReconnectOptions = {
     pingInterval: 100,
@@ -260,10 +182,45 @@ test('should call onTargetRequest hook function when the request is received fro
     maxReconnectionRetries: 1,
     reconnectOnClose: true,
     logs: true,
-    onTargetRequest
   }
 
-  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions })
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsHooks: { onReconnect } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('ping', async () => {
+      socket.pong()
+    })
+
+    await wait(500)
+    socket.close()
+  })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
+  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onReconnect hook')
+})
+
+test('should call onTargetRequest and onTargetResponse hooks, with reconnection', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onTargetRequest = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    logger.info('onTargetRequest called')
+  }
+  const onTargetResponse = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    logger.info('onTargetResponse called')
+  }
+  const wsReconnectOptions = {
+    pingInterval: 100,
+    reconnectInterval: 100,
+    maxReconnectionRetries: 1,
+    logs: true,
+  }
+
+  const { target, loggerSpy, logger, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onTargetRequest, onTargetResponse } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('message', async (data, binary) => {
@@ -271,10 +228,42 @@ test('should call onTargetRequest hook function when the request is received fro
     })
   })
 
-  await waitForLogMessage(loggerSpy, 'proxy ws target close event')
-  await waitForLogMessage(loggerSpy, 'proxy ws reconnected')
+  client.send(request)
+
   await waitForLogMessage(loggerSpy, 'onTargetRequest called')
+  await waitForLogMessage(loggerSpy, 'onTargetResponse called')
 })
 
+test('should handle throwing an error in onTargetRequest and onTargetResponse hooks, with reconnection', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onTargetRequest = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    throw new Error('onTargetRequest error')
+  }
+  const onTargetResponse = ({ data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    throw new Error('onTargetResponse error')
+  }
+  const wsReconnectOptions = {
+    pingInterval: 100,
+    reconnectInterval: 100,
+    maxReconnectionRetries: 1,
+    logs: true,
+  }
 
-// TODO onTargetResponse
+  const { target, loggerSpy, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onTargetRequest, onTargetResponse } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  client.send(request)
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetRequest hook')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetResponse hook')
+})

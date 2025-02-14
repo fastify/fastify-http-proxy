@@ -55,21 +55,31 @@ function validateOptions (options) {
       throw new Error('wsReconnect.logs must be a boolean')
     }
     wsReconnect.logs = wsReconnect.logs ?? DEFAULT_LOGS
+  }
 
-    if (wsReconnect.onReconnect !== undefined && typeof wsReconnect.onReconnect !== 'function') {
-      throw new Error('wsReconnect.onReconnect must be a function')
-    }
-    wsReconnect.onReconnect = wsReconnect.onReconnect ?? DEFAULT_ON_RECONNECT
+  if (options.wsHooks) {
+    const wsHooks = options.wsHooks
 
-    if (wsReconnect.onTargetRequest !== undefined && typeof wsReconnect.onTargetRequest !== 'function') {
-      throw new Error('wsReconnect.onTargetRequest must be a function')
+    if (wsHooks.onReconnect !== undefined && typeof wsHooks.onReconnect !== 'function') {
+      throw new Error('wsHooks.onReconnect must be a function')
     }
-    wsReconnect.onTargetRequest = wsReconnect.onTargetRequest ?? DEFAULT_ON_TARGET_REQUEST
+    wsHooks.onReconnect = wsHooks.onReconnect ?? DEFAULT_ON_RECONNECT
 
-    if (wsReconnect.onTargetResponse !== undefined && typeof wsReconnect.onTargetResponse !== 'function') {
-      throw new Error('wsReconnect.onTargetResponse must be a function')
+    if (wsHooks.onTargetRequest !== undefined && typeof wsHooks.onTargetRequest !== 'function') {
+      throw new Error('wsHooks.onTargetRequest must be a function')
     }
-    wsReconnect.onTargetResponse = wsReconnect.onTargetResponse ?? DEFAULT_ON_TARGET_RESPONSE
+    wsHooks.onTargetRequest = wsHooks.onTargetRequest ?? DEFAULT_ON_TARGET_REQUEST
+
+    if (wsHooks.onTargetResponse !== undefined && typeof wsHooks.onTargetResponse !== 'function') {
+      throw new Error('wsHooks.onTargetResponse must be a function')
+    }
+    wsHooks.onTargetResponse = wsHooks.onTargetResponse ?? DEFAULT_ON_TARGET_RESPONSE
+  } else {
+    options.wsHooks = {
+      onReconnect: DEFAULT_ON_RECONNECT,
+      onTargetRequest: DEFAULT_ON_TARGET_REQUEST,
+      onTargetResponse: DEFAULT_ON_TARGET_RESPONSE
+    }
   }
 
   return options

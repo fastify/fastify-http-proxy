@@ -244,9 +244,12 @@ To enable the feature, set the `wsReconnect` option to an object with the follow
 - `connectionTimeout`: The timeout for establishing the connection in ms (default: `5_000`).
 - `reconnectOnClose`: Whether to reconnect on close, as long as the connection from the related client to the proxy is active (default: `false`).
 - `logs`: Whether to log the reconnection process (default: `false`).
-- `onReconnect`: A hook function that is called when the connection is reconnected `async onReconnect(source, target)` (default: `undefined`).
+
+## wsHooks
+
 - `onTargetRequest`: A hook function that is called when the request is received from the client `async onTargetRequest({ data, binary })` (default: `undefined`).
 - `onTargetResponse`: A hook function that is called when the response is received from the target `async onTargetResponse({ data, binary })` (default: `undefined`).
+- `onReconnect`: A hook function that is called when the connection is reconnected `async onReconnect(source, target)` (default: `undefined`).
 
 ## Benchmarks
 
