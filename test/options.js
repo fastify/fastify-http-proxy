@@ -4,8 +4,7 @@ const { test } = require('node:test')
 const assert = require('node:assert')
 const { validateOptions } = require('../src/options')
 const {
-  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS,
-  DEFAULT_ON_RECONNECT, DEFAULT_ON_TARGET_REQUEST, DEFAULT_ON_TARGET_RESPONSE
+  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS
 } = require('../src/options')
 
 test('validateOptions', (t) => {
@@ -85,9 +84,9 @@ test('validateOptions', (t) => {
       logs: DEFAULT_LOGS,
     },
     wsHooks: {
-      onReconnect: DEFAULT_ON_RECONNECT,
-      onTargetRequest: DEFAULT_ON_TARGET_REQUEST,
-      onTargetResponse: DEFAULT_ON_TARGET_RESPONSE
+      onReconnect: undefined,
+      onTargetRequest: undefined,
+      onTargetResponse: undefined
     }
   })
 })

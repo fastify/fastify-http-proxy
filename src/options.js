@@ -7,11 +7,6 @@ const DEFAULT_RECONNECT_DECAY = 1.5
 const DEFAULT_CONNECTION_TIMEOUT = 5_000
 const DEFAULT_RECONNECT_ON_CLOSE = false
 const DEFAULT_LOGS = false
-const DEFAULT_ON_RECONNECT = noop
-const DEFAULT_ON_TARGET_REQUEST = noop
-const DEFAULT_ON_TARGET_RESPONSE = noop
-
-function noop () {}
 
 function validateOptions (options) {
   if (!options.upstream && !options.websocket && !((options.upstream === '' || options.wsUpstream === '') && options.replyOptions && typeof options.replyOptions.getUpstream === 'function')) {
@@ -63,22 +58,19 @@ function validateOptions (options) {
     if (wsHooks.onReconnect !== undefined && typeof wsHooks.onReconnect !== 'function') {
       throw new Error('wsHooks.onReconnect must be a function')
     }
-    wsHooks.onReconnect = wsHooks.onReconnect ?? DEFAULT_ON_RECONNECT
 
     if (wsHooks.onTargetRequest !== undefined && typeof wsHooks.onTargetRequest !== 'function') {
       throw new Error('wsHooks.onTargetRequest must be a function')
     }
-    wsHooks.onTargetRequest = wsHooks.onTargetRequest ?? DEFAULT_ON_TARGET_REQUEST
 
     if (wsHooks.onTargetResponse !== undefined && typeof wsHooks.onTargetResponse !== 'function') {
       throw new Error('wsHooks.onTargetResponse must be a function')
     }
-    wsHooks.onTargetResponse = wsHooks.onTargetResponse ?? DEFAULT_ON_TARGET_RESPONSE
   } else {
     options.wsHooks = {
-      onReconnect: DEFAULT_ON_RECONNECT,
-      onTargetRequest: DEFAULT_ON_TARGET_REQUEST,
-      onTargetResponse: DEFAULT_ON_TARGET_RESPONSE
+      onReconnect: undefined,
+      onTargetRequest: undefined,
+      onTargetResponse: undefined
     }
   }
 
@@ -94,7 +86,4 @@ module.exports = {
   DEFAULT_CONNECTION_TIMEOUT,
   DEFAULT_RECONNECT_ON_CLOSE,
   DEFAULT_LOGS,
-  DEFAULT_ON_RECONNECT,
-  DEFAULT_ON_TARGET_REQUEST,
-  DEFAULT_ON_TARGET_RESPONSE
 }

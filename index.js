@@ -156,10 +156,12 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
   }
 
   reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  try {
-    await hooks.onReconnect(source, target)
-  } catch (err) {
-    reconnectOptions.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
+  if (hooks.onReconnect) {
+    try {
+      await hooks.onReconnect(source, target)
+    } catch (err) {
+      reconnectOptions.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
+    }
   }
   proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams)
 }
