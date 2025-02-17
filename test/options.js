@@ -46,11 +46,11 @@ test('validateOptions', (t) => {
   assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: '1' } }), /wsHooks.onReconnect must be a function/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: () => { } } }))
 
-  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetRequest: '1' } }), /wsHooks.onTargetRequest must be a function/)
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetRequest: () => { } } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onIncomingMessage: '1' } }), /wsHooks.onIncomingMessage must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onIncomingMessage: () => { } } }))
 
-  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetResponse: '1' } }), /wsHooks.onTargetResponse must be a function/)
-  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onTargetResponse: () => { } } }))
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onOutgoingMessage: '1' } }), /wsHooks.onOutgoingMessage must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onOutgoingMessage: () => { } } }))
 
   // set all values
   assert.doesNotThrow(() => validateOptions({
@@ -66,8 +66,8 @@ test('validateOptions', (t) => {
     },
     wsHooks: {
       onReconnect: () => { },
-      onTargetRequest: () => { },
-      onTargetResponse: () => { }
+      onIncomingMessage: () => { },
+      onOutgoingMessage: () => { }
     }
   }))
 
@@ -85,8 +85,8 @@ test('validateOptions', (t) => {
     },
     wsHooks: {
       onReconnect: undefined,
-      onTargetRequest: undefined,
-      onTargetResponse: undefined
+      onIncomingMessage: undefined,
+      onOutgoingMessage: undefined
     }
   })
 })

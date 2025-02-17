@@ -200,18 +200,18 @@ test('should handle throwing an error in onReconnect hook', async (t) => {
   await waitForLogMessage(loggerSpy, 'proxy ws error from onReconnect hook')
 })
 
-test('should call onTargetRequest and onTargetResponse hooks, with reconnection', async (t) => {
+test('should call onIncomingMessage and onOutgoingMessage hooks, with reconnection', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onTargetRequest = ({ data, binary }) => {
+  const onIncomingMessage = ({ data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
-    logger.info('onTargetRequest called')
+    logger.info('onIncomingMessage called')
   }
-  const onTargetResponse = ({ data, binary }) => {
+  const onOutgoingMessage = ({ data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
-    logger.info('onTargetResponse called')
+    logger.info('onOutgoingMessage called')
   }
   const wsReconnectOptions = {
     pingInterval: 100,
@@ -220,7 +220,7 @@ test('should call onTargetRequest and onTargetResponse hooks, with reconnection'
     logs: true,
   }
 
-  const { target, loggerSpy, logger, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onTargetRequest, onTargetResponse } })
+  const { target, loggerSpy, logger, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onIncomingMessage, onOutgoingMessage } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('message', async (data, binary) => {
@@ -230,22 +230,22 @@ test('should call onTargetRequest and onTargetResponse hooks, with reconnection'
 
   client.send(request)
 
-  await waitForLogMessage(loggerSpy, 'onTargetRequest called')
-  await waitForLogMessage(loggerSpy, 'onTargetResponse called')
+  await waitForLogMessage(loggerSpy, 'onIncomingMessage called')
+  await waitForLogMessage(loggerSpy, 'onOutgoingMessage called')
 })
 
-test('should handle throwing an error in onTargetRequest and onTargetResponse hooks, with reconnection', async (t) => {
+test('should handle throwing an error in onIncomingMessage and onOutgoingMessage hooks, with reconnection', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onTargetRequest = ({ data, binary }) => {
+  const onIncomingMessage = ({ data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
-    throw new Error('onTargetRequest error')
+    throw new Error('onIncomingMessage error')
   }
-  const onTargetResponse = ({ data, binary }) => {
+  const onOutgoingMessage = ({ data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
-    throw new Error('onTargetResponse error')
+    throw new Error('onOutgoingMessage error')
   }
   const wsReconnectOptions = {
     pingInterval: 100,
@@ -254,7 +254,7 @@ test('should handle throwing an error in onTargetRequest and onTargetResponse ho
     logs: true,
   }
 
-  const { target, loggerSpy, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onTargetRequest, onTargetResponse } })
+  const { target, loggerSpy, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onIncomingMessage, onOutgoingMessage } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('message', async (data, binary) => {
@@ -264,6 +264,8 @@ test('should handle throwing an error in onTargetRequest and onTargetResponse ho
 
   client.send(request)
 
-  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetRequest hook')
-  await waitForLogMessage(loggerSpy, 'proxy ws error from onTargetResponse hook')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onIncomingMessage hook')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onOutgoingMessage hook')
 })
+
+// TODO onConnect, onDisconnect

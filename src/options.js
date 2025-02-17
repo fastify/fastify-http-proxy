@@ -59,18 +59,18 @@ function validateOptions (options) {
       throw new Error('wsHooks.onReconnect must be a function')
     }
 
-    if (wsHooks.onTargetRequest !== undefined && typeof wsHooks.onTargetRequest !== 'function') {
-      throw new Error('wsHooks.onTargetRequest must be a function')
+    if (wsHooks.onIncomingMessage !== undefined && typeof wsHooks.onIncomingMessage !== 'function') {
+      throw new Error('wsHooks.onIncomingMessage must be a function')
     }
 
-    if (wsHooks.onTargetResponse !== undefined && typeof wsHooks.onTargetResponse !== 'function') {
-      throw new Error('wsHooks.onTargetResponse must be a function')
+    if (wsHooks.onOutgoingMessage !== undefined && typeof wsHooks.onOutgoingMessage !== 'function') {
+      throw new Error('wsHooks.onOutgoingMessage must be a function')
     }
   } else {
     options.wsHooks = {
       onReconnect: undefined,
-      onTargetRequest: undefined,
-      onTargetResponse: undefined
+      onIncomingMessage: undefined,
+      onOutgoingMessage: undefined
     }
   }
 
