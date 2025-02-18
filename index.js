@@ -14,7 +14,7 @@ const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
 
-function liftErrorCode(code) {
+function liftErrorCode (code) {
   /* c8 ignore start */
   if (typeof code !== 'number') {
     // Sometimes "close" event emits with a non-numeric value
@@ -28,14 +28,14 @@ function liftErrorCode(code) {
   /* c8 ignore stop */
 }
 
-function closeWebSocket(socket, code, reason) {
+function closeWebSocket (socket, code, reason) {
   socket.isAlive = false
   if (socket.readyState === WebSocket.OPEN) {
     socket.close(liftErrorCode(code), reason)
   }
 }
 
-function waitConnection(socket, write) {
+function waitConnection (socket, write) {
   if (socket.readyState === WebSocket.CONNECTING) {
     socket.once('open', write)
   } else {
@@ -43,7 +43,7 @@ function waitConnection(socket, write) {
   }
 }
 
-function waitForConnection(target, timeout) {
+function waitForConnection (target, timeout) {
   return new Promise((resolve, reject) => {
     const timeoutId = setTimeout(() => {
       /* c8 ignore start */
@@ -76,14 +76,14 @@ function waitForConnection(target, timeout) {
   })
 }
 
-function isExternalUrl(url) {
+function isExternalUrl (url) {
   return urlPattern.test(url)
 }
 
-function noop() { }
+function noop () { }
 
-function proxyWebSockets(logger, source, target, hooks) {
-  function close(code, reason) {
+function proxyWebSockets (logger, source, target, hooks) {
+  function close (code, reason) {
     closeWebSocket(source, code, reason)
     closeWebSocket(target, code, reason)
   }
@@ -134,13 +134,13 @@ function proxyWebSockets(logger, source, target, hooks) {
       try {
         hooks.onConnect(source, target)
       } catch (err) {
-        logger.error({ target: targetParams.url, err }, 'proxy ws error from onConnect hook')
+        logger.error({ err }, 'proxy ws error from onConnect hook')
       }
     })
   }
 }
 
-async function reconnect(logger, source, reconnectOptions, hooks, targetParams) {
+async function reconnect (logger, source, reconnectOptions, hooks, targetParams) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
@@ -169,8 +169,8 @@ async function reconnect(logger, source, reconnectOptions, hooks, targetParams) 
   proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams, true)
 }
 
-function proxyWebSocketsWithReconnection(logger, source, target, options, hooks, targetParams, isReconnecting = false) {
-  function close(code, reason) {
+function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, isReconnecting = false) {
+  function close (code, reason) {
     target.pingTimer && clearInterval(target.pingTimer)
     target.pingTimer = undefined
     closeWebSocket(target, code, reason)
@@ -200,7 +200,7 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
     closeWebSocket(target, code, reason)
   }
 
-  function removeSourceListeners(source) {
+  function removeSourceListeners (source) {
     source.off('message', sourceOnMessage)
     source.off('ping', sourceOnPing)
     source.off('pong', sourceOnPong)
@@ -210,7 +210,7 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
   }
 
   /* c8 ignore start */
-  function sourceOnMessage(data, binary) {
+  function sourceOnMessage (data, binary) {
     source.isAlive = true
     if (hooks.onIncomingMessage) {
       try {
@@ -221,22 +221,22 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
     }
     waitConnection(target, () => target.send(data, { binary }))
   }
-  function sourceOnPing(data) {
+  function sourceOnPing (data) {
     waitConnection(target, () => target.ping(data))
   }
-  function sourceOnPong(data) {
+  function sourceOnPong (data) {
     source.isAlive = true
     waitConnection(target, () => target.pong(data))
   }
-  function sourceOnClose(code, reason) {
+  function sourceOnClose (code, reason) {
     options.logs && logger.warn({ target: targetParams.url, code, reason }, 'proxy ws source close event')
     close(code, reason)
   }
-  function sourceOnError(error) {
+  function sourceOnError (error) {
     options.logs && logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws source error event')
     close(1011, error.message)
   }
-  function sourceOnUnexpectedResponse() {
+  function sourceOnUnexpectedResponse () {
     options.logs && logger.warn({ target: targetParams.url }, 'proxy ws source unexpected-response event')
     close(1011, 'unexpected response')
   }
@@ -320,7 +320,7 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
   })
 }
 
-function handleUpgrade(fastify, rawRequest, socket, head) {
+function handleUpgrade (fastify, rawRequest, socket, head) {
   // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
   rawRequest[kWs] = socket
   rawRequest[kWsHead] = head
@@ -335,7 +335,7 @@ function handleUpgrade(fastify, rawRequest, socket, head) {
 }
 
 class WebSocketProxy {
-  constructor(fastify, { wsReconnect, wsHooks, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
+  constructor (fastify, { wsReconnect, wsHooks, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
     this.wsClientOptions = {
       rewriteRequestHeaders: defaultWsHeadersRewrite,
@@ -394,7 +394,7 @@ class WebSocketProxy {
     this.prefixList = []
   }
 
-  findUpstream(request, dest) {
+  findUpstream (request, dest) {
     const { search } = new URL(request.url, 'ws://127.0.0.1')
 
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
@@ -417,7 +417,7 @@ class WebSocketProxy {
     return target
   }
 
-  handleConnection(source, request, dest) {
+  handleConnection (source, request, dest) {
     const url = this.findUpstream(request, dest)
     const queryString = getQueryString(url.search, request.url, this.wsClientOptions, request)
     url.search = queryString
@@ -445,7 +445,7 @@ class WebSocketProxy {
   }
 }
 
-function getQueryString(search, reqUrl, opts, request) {
+function getQueryString (search, reqUrl, opts, request) {
   if (typeof opts.queryString === 'function') {
     return '?' + opts.queryString(search, reqUrl, request)
   }
@@ -461,14 +461,14 @@ function getQueryString(search, reqUrl, opts, request) {
   return ''
 }
 
-function defaultWsHeadersRewrite(headers, request) {
+function defaultWsHeadersRewrite (headers, request) {
   if (request.headers.cookie) {
     return { ...headers, cookie: request.headers.cookie }
   }
   return { ...headers }
 }
 
-function generateRewritePrefix(prefix, opts) {
+function generateRewritePrefix (prefix, opts) {
   let rewritePrefix = opts.rewritePrefix || (opts.upstream ? new URL(opts.upstream).pathname : '/')
 
   if (!prefix.endsWith('/') && rewritePrefix.endsWith('/')) {
@@ -478,7 +478,7 @@ function generateRewritePrefix(prefix, opts) {
   return rewritePrefix
 }
 
-async function fastifyHttpProxy(fastify, opts) {
+async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
   const preHandler = opts.preHandler || opts.beforeHandler
@@ -504,7 +504,7 @@ async function fastifyHttpProxy(fastify, opts) {
     fastify.addContentTypeParser('*', bodyParser)
   }
 
-  function rewriteHeaders(headers, req) {
+  function rewriteHeaders (headers, req) {
     const location = headers.location
     if (location && !isExternalUrl(location) && internalRewriteLocationHeader) {
       headers.location = location.replace(rewritePrefix, fastify.prefix)
@@ -515,7 +515,7 @@ async function fastifyHttpProxy(fastify, opts) {
     return headers
   }
 
-  function bodyParser(_req, payload, done) {
+  function bodyParser (_req, payload, done) {
     done(null, payload)
   }
 
@@ -542,7 +542,7 @@ async function fastifyHttpProxy(fastify, opts) {
     wsProxy = new WebSocketProxy(fastify, opts)
   }
 
-  function extractUrlComponents(urlString) {
+  function extractUrlComponents (urlString) {
     const [path, queryString] = urlString.split('?', 2)
     const components = {
       path,
@@ -556,7 +556,7 @@ async function fastifyHttpProxy(fastify, opts) {
     return components
   }
 
-  function handler(request, reply) {
+  function handler (request, reply) {
     const { path, queryParams } = extractUrlComponents(request.url)
     let dest = path
 
