@@ -769,4 +769,44 @@ test('should handle throwing an error in onIncomingMessage and onOutgoingMessage
   await waitForLogMessage(loggerSpy, 'proxy ws error from onOutgoingMessage hook')
 })
 
-// TODO onConnect, onDisconnect
+test('should call onConnect hook', async (t) => {
+  const onConnect = () => {
+    logger.info('onConnect called')
+  }
+
+  const { loggerSpy, logger } = await createServices({ t, wsHooks: { onConnect } })
+
+  await waitForLogMessage(loggerSpy, 'onConnect called')
+})
+
+test('should handle throwing an error in onConnect hook', async (t) => {
+  const onConnect = () => {
+    throw new Error('onConnect error')
+  }
+
+  const { loggerSpy } = await createServices({ t, wsHooks: { onConnect } })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onConnect hook')
+})
+
+test('should call onDisconnect hook', async (t) => {
+  const onDisconnect = () => {
+    logger.info('onDisconnect called')
+  }
+
+  const { loggerSpy, logger, client } = await createServices({ t, wsHooks: { onDisconnect } })
+  client.close()
+
+  await waitForLogMessage(loggerSpy, 'onDisconnect called')
+})
+
+test('should handle throwing an error in onDisconnect hook', async (t) => {
+  const onDisconnect = () => {
+    throw new Error('onDisconnect error')
+  }
+
+  const { loggerSpy, client } = await createServices({ t, wsHooks: { onDisconnect } })
+  client.close()
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onDisconnect hook')
+})

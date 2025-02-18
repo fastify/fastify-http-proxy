@@ -84,6 +84,15 @@ function noop () { }
 
 function proxyWebSockets (logger, source, target, hooks) {
   function close (code, reason) {
+    if (hooks.onDisconnect) {
+      waitConnection(target, () => {
+        try {
+          hooks.onDisconnect(source)
+        } catch (err) {
+          logger.error({ err }, 'proxy ws error from onDisconnect hook')
+        }
+      })
+    }
     closeWebSocket(source, code, reason)
     closeWebSocket(target, code, reason)
   }
