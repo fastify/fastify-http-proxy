@@ -1,0 +1,14 @@
+{
+  "name": "unstable-target",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "stable": "STABLE=1 node index.js",
+    "unstable": "forever index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "fastify": "^5.2.1",
+    "forever": "^4.0.3"
+  }
+}

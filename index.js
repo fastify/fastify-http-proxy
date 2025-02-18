@@ -197,8 +197,6 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
       // clean up the target and related source listeners
       target.isAlive = false
       target.removeAllListeners()
-      // need to specify the listeners to remove
-      removeSourceListeners(source)
 
       reconnect(logger, source, options, hooks, targetParams)
       return
@@ -231,6 +229,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     waitConnection(target, () => target.send(data, { binary }))
   }
   function sourceOnPing (data) {
+    source.isAlive = true
     waitConnection(target, () => target.ping(data))
   }
   function sourceOnPong (data) {
@@ -238,19 +237,24 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     waitConnection(target, () => target.pong(data))
   }
   function sourceOnClose (code, reason) {
+    source.isAlive = false
     options.logs && logger.warn({ target: targetParams.url, code, reason }, 'proxy ws source close event')
     close(code, reason)
   }
   function sourceOnError (error) {
+    source.isAlive = false
     options.logs && logger.warn({ target: targetParams.url, error: error.message }, 'proxy ws source error event')
     close(1011, error.message)
   }
   function sourceOnUnexpectedResponse () {
+    source.isAlive = false
     options.logs && logger.warn({ target: targetParams.url }, 'proxy ws source unexpected-response event')
     close(1011, 'unexpected response')
   }
   /* c8 ignore stop */
 
+  // need to specify the listeners to remove
+  removeSourceListeners(source)
   // source is alive since it is created by the proxy service
   // the pinger is not set since we can't reconnect from here
   source.isAlive = true
@@ -280,6 +284,13 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   })
   target.on('pong', data => {
     target.isAlive = true
+    if (hooks.onPong) {
+      try {
+        hooks.onPong(source, target)
+      } catch (err) {
+        logger.error({ target: targetParams.url, err }, 'proxy ws error from onPong hook')
+      }
+    }
     source.pong(data)
   })
   /* c8 ignore stop */
