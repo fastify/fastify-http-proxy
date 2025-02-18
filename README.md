@@ -247,6 +247,8 @@ To enable the feature, set the `wsReconnect` option to an object with the follow
 
 ## wsHooks
 
+On websocket events, the following hooks are available, note **the hooks are all synchronous**.
+
 - `onConnect`: A hook function that is called when the connection is established `onConnect(source, target)` (default: `undefined`).
 - `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(source)` (default: `undefined`).
 - `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(source, target)` (default: `undefined`).

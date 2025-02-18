@@ -173,6 +173,7 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
   function close(code, reason) {
     target.pingTimer && clearInterval(target.pingTimer)
     target.pingTimer = undefined
+    closeWebSocket(target, code, reason)
 
     if (hooks.onDisconnect) {
       try {
@@ -241,26 +242,6 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
   }
   /* c8 ignore stop */
 
-  if (isReconnecting) {
-    if (hooks.onReconnect) {
-      waitConnection(target, () => {
-        try {
-          hooks.onReconnect(source, target)
-        } catch (err) {
-          options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
-        }
-      })
-    }
-  } else if (hooks.onConnect) {
-    waitConnection(target, () => {
-      try {
-        hooks.onConnect(source, target)
-      } catch (err) {
-        options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onConnect hook')
-      }
-    })
-  }
-
   // source is alive since it is created by the proxy service
   // the pinger is not set since we can't reconnect from here
   source.isAlive = true
@@ -308,19 +289,35 @@ function proxyWebSocketsWithReconnection(logger, source, target, options, hooks,
   })
   /* c8 ignore stop */
 
-  target.isAlive = true
+  waitConnection(target, () => {
+    target.isAlive = true
+    target.pingTimer = setInterval(() => {
+      if (target.isAlive === false) {
+        target.broken = true
+        options.logs && logger.warn({ target: targetParams.url }, 'proxy ws connection is broken')
+        target.pingTimer && clearInterval(target.pingTimer)
+        target.pingTimer = undefined
+        return target.terminate()
+      }
+      target.isAlive = false
+      target.ping()
+    }, options.pingInterval).unref()
 
-  target.pingTimer = setInterval(() => {
-    if (target.isAlive === false) {
-      target.broken = true
-      options.logs && logger.warn({ target: targetParams.url }, 'proxy ws connection is broken')
-      target.pingTimer && clearInterval(target.pingTimer)
-      target.pingTimer = undefined
-      return target.terminate()
+    // call onConnect and onReconnect callbacks after the events are bound
+    if (isReconnecting && hooks.onReconnect) {
+      try {
+        hooks.onReconnect(source, target)
+      } catch (err) {
+        options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
+      }
+    } else if (hooks.onConnect) {
+      try {
+        hooks.onConnect(source, target)
+      } catch (err) {
+        options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onConnect hook')
+      }
     }
-    target.isAlive = false
-    target.ping()
-  }, options.pingInterval).unref()
+  })
 }
 
 function handleUpgrade(fastify, rawRequest, socket, head) {
