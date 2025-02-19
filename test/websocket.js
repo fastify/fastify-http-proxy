@@ -716,12 +716,12 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
 test('should call onIncomingMessage and onOutgoingMessage hooks', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = ({ data, binary }) => {
+  const onIncomingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
     logger.info('onIncomingMessage called')
   }
-  const onOutgoingMessage = ({ data, binary }) => {
+  const onOutgoingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
     logger.info('onOutgoingMessage called')
@@ -744,12 +744,12 @@ test('should call onIncomingMessage and onOutgoingMessage hooks', async (t) => {
 test('should handle throwing an error in onIncomingMessage and onOutgoingMessage hooks', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = ({ data, binary }) => {
+  const onIncomingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
     throw new Error('onIncomingMessage error')
   }
-  const onOutgoingMessage = ({ data, binary }) => {
+  const onOutgoingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
     throw new Error('onOutgoingMessage error')

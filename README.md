@@ -251,8 +251,8 @@ See the example in [examples/reconnection](examples/reconnection).
 
 On websocket events, the following hooks are available, note **the hooks are all synchronous**.
 
-- `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage({ data, binary })` (default: `undefined`).
-- `onOutgoingMessage`: A hook function that is called when the response is received from the target `onOutgoingMessage({ data, binary })` (default: `undefined`).
+- `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage(source, target, { data, binary })` (default: `undefined`).
+- `onOutgoingMessage`: A hook function that is called when the response is received from the target `onOutgoingMessage(source, target, { data, binary })` (default: `undefined`).
 - `onConnect`: A hook function that is called when the connection is established `onConnect(source, target)` (default: `undefined`).
 - `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(source)` (default: `undefined`).
 - `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.

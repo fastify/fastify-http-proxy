@@ -52,6 +52,9 @@ test('validateOptions', (t) => {
   assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onOutgoingMessage: '1' } }), /wsHooks.onOutgoingMessage must be a function/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onOutgoingMessage: () => { } } }))
 
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onPong: '1' } }), /wsHooks.onPong must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onPong: () => { } } }))
+
   // set all values
   assert.doesNotThrow(() => validateOptions({
     ...requiredOptions,
@@ -67,7 +70,8 @@ test('validateOptions', (t) => {
     wsHooks: {
       onReconnect: () => { },
       onIncomingMessage: () => { },
-      onOutgoingMessage: () => { }
+      onOutgoingMessage: () => { },
+      onPong: () => { }
     }
   }))
 
@@ -86,7 +90,8 @@ test('validateOptions', (t) => {
     wsHooks: {
       onReconnect: undefined,
       onIncomingMessage: undefined,
-      onOutgoingMessage: undefined
+      onOutgoingMessage: undefined,
+      onPong: undefined,
     }
   })
 })

@@ -66,11 +66,16 @@ function validateOptions (options) {
     if (wsHooks.onOutgoingMessage !== undefined && typeof wsHooks.onOutgoingMessage !== 'function') {
       throw new Error('wsHooks.onOutgoingMessage must be a function')
     }
+
+    if (wsHooks.onPong !== undefined && typeof wsHooks.onPong !== 'function') {
+      throw new Error('wsHooks.onPong must be a function')
+    }
   } else {
     options.wsHooks = {
       onReconnect: undefined,
       onIncomingMessage: undefined,
-      onOutgoingMessage: undefined
+      onOutgoingMessage: undefined,
+      onPong: undefined,
     }
   }
 

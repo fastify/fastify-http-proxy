@@ -100,7 +100,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   source.on('message', (data, binary) => {
     if (hooks.onIncomingMessage) {
       try {
-        hooks.onIncomingMessage({ data, binary })
+        hooks.onIncomingMessage(source, target, { data, binary })
       } catch (err) {
         logger.error({ err }, 'proxy ws error from onIncomingMessage hook')
       }
@@ -121,7 +121,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   target.on('message', (data, binary) => {
     if (hooks.onOutgoingMessage) {
       try {
-        hooks.onOutgoingMessage({ data, binary })
+        hooks.onOutgoingMessage(source, target, { data, binary })
       } catch (err) {
         logger.error({ err }, 'proxy ws error from onOutgoingMessage hook')
       }
@@ -167,10 +167,20 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
       attempts++
       target = undefined
     }
-  } while (!target && attempts < reconnectOptions.maxReconnectionRetries)
+    // stop if the source connection is closed during the reconnection
+  } while (source.isAlive && !target && attempts < reconnectOptions.maxReconnectionRetries)
+
+  /* c8 ignore start */
+  if (!source.isAlive) {
+    reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws abort reconnect due to source is closed')
+    source.close()
+    return
+  }
+  /* c8 ignore stop */
 
   if (!target) {
     logger.error({ target: targetParams.url, attempts }, 'proxy ws failed to reconnect! No more retries')
+    source.close()
     return
   }
 
@@ -184,14 +194,6 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     target.pingTimer = undefined
     closeWebSocket(target, code, reason)
 
-    if (hooks.onDisconnect) {
-      try {
-        hooks.onDisconnect(source)
-      } catch (err) {
-        options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onDisconnect hook')
-      }
-    }
-
     // reconnect target as long as the source connection is active
     if (source.isAlive && (target.broken || options.reconnectOnClose)) {
       // clean up the target and related source listeners
@@ -200,6 +202,14 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
 
       reconnect(logger, source, options, hooks, targetParams)
       return
+    }
+
+    if (hooks.onDisconnect) {
+      try {
+        hooks.onDisconnect(source)
+      } catch (err) {
+        options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onDisconnect hook')
+      }
     }
 
     options.logs && logger.info({ msg: 'proxy ws close link' })
@@ -221,7 +231,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     source.isAlive = true
     if (hooks.onIncomingMessage) {
       try {
-        hooks.onIncomingMessage({ data, binary })
+        hooks.onIncomingMessage(source, target, { data, binary })
       } catch (err) {
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onIncomingMessage hook')
       }
@@ -271,7 +281,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     target.isAlive = true
     if (hooks.onOutgoingMessage) {
       try {
-        hooks.onOutgoingMessage({ data, binary })
+        hooks.onOutgoingMessage(source, target, { data, binary })
       } catch (err) {
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onOutgoingMessage hook')
       }

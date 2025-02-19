@@ -203,12 +203,12 @@ test('should handle throwing an error in onReconnect hook', async (t) => {
 test('should call onIncomingMessage and onOutgoingMessage hooks, with reconnection', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = ({ data, binary }) => {
+  const onIncomingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
     logger.info('onIncomingMessage called')
   }
-  const onOutgoingMessage = ({ data, binary }) => {
+  const onOutgoingMessage = (source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
     logger.info('onOutgoingMessage called')

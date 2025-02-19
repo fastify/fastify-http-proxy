@@ -40,14 +40,11 @@ async function main () {
       // clean backup from the last ping
       backup = backup.filter(message => message.timestamp > lastPong)
     },
-    onIncomingMessage: (message) => {
+    onIncomingMessage: (source, target, message) => {
       const m = message.data.toString()
       console.log('onIncomingMessage backup', m)
       backup.push({ message: m, timestamp: Date.now() })
     },
-    // onOutgoingMessage: (message) => {
-    //   console.log('onOutgoingMessage', message.data.toString())
-    // },
     onDisconnect: () => {
       console.log('onDisconnect')
       backup.length = 0
