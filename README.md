@@ -227,6 +227,37 @@ It also supports an additional `rewriteRequestHeaders(headers, request)` functio
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
 
+## `wsReconnect`
+
+**Experimental.** (default: `disabled`)
+
+Reconnection feature detects and closes broken connections and reconnects automatically, see [how to detect and close broken connections](https://github.com/websockets/ws#how-to-detect-and-close-broken-connections).
+The connection is considered broken if the target does not respond to the ping messages or no data is received from the target.
+
+The `wsReconnect` option contains the configuration for the WebSocket reconnection feature.
+To enable the feature, set the `wsReconnect` option to an object with the following properties:
+
+- `pingInterval`: The interval between ping messages in ms (default: `30_000`).
+- `maxReconnectionRetries`: The maximum number of reconnection retries (`1` to `Infinity`, default: `Infinity`).
+- `reconnectInterval`: The interval between reconnection attempts in ms (default: `1_000`).
+- `reconnectDecay`: The decay factor for the reconnection interval (default: `1.5`).
+- `connectionTimeout`: The timeout for establishing the connection in ms (default: `5_000`).
+- `reconnectOnClose`: Whether to reconnect on close, as long as the connection from the related client to the proxy is active (default: `false`).
+- `logs`: Whether to log the reconnection process (default: `false`).
+
+See the example in [examples/reconnection](examples/reconnection).
+
+## wsHooks
+
+On websocket events, the following hooks are available, note **the hooks are all synchronous**.
+
+- `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage(source, target, { data, binary })` (default: `undefined`).
+- `onOutgoingMessage`: A hook function that is called when the response is received from the target `onOutgoingMessage(source, target, { data, binary })` (default: `undefined`).
+- `onConnect`: A hook function that is called when the connection is established `onConnect(source, target)` (default: `undefined`).
+- `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(source)` (default: `undefined`).
+- `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
+- `onPong`: A hook function that is called when the target responds to the ping `onPong(source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
+
 ## Benchmarks
 
 The following benchmarks were generated on a dedicated server with an Intel(R) Core(TM) i7-7700 CPU @ 3.60GHz and 64GB of RAM:

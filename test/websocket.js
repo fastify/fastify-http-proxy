@@ -1,12 +1,14 @@
 'use strict'
 
 const { test } = require('node:test')
+const assert = require('node:assert')
 const Fastify = require('fastify')
 const proxy = require('../')
 const WebSocket = require('ws')
 const { createServer } = require('node:http')
 const { promisify } = require('node:util')
 const { once } = require('node:events')
+const { waitForLogMessage, createServices } = require('./helper/helper')
 const cookieValue = 'foo=bar'
 const subprotocolValue = 'foo-subprotocol'
 
@@ -709,4 +711,102 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
     ...wsClients.map(ws => once(ws, 'close')),
     server.close()
   ])
+})
+
+test('should call onIncomingMessage and onOutgoingMessage hooks', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onIncomingMessage = (source, target, { data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    logger.info('onIncomingMessage called')
+  }
+  const onOutgoingMessage = (source, target, { data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    logger.info('onOutgoingMessage called')
+  }
+
+  const { target, loggerSpy, logger, client } = await createServices({ t, wsHooks: { onIncomingMessage, onOutgoingMessage } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  client.send(request)
+
+  await waitForLogMessage(loggerSpy, 'onIncomingMessage called')
+  await waitForLogMessage(loggerSpy, 'onOutgoingMessage called')
+})
+
+test('should handle throwing an error in onIncomingMessage and onOutgoingMessage hooks', async (t) => {
+  const request = 'query () { ... }'
+  const response = 'data ...'
+  const onIncomingMessage = (source, target, { data, binary }) => {
+    assert.strictEqual(data.toString(), request)
+    assert.strictEqual(binary, false)
+    throw new Error('onIncomingMessage error')
+  }
+  const onOutgoingMessage = (source, target, { data, binary }) => {
+    assert.strictEqual(data.toString(), response)
+    assert.strictEqual(binary, false)
+    throw new Error('onOutgoingMessage error')
+  }
+
+  const { target, loggerSpy, client } = await createServices({ t, wsHooks: { onIncomingMessage, onOutgoingMessage } })
+
+  target.ws.on('connection', async (socket) => {
+    socket.on('message', async (data, binary) => {
+      socket.send(response, { binary })
+    })
+  })
+
+  client.send(request)
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onIncomingMessage hook')
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onOutgoingMessage hook')
+})
+
+test('should call onConnect hook', async (t) => {
+  const onConnect = () => {
+    logger.info('onConnect called')
+  }
+
+  const { loggerSpy, logger } = await createServices({ t, wsHooks: { onConnect } })
+
+  await waitForLogMessage(loggerSpy, 'onConnect called')
+})
+
+test('should handle throwing an error in onConnect hook', async (t) => {
+  const onConnect = () => {
+    throw new Error('onConnect error')
+  }
+
+  const { loggerSpy } = await createServices({ t, wsHooks: { onConnect } })
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onConnect hook')
+})
+
+test('should call onDisconnect hook', async (t) => {
+  const onDisconnect = () => {
+    logger.info('onDisconnect called')
+  }
+
+  const { loggerSpy, logger, client } = await createServices({ t, wsHooks: { onDisconnect } })
+  client.close()
+
+  await waitForLogMessage(loggerSpy, 'onDisconnect called')
+})
+
+test('should handle throwing an error in onDisconnect hook', async (t) => {
+  const onDisconnect = () => {
+    throw new Error('onDisconnect error')
+  }
+
+  const { loggerSpy, client } = await createServices({ t, wsHooks: { onDisconnect } })
+  client.close()
+
+  await waitForLogMessage(loggerSpy, 'proxy ws error from onDisconnect hook')
 })
