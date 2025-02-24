@@ -249,14 +249,15 @@ See the example in [examples/reconnection](examples/reconnection).
 
 ## wsHooks
 
-On websocket events, the following hooks are available, note **the hooks are all synchronous**.
+On websocket events, the following hooks are available, note **the hooks are all synchronous**.  
+The `context` object is passed to all hooks and contains the `log` property.
 
-- `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage(source, target, { data, binary })` (default: `undefined`).
-- `onOutgoingMessage`: A hook function that is called when the response is received from the target `onOutgoingMessage(source, target, { data, binary })` (default: `undefined`).
+- `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage(context, source, target, { data, binary })` (default: `undefined`).
+- `onOutgoingMessage`: A hook function that is called when the response is received from the target `onOutgoingMessage(context, source, target, { data, binary })` (default: `undefined`).
 - `onConnect`: A hook function that is called when the connection is established `onConnect(source, target)` (default: `undefined`).
-- `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(source)` (default: `undefined`).
-- `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
-- `onPong`: A hook function that is called when the target responds to the ping `onPong(source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
+- `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(context, source)` (default: `undefined`).
+- `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(context, source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
+- `onPong`: A hook function that is called when the target responds to the ping `onPong(context, source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
 
 ## Benchmarks
 

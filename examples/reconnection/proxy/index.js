@@ -40,7 +40,7 @@ async function main () {
       // clean backup from the last ping
       backup = backup.filter(message => message.timestamp > lastPong)
     },
-    onIncomingMessage: (source, target, message) => {
+    onIncomingMessage: (context, source, target, message) => {
       const m = message.data.toString()
       console.log('onIncomingMessage backup', m)
       backup.push({ message: m, timestamp: Date.now() })
@@ -49,7 +49,7 @@ async function main () {
       console.log('onDisconnect')
       backup.length = 0
     },
-    onReconnect: (source, target) => {
+    onReconnect: (context, source, target) => {
       console.log('onReconnect')
       resendMessages(target)
     },

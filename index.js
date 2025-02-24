@@ -82,12 +82,17 @@ function isExternalUrl (url) {
 
 function noop () { }
 
+function createContext (logger) {
+  return { log: logger }
+}
+
 function proxyWebSockets (logger, source, target, hooks) {
+  const context = createContext(logger)
   function close (code, reason) {
     if (hooks.onDisconnect) {
       waitConnection(target, () => {
         try {
-          hooks.onDisconnect(source)
+          hooks.onDisconnect(context, source)
         } catch (err) {
           logger.error({ err }, 'proxy ws error from onDisconnect hook')
         }
@@ -100,7 +105,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   source.on('message', (data, binary) => {
     if (hooks.onIncomingMessage) {
       try {
-        hooks.onIncomingMessage(source, target, { data, binary })
+        hooks.onIncomingMessage(context, source, target, { data, binary })
       } catch (err) {
         logger.error({ err }, 'proxy ws error from onIncomingMessage hook')
       }
@@ -121,7 +126,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   target.on('message', (data, binary) => {
     if (hooks.onOutgoingMessage) {
       try {
-        hooks.onOutgoingMessage(source, target, { data, binary })
+        hooks.onOutgoingMessage(context, source, target, { data, binary })
       } catch (err) {
         logger.error({ err }, 'proxy ws error from onOutgoingMessage hook')
       }
@@ -141,7 +146,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   if (hooks.onConnect) {
     waitConnection(target, () => {
       try {
-        hooks.onConnect(source, target)
+        hooks.onConnect(context, source, target)
       } catch (err) {
         logger.error({ err }, 'proxy ws error from onConnect hook')
       }
@@ -189,6 +194,7 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
 }
 
 function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, isReconnecting = false) {
+  const context = createContext(logger)
   function close (code, reason) {
     target.pingTimer && clearInterval(target.pingTimer)
     target.pingTimer = undefined
@@ -206,7 +212,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
 
     if (hooks.onDisconnect) {
       try {
-        hooks.onDisconnect(source)
+        hooks.onDisconnect(context, source)
       } catch (err) {
         options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onDisconnect hook')
       }
@@ -231,7 +237,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     source.isAlive = true
     if (hooks.onIncomingMessage) {
       try {
-        hooks.onIncomingMessage(source, target, { data, binary })
+        hooks.onIncomingMessage(context, source, target, { data, binary })
       } catch (err) {
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onIncomingMessage hook')
       }
@@ -281,7 +287,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     target.isAlive = true
     if (hooks.onOutgoingMessage) {
       try {
-        hooks.onOutgoingMessage(source, target, { data, binary })
+        hooks.onOutgoingMessage(context, source, target, { data, binary })
       } catch (err) {
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onOutgoingMessage hook')
       }
@@ -296,7 +302,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     target.isAlive = true
     if (hooks.onPong) {
       try {
-        hooks.onPong(source, target)
+        hooks.onPong(context, source, target)
       } catch (err) {
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onPong hook')
       }
@@ -336,13 +342,13 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     // call onConnect and onReconnect callbacks after the events are bound
     if (isReconnecting && hooks.onReconnect) {
       try {
-        hooks.onReconnect(source, target)
+        hooks.onReconnect(context, source, target)
       } catch (err) {
         options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onReconnect hook')
       }
     } else if (hooks.onConnect) {
       try {
-        hooks.onConnect(source, target)
+        hooks.onConnect(context, source, target)
       } catch (err) {
         options.logs && logger.error({ target: targetParams.url, err }, 'proxy ws error from onConnect hook')
       }
