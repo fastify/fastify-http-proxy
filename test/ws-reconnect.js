@@ -145,8 +145,8 @@ test('should reconnect when the target connection is closed gracefully and recon
 })
 
 test('should call onReconnect hook when the connection is reconnected', async (t) => {
-  const onReconnect = (source, target) => {
-    logger.info('onReconnect called')
+  const onReconnect = (context, source, target) => {
+    context.log.info('onReconnect called')
   }
   const wsReconnectOptions = {
     pingInterval: 100,
@@ -156,7 +156,7 @@ test('should call onReconnect hook when the connection is reconnected', async (t
     logs: true,
   }
 
-  const { target, loggerSpy, logger } = await createServices({ t, wsReconnectOptions, wsHooks: { onReconnect } })
+  const { target, loggerSpy } = await createServices({ t, wsReconnectOptions, wsHooks: { onReconnect } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('ping', async () => {
@@ -173,7 +173,7 @@ test('should call onReconnect hook when the connection is reconnected', async (t
 })
 
 test('should handle throwing an error in onReconnect hook', async (t) => {
-  const onReconnect = (source, target) => {
+  const onReconnect = () => {
     throw new Error('onReconnect error')
   }
   const wsReconnectOptions = {
@@ -203,15 +203,15 @@ test('should handle throwing an error in onReconnect hook', async (t) => {
 test('should call onIncomingMessage and onOutgoingMessage hooks, with reconnection', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = (source, target, { data, binary }) => {
+  const onIncomingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
-    logger.info('onIncomingMessage called')
+    context.log.info('onIncomingMessage called')
   }
-  const onOutgoingMessage = (source, target, { data, binary }) => {
+  const onOutgoingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
-    logger.info('onOutgoingMessage called')
+    context.log.info('onOutgoingMessage called')
   }
   const wsReconnectOptions = {
     pingInterval: 100,
@@ -220,7 +220,7 @@ test('should call onIncomingMessage and onOutgoingMessage hooks, with reconnecti
     logs: true,
   }
 
-  const { target, loggerSpy, logger, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onIncomingMessage, onOutgoingMessage } })
+  const { target, loggerSpy, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onIncomingMessage, onOutgoingMessage } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('message', async (data, binary) => {
@@ -237,12 +237,12 @@ test('should call onIncomingMessage and onOutgoingMessage hooks, with reconnecti
 test('should handle throwing an error in onIncomingMessage and onOutgoingMessage hooks, with reconnection', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = ({ data, binary }) => {
+  const onIncomingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
     throw new Error('onIncomingMessage error')
   }
-  const onOutgoingMessage = ({ data, binary }) => {
+  const onOutgoingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
     throw new Error('onOutgoingMessage error')
@@ -269,15 +269,15 @@ test('should handle throwing an error in onIncomingMessage and onOutgoingMessage
 })
 
 test('should call onConnect hook', async (t) => {
-  const onConnect = () => {
-    logger.info('onConnect called')
+  const onConnect = (context) => {
+    context.log.info('onConnect called')
   }
 
   const wsReconnectOptions = {
     logs: true,
   }
 
-  const { loggerSpy, logger } = await createServices({ t, wsReconnectOptions, wsHooks: { onConnect } })
+  const { loggerSpy } = await createServices({ t, wsReconnectOptions, wsHooks: { onConnect } })
 
   await waitForLogMessage(loggerSpy, 'onConnect called')
 })
@@ -297,15 +297,15 @@ test('should handle throwing an error in onConnect hook', async (t) => {
 })
 
 test('should call onDisconnect hook', async (t) => {
-  const onDisconnect = () => {
-    logger.info('onDisconnect called')
+  const onDisconnect = (context) => {
+    context.log.info('onDisconnect called')
   }
 
   const wsReconnectOptions = {
     logs: true,
   }
 
-  const { loggerSpy, logger, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onDisconnect } })
+  const { loggerSpy, client } = await createServices({ t, wsReconnectOptions, wsHooks: { onDisconnect } })
   client.close()
 
   await waitForLogMessage(loggerSpy, 'onDisconnect called')

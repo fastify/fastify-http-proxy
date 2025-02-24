@@ -716,18 +716,18 @@ test('multiple websocket upstreams with distinct server options', async (t) => {
 test('should call onIncomingMessage and onOutgoingMessage hooks', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = (source, target, { data, binary }) => {
+  const onIncomingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
-    logger.info('onIncomingMessage called')
+    context.log.info('onIncomingMessage called')
   }
-  const onOutgoingMessage = (source, target, { data, binary }) => {
+  const onOutgoingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
-    logger.info('onOutgoingMessage called')
+    context.log.info('onOutgoingMessage called')
   }
 
-  const { target, loggerSpy, logger, client } = await createServices({ t, wsHooks: { onIncomingMessage, onOutgoingMessage } })
+  const { target, loggerSpy, client } = await createServices({ t, wsHooks: { onIncomingMessage, onOutgoingMessage } })
 
   target.ws.on('connection', async (socket) => {
     socket.on('message', async (data, binary) => {
@@ -744,12 +744,12 @@ test('should call onIncomingMessage and onOutgoingMessage hooks', async (t) => {
 test('should handle throwing an error in onIncomingMessage and onOutgoingMessage hooks', async (t) => {
   const request = 'query () { ... }'
   const response = 'data ...'
-  const onIncomingMessage = (source, target, { data, binary }) => {
+  const onIncomingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), request)
     assert.strictEqual(binary, false)
     throw new Error('onIncomingMessage error')
   }
-  const onOutgoingMessage = (source, target, { data, binary }) => {
+  const onOutgoingMessage = (context, source, target, { data, binary }) => {
     assert.strictEqual(data.toString(), response)
     assert.strictEqual(binary, false)
     throw new Error('onOutgoingMessage error')
@@ -770,11 +770,11 @@ test('should handle throwing an error in onIncomingMessage and onOutgoingMessage
 })
 
 test('should call onConnect hook', async (t) => {
-  const onConnect = () => {
-    logger.info('onConnect called')
+  const onConnect = (context) => {
+    context.log.info('onConnect called')
   }
 
-  const { loggerSpy, logger } = await createServices({ t, wsHooks: { onConnect } })
+  const { loggerSpy } = await createServices({ t, wsHooks: { onConnect } })
 
   await waitForLogMessage(loggerSpy, 'onConnect called')
 })
@@ -790,11 +790,11 @@ test('should handle throwing an error in onConnect hook', async (t) => {
 })
 
 test('should call onDisconnect hook', async (t) => {
-  const onDisconnect = () => {
-    logger.info('onDisconnect called')
+  const onDisconnect = (context) => {
+    context.log.info('onDisconnect called')
   }
 
-  const { loggerSpy, logger, client } = await createServices({ t, wsHooks: { onDisconnect } })
+  const { loggerSpy, client } = await createServices({ t, wsHooks: { onDisconnect } })
   client.close()
 
   await waitForLogMessage(loggerSpy, 'onDisconnect called')
