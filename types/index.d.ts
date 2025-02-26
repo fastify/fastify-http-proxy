@@ -14,11 +14,33 @@ import {
   FastifyReplyFromHooks,
 } from '@fastify/reply-from'
 
-import { ClientOptions, ServerOptions } from 'ws'
+import { ClientOptions, ServerOptions, WebSocket } from 'ws'
+import { Logger } from 'pino'
+
+interface WebSocketHooks {
+  onConnect?: (context: { log: Logger }, source: WebSocket, target: WebSocket) => void;
+  onDisconnect?: (context: { log: Logger }, source: WebSocket) => void;
+  onIncomingMessage?: (context: { log: Logger }, source: WebSocket, target: WebSocket, message: { data: Buffer | ArrayBuffer | Buffer[], binary: boolean }) => void;
+  onOutgoingMessage?: (context: { log: Logger }, source: WebSocket, target: WebSocket, message: { data: Buffer | ArrayBuffer | Buffer[], binary: boolean }) => void;
+  onPong?: (context: { log: Logger }, source: WebSocket, target: WebSocket) => void;
+  onReconnect?: (context: { log: Logger }, source: WebSocket, target: WebSocket) => void;
+}
+
+interface WebSocketReconnectOptions {
+  pingInterval?: number;
+  reconnectInterval?: number;
+  reconnectDecay?: number;
+  maxReconnectionRetries?: number;
+  connectionTimeout?: number;
+  reconnectOnClose?: boolean;
+  logs?: boolean;
+}
 
 interface FastifyHttpProxyWebsocketOptionsEnabled {
   websocket: true;
   wsUpstream?: string;
+  wsHooks?: WebSocketHooks;
+  wsReconnect?: WebSocketReconnectOptions;
 }
 interface FastifyHttpProxyWebsocketOptionsDisabled {
   websocket?: false | never;

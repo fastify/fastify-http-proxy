@@ -5,7 +5,7 @@ import fastify, {
   type RawServerBase,
   type RequestGenericInterface,
 } from 'fastify'
-import { expectError, expectType } from 'tsd'
+import { expectType } from 'tsd'
 import fastifyHttpProxy from '..'
 
 const app = fastify()
@@ -63,34 +63,72 @@ app.register(fastifyHttpProxy, {
       return ''
     },
   },
+  wsHooks: {
+    onConnect: (context, source, target) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+      expectType<import('ws').WebSocket>(target)
+    },
+    onDisconnect: (context, source) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+    },
+    onIncomingMessage: (context, source, target, message) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+      expectType<import('ws').WebSocket>(target)
+      expectType<{ data: Buffer | ArrayBuffer | Buffer[], binary: boolean }>(message)
+    },
+    onOutgoingMessage: (context, source, target, message) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+      expectType<import('ws').WebSocket>(target)
+      expectType<{ data: Buffer | ArrayBuffer | Buffer[], binary: boolean }>(message)
+    },
+    onPong: (context, source, target) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+      expectType<import('ws').WebSocket>(target)
+    },
+    onReconnect: (context, source, target) => {
+      expectType<{ log: import('pino').Logger }>(context)
+      expectType<import('ws').WebSocket>(source)
+      expectType<import('ws').WebSocket>(target)
+    }
+  },
+  wsReconnect: {
+    pingInterval: 3000,
+    reconnectInterval: 1000,
+    reconnectDecay: 1.5,
+    maxReconnectionRetries: 5,
+    connectionTimeout: 5000,
+    reconnectOnClose: true,
+    logs: true
+  },
   internalRewriteLocationHeader: true,
 })
 
-expectError(
-  app.register(fastifyHttpProxy, {
-    thisOptionDoesNotExist: 'triggers a typescript error',
-  })
-)
+// @ts-expect-error
+app.register(fastifyHttpProxy, {
+  thisOptionDoesNotExist: 'triggers a typescript error',
+})
 
-expectError(
-  app.register(fastifyHttpProxy, {
-    upstream: 'http://origin.asd',
-    wsUpstream: 'ws://origin.asd',
-  })
-)
+// @ts-expect-error
+app.register(fastifyHttpProxy, {
+  upstream: 'http://origin.asd',
+  wsUpstream: 'ws://origin.asd',
+})
 
-expectError(
-  app.register(fastifyHttpProxy, {
-    upstream: 'http://origin.asd',
-    websocket: false,
-    wsUpstream: 'asdf',
-  })
-)
+// @ts-expect-error
+app.register(fastifyHttpProxy, {
+  upstream: 'http://origin.asd',
+  websocket: false,
+  wsUpstream: 'asdf',
+})
 
-expectError(
-  app.register(fastifyHttpProxy, {
-    upstream: 'http://origin.asd',
-    websocket: false,
-    internalRewriteLocationHeader: 'NON_BOOLEAN_VALUE'
-  })
-)
+// @ts-expect-error
+app.register(fastifyHttpProxy, {
+  upstream: 'http://origin.asd',
+  websocket: false,
+  internalRewriteLocationHeader: 'NON_BOOLEAN_VALUE'
+})
