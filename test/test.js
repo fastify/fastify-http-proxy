@@ -900,7 +900,7 @@ async function run () {
     t.assert.strictEqual(resultFooRoute.body, 'Hello World (foo) - lang = en')
   })
 
-  test('keep the query params on proxy', { only: true }, async t => {
+  test('keep the query params on proxy', async t => {
     const proxyServer = Fastify()
 
     proxyServer.register(proxy, {
