@@ -261,7 +261,7 @@ The `context` object is passed to all hooks and contains the `log` property.
 
 ## Decorators
 
-## `reply.fromParameters(url[, params[, prefix]])`
+### `reply.fromParameters(url[, params[, prefix]])`
 
 It can be used to get the final URL and options that `@fastify/http-proxy` would have used to invoke `reply.from`.
 
