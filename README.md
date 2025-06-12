@@ -247,7 +247,7 @@ To enable the feature, set the `wsReconnect` option to an object with the follow
 
 See the example in [examples/reconnection](examples/reconnection).
 
-### wsHooks
+### `wsHooks`
 
 On websocket events, the following hooks are available, note **the hooks are all synchronous**.  
 The `context` object is passed to all hooks and contains the `log` property.
