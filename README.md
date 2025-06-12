@@ -274,7 +274,7 @@ preHandler (request, reply, done) {
     return
   }
 
-  const { url, options } = reply.fromParameters('/updated')
+  const { url, options } = reply.fromParameters('/updated', { ...request.params, serverId: 42 })
   reply.from(url, options)
 }
 ```
