@@ -592,16 +592,16 @@ async function fastifyHttpProxy (fastify, opts) {
     return components
   }
 
-  function handler (request, reply) {
-    const { path, queryParams } = extractUrlComponents(request.url)
+  function fromParameters (url, params = {}, prefix = '/') {
+    const { path, queryParams } = extractUrlComponents(url)
     let dest = path
 
-    if (this.prefix.includes(':')) {
+    if (prefix.includes(':')) {
       const requestedPathElements = path.split('/')
-      const prefixPathWithVariables = this.prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      const prefixPathWithVariables = prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
 
       let rewritePrefixWithVariables = rewritePrefix
-      for (const [name, value] of Object.entries(request.params)) {
+      for (const [name, value] of Object.entries(params)) {
         rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
       }
 
@@ -610,20 +610,34 @@ async function fastifyHttpProxy (fastify, opts) {
         dest += `?${qs.stringify(queryParams)}`
       }
     } else {
-      dest = dest.replace(this.prefix, rewritePrefix)
+      dest = dest.replace(prefix, rewritePrefix)
     }
+
+    return { url: dest || '/', options: replyOpts }
+  }
+
+  function handler (request, reply) {
+    const { url, options } = fromParameters(request.url, request.params, this.prefix)
 
     if (request.raw[kWs]) {
       reply.hijack()
       try {
-        wsProxy.handleUpgrade(request, dest || '/', noop)
+        wsProxy.handleUpgrade(request, url, noop)
       } /* c8 ignore start */ catch (err) {
         request.log.warn({ err }, 'websocket proxy error')
       } /* c8 ignore stop */
       return
     }
-    reply.from(dest || '/', replyOpts)
+    reply.from(url, options)
   }
+
+  fastify.decorateReply('fromParameters', fromParameters)
+  fastify.decorateReply('wsProxy', {
+    /* c8 ignore next 3 */
+    getter () {
+      return wsProxy
+    }
+  })
 }
 
 module.exports = fp(fastifyHttpProxy, {

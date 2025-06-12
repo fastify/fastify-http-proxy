@@ -921,6 +921,43 @@ async function run () {
     const queryParams = JSON.stringify(qs.parse('foo=bar&foo=baz&abc=qux'))
     t.assert.strictEqual(firstProxyPrefix.body, `this is "variable-api" endpoint with id 123 and query params ${queryParams}`)
   })
+
+  test('manual from call via fromParameters', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      preHandler (request, reply, done) {
+        if (request.url !== '/fake-a') {
+          done()
+          return
+        }
+
+        const { url, options } = reply.fromParameters('/a')
+        reply.from(url, options)
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    {
+      const {
+        statusCode,
+        body
+      } = await got(`http://localhost:${server.server.address().port}/`)
+      t.assert.strictEqual(statusCode, 200)
+      t.assert.strictEqual(body, 'this is root')
+    }
+
+    {
+      const {
+        statusCode,
+        body
+      } = await got(`http://localhost:${server.server.address().port}/fake-a`)
+      t.assert.strictEqual(statusCode, 200)
+      t.assert.strictEqual(body, 'this is a')
+    }
+  })
 }
 
 run()

@@ -227,7 +227,7 @@ It also supports an additional `rewriteRequestHeaders(headers, request)` functio
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
 
-## `wsReconnect`
+### `wsReconnect`
 
 **Experimental.** (default: `disabled`)
 
@@ -247,7 +247,7 @@ To enable the feature, set the `wsReconnect` option to an object with the follow
 
 See the example in [examples/reconnection](examples/reconnection).
 
-## wsHooks
+### `wsHooks`
 
 On websocket events, the following hooks are available, note **the hooks are all synchronous**.  
 The `context` object is passed to all hooks and contains the `log` property.
@@ -258,6 +258,26 @@ The `context` object is passed to all hooks and contains the `log` property.
 - `onDisconnect`: A hook function that is called when the connection is closed `onDisconnect(context, source)` (default: `undefined`).
 - `onReconnect`: A hook function that is called when the connection is reconnected `onReconnect(context, source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
 - `onPong`: A hook function that is called when the target responds to the ping `onPong(context, source, target)` (default: `undefined`). The function is called if reconnection feature is enabled.
+
+## Decorators
+
+### `reply.fromParameters(url[, params[, prefix]])`
+
+It can be used to get the final URL and options that `@fastify/http-proxy` would have used to invoke `reply.from`.
+
+A typical use is to override the request URL:
+
+```javascript
+preHandler (request, reply, done) {
+  if (request.url !== '/original') {
+    done()
+    return
+  }
+
+  const { url, options } = reply.fromParameters('/updated', { ...request.params, serverId: 42 })
+  reply.from(url, options)
+}
+```
 
 ## Benchmarks
 
