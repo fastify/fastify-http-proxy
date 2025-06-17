@@ -197,6 +197,12 @@ An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HE
 
 An array that contains the routes to handle. Default: `['/', '/*']`.
 
+### `preRewrite`
+
+A function that will be executed before rewriting the URL. It receives the URL, the request parameters and the prefix and must return the new URL. 
+
+The function cannot return a promise.
+
 ### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a

@@ -83,6 +83,10 @@ function isExternalUrl (url) {
 
 function noop () { }
 
+function noopPreRewrite (url) {
+  return url
+}
+
 function createContext (logger) {
   return { log: logger }
 }
@@ -519,6 +523,7 @@ async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
   const preHandler = opts.preHandler || opts.beforeHandler
+  const preRewrite = typeof opts.preRewrite === 'function' ? opts.preRewrite : noopPreRewrite
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
 
   const fromOpts = Object.assign({}, opts)
@@ -585,6 +590,8 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function fromParameters (url, params = {}, prefix = '/') {
+    url = preRewrite(url, params, prefix)
+
     const { path, queryParams } = extractUrlComponents(url)
     let dest = path
 

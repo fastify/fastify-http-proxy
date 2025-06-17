@@ -981,6 +981,30 @@ async function run () {
       t.assert.strictEqual(body, 'this is a')
     }
   })
+
+  test('preRewrite handler', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2/',
+      preRewrite (url) {
+        return url.replace('abc', 'a')
+      }
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/abc`
+    )
+    t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')
+  })
 }
 
 run()
