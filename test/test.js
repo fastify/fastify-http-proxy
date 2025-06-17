@@ -751,6 +751,29 @@ async function run () {
     t.assert.fail()
   })
 
+  test('settings of routes', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      routes: ['/a']
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    const resultRoot = await got(`http://localhost:${server.server.address().port}/a`)
+    t.assert.deepStrictEqual(resultRoot.statusCode, 200)
+
+    let errored = false
+    try {
+      await await got(`http://localhost:${server.server.address().port}/api2/a`)
+    } catch (err) {
+      t.assert.strictEqual(err.response.statusCode, 404)
+      errored = true
+    }
+    t.assert.ok(errored)
+  })
+
   test('settings of method types', async t => {
     const server = Fastify()
     server.register(proxy, {

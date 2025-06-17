@@ -193,6 +193,10 @@ Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rew
 
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
+### `routes`
+
+An array that contains the routes to handle. Default: `['/', '/*']`.
+
 ### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a

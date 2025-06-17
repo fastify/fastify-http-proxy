@@ -8,7 +8,8 @@ const fp = require('fastify-plugin')
 const qs = require('fast-querystring')
 const { validateOptions } = require('./src/options')
 
-const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
+const defaultRoutes = ['/', '/*']
+const defaultHttpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
@@ -555,22 +556,13 @@ async function fastifyHttpProxy (fastify, opts) {
     done(null, payload)
   }
 
-  fastify.route({
-    url: '/',
-    method: opts.httpMethods || httpMethods,
-    preHandler,
-    config: opts.config || {},
-    constraints: opts.constraints || {},
-    handler
-  })
-  fastify.route({
-    url: '/*',
-    method: opts.httpMethods || httpMethods,
-    preHandler,
-    config: opts.config || {},
-    constraints: opts.constraints || {},
-    handler
-  })
+  const method = opts.httpMethods || defaultHttpMethods
+  const config = opts.config || {}
+  const constraints = opts.constraints || {}
+
+  for (const url of opts.routes || defaultRoutes) {
+    fastify.route({ url, method, preHandler, config, constraints, handler })
+  }
 
   let wsProxy
 
@@ -646,4 +638,6 @@ module.exports = fp(fastifyHttpProxy, {
   encapsulate: true
 })
 module.exports.default = fastifyHttpProxy
+module.exports.defaultRoutes = defaultRoutes
+module.exports.defaultHttpMethods = defaultHttpMethods
 module.exports.fastifyHttpProxy = fastifyHttpProxy
