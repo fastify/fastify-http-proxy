@@ -8,7 +8,8 @@ const fp = require('fastify-plugin')
 const qs = require('fast-querystring')
 const { validateOptions } = require('./src/options')
 
-const httpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
+const defaultRoutes = ['/', '/*']
+const defaultHttpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
@@ -81,6 +82,10 @@ function isExternalUrl (url) {
 }
 
 function noop () { }
+
+function noopPreRewrite (url) {
+  return url
+}
 
 function createContext (logger) {
   return { log: logger }
@@ -518,6 +523,7 @@ async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
   const preHandler = opts.preHandler || opts.beforeHandler
+  const preRewrite = typeof opts.preRewrite === 'function' ? opts.preRewrite : noopPreRewrite
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
 
   const fromOpts = Object.assign({}, opts)
@@ -555,22 +561,13 @@ async function fastifyHttpProxy (fastify, opts) {
     done(null, payload)
   }
 
-  fastify.route({
-    url: '/',
-    method: opts.httpMethods || httpMethods,
-    preHandler,
-    config: opts.config || {},
-    constraints: opts.constraints || {},
-    handler
-  })
-  fastify.route({
-    url: '/*',
-    method: opts.httpMethods || httpMethods,
-    preHandler,
-    config: opts.config || {},
-    constraints: opts.constraints || {},
-    handler
-  })
+  const method = opts.httpMethods || defaultHttpMethods
+  const config = opts.config || {}
+  const constraints = opts.constraints || {}
+
+  for (const url of opts.routes || defaultRoutes) {
+    fastify.route({ url, method, preHandler, config, constraints, handler })
+  }
 
   let wsProxy
 
@@ -593,6 +590,8 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function fromParameters (url, params = {}, prefix = '/') {
+    url = preRewrite(url, params, prefix)
+
     const { path, queryParams } = extractUrlComponents(url)
     let dest = path
 
@@ -646,4 +645,6 @@ module.exports = fp(fastifyHttpProxy, {
   encapsulate: true
 })
 module.exports.default = fastifyHttpProxy
+module.exports.defaultRoutes = defaultRoutes
+module.exports.defaultHttpMethods = defaultHttpMethods
 module.exports.fastifyHttpProxy = fastifyHttpProxy

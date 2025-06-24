@@ -751,6 +751,29 @@ async function run () {
     t.assert.fail()
   })
 
+  test('settings of routes', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      routes: ['/a']
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    const resultRoot = await got(`http://localhost:${server.server.address().port}/a`)
+    t.assert.deepStrictEqual(resultRoot.statusCode, 200)
+
+    let errored = false
+    try {
+      await await got(`http://localhost:${server.server.address().port}/api2/a`)
+    } catch (err) {
+      t.assert.strictEqual(err.response.statusCode, 404)
+      errored = true
+    }
+    t.assert.ok(errored)
+  })
+
   test('settings of method types', async t => {
     const server = Fastify()
     server.register(proxy, {
@@ -957,6 +980,34 @@ async function run () {
       t.assert.strictEqual(statusCode, 200)
       t.assert.strictEqual(body, 'this is a')
     }
+  })
+
+  test('preRewrite handler', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2/',
+      preRewrite (url, params, prefix) {
+        t.assert.strictEqual(url, '/api/abc')
+        t.assert.ok(typeof params, 'object')
+        t.assert.strictEqual(params['*'], 'abc')
+        t.assert.strictEqual(prefix, '/api')
+        return url.replace('abc', 'a')
+      }
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    const firstProxyPrefix = await got(
+      `http://localhost:${proxyServer.server.address().port}/api/abc`
+    )
+    t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')
   })
 }
 
