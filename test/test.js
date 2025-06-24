@@ -989,7 +989,11 @@ async function run () {
       upstream: `http://localhost:${origin.server.address().port}`,
       prefix: '/api',
       rewritePrefix: '/api2/',
-      preRewrite (url) {
+      preRewrite (url, params, prefix) {
+        t.assert.strictEqual(url, '/api/abc')
+        t.assert.ok(typeof params, 'object')
+        t.assert.strictEqual(params['*'], 'abc')
+        t.assert.strictEqual(prefix, '/api')
         return url.replace('abc', 'a')
       }
     })
