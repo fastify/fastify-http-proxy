@@ -60,7 +60,7 @@
     "@fastify/pre-commit": "^2.2.0",
     "@fastify/websocket": "^11.0.2",
     "@jsumners/line-reporter": "^1.0.1",
-    "@types/node": "^22.13.4",
+    "@types/node": "^24.0.8",
     "@types/ws": "^8.5.14",
     "borp": "^0.20.0",
     "eslint": "^9.20.1",
