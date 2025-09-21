@@ -57,7 +57,6 @@
     }
   ],
   "devDependencies": {
-    "@fastify/pre-commit": "^2.2.0",
     "@fastify/websocket": "^11.0.2",
     "@jsumners/line-reporter": "^1.0.1",
     "@types/node": "^24.0.8",
