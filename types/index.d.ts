@@ -60,7 +60,7 @@ declare namespace fastifyHttpProxy {
   ) => string
 
   export interface FastifyHttpProxyOptions extends FastifyReplyFromOptions {
-    upstream: string;
+    upstream: string | string[];
     prefix?: string;
     rewritePrefix?: string;
     proxyPayloads?: boolean;

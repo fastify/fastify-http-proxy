@@ -532,8 +532,10 @@ async function fastifyHttpProxy (fastify, opts) {
 
   const internalRewriteLocationHeader = opts.internalRewriteLocationHeader ?? true
   const oldRewriteHeaders = (opts.replyOptions || {}).rewriteHeaders
+  const maxRetriesOn503 = opts.maxRetriesOn503
   const replyOpts = Object.assign({}, opts.replyOptions, {
-    rewriteHeaders
+    rewriteHeaders,
+    maxRetriesOn503
   })
   fromOpts.rewriteHeaders = rewriteHeaders
 
