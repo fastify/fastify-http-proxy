@@ -61,7 +61,7 @@
     "@jsumners/line-reporter": "^1.0.1",
     "@types/node": "^24.0.8",
     "@types/ws": "^8.5.14",
-    "borp": "^0.20.0",
+    "borp": "^0.21.0",
     "eslint": "^9.20.1",
     "express": "^5.1.0",
     "express-http-proxy": "^2.1.1",
