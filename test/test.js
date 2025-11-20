@@ -3,10 +3,10 @@
 const { after, test } = require('node:test')
 const Fastify = require('fastify')
 const proxy = require('../')
-const got = require('got')
 const { Unauthorized } = require('http-errors')
 const Transform = require('node:stream').Transform
 const qs = require('fast-querystring')
+const { request } = require('./helper/helper')
 
 async function run () {
   const origin = Fastify()
@@ -65,12 +65,12 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}`
     )
     t.assert.strictEqual(resultRoot.body, 'this is root')
 
-    const resultA = await got(
+    const resultA = await request(
       `http://localhost:${server.server.address().port}/a`
     )
     t.assert.strictEqual(resultA.body, 'this is a')
@@ -93,12 +93,12 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}`
     )
     t.assert.strictEqual(resultRoot.body, 'this is root')
 
-    const resultA = await got(
+    const resultA = await request(
       `http://localhost:${server.server.address().port}/a`
     )
     t.assert.strictEqual(resultA.body, 'this is a')
@@ -116,7 +116,7 @@ async function run () {
     const {
       headers: { location },
       statusCode
-    } = await got(
+    } = await request(
       `http://localhost:${server.server.address().port}/redirect`, {
         followRedirect: false
       }
@@ -142,7 +142,7 @@ async function run () {
     const {
       headers: { location },
       statusCode
-    } = await got(
+    } = await request(
       `http://localhost:${server.server.address().port}/redirect`, {
         followRedirect: false
       }
@@ -173,17 +173,17 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/my-prefix/`
     )
     t.assert.strictEqual(resultRoot.body, 'this is root')
 
-    const withoutSlash = await got(
+    const withoutSlash = await request(
       `http://localhost:${server.server.address().port}/my-prefix`
     )
     t.assert.strictEqual(withoutSlash.body, 'this is root')
 
-    const resultA = await got(
+    const resultA = await request(
       `http://localhost:${server.server.address().port}/my-prefix/a`
     )
     t.assert.strictEqual(resultA.body, 'this is a')
@@ -204,17 +204,17 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/my-prefix/`
     )
     t.assert.strictEqual(resultRoot.body, 'this is root')
 
-    const withoutSlash = await got(
+    const withoutSlash = await request(
       `http://localhost:${server.server.address().port}/my-prefix`
     )
     t.assert.strictEqual(withoutSlash.body, 'this is root')
 
-    const resultA = await got(
+    const resultA = await request(
       `http://localhost:${server.server.address().port}/my-prefix/a`
     )
     t.assert.strictEqual(resultA.body, 'this is a')
@@ -229,7 +229,7 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -255,7 +255,7 @@ async function run () {
     t.after(() => server.close())
 
     try {
-      await got(
+      await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -285,7 +285,7 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -310,7 +310,7 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -335,7 +335,7 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    await got(
+    await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -359,7 +359,7 @@ async function run () {
 
     let errored = false
     try {
-      await got(`http://localhost:${server.server.address().port}`)
+      await request(`http://localhost:${server.server.address().port}`)
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 401)
       errored = true
@@ -368,7 +368,7 @@ async function run () {
 
     errored = false
     try {
-      await got(`http://localhost:${server.server.address().port}/a`)
+      await request(`http://localhost:${server.server.address().port}/a`)
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 401)
       errored = true
@@ -404,7 +404,7 @@ async function run () {
 
     let errored = false
     try {
-      await got(`http://localhost:${server.server.address().port}`)
+      await request(`http://localhost:${server.server.address().port}`)
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 401)
       errored = true
@@ -442,12 +442,12 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is root')
 
-    const secondProxyPrefix = await got(
+    const secondProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api2`
     )
     t.assert.strictEqual(secondProxyPrefix.body, 'this is root for origin2')
@@ -473,7 +473,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const { headers } = await got({
+    const { headers } = await request({
       url: `http://localhost:${proxyServer.server.address().port}/api`,
       headers: {
         'x-req': 'from-header'
@@ -501,7 +501,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/a`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')
@@ -521,7 +521,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/a`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')
@@ -542,7 +542,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/123/static/a`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')
@@ -563,7 +563,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/123/endpoint`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
@@ -584,7 +584,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/123/static`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
@@ -605,7 +605,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/123`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is "variable-api" endpoint with id 123')
@@ -627,7 +627,7 @@ async function run () {
 
     const {
       headers: { location }
-    } = await got(
+    } = await request(
       `http://localhost:${proxyServer.server.address().port}/api/this-has-data`,
       {
         method: 'POST',
@@ -654,7 +654,7 @@ async function run () {
 
     const {
       headers: { location }
-    } = await got(
+    } = await request(
       `http://localhost:${proxyServer.server.address().port}/my-prefix/redirect-to-relative-url`,
       {
         method: 'POST'
@@ -691,7 +691,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const { body } = await got(
+    const { body } = await request(
       `http://localhost:${proxyServer.server.address().port}/api`
     )
 
@@ -714,7 +714,7 @@ async function run () {
 
     const {
       headers: { location }
-    } = await got(
+    } = await request(
       `http://localhost:${proxyServer.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -739,7 +739,7 @@ async function run () {
     t.after(() => server.close())
 
     try {
-      await got(
+      await request(
         `http://localhost:${server.server.address().port}/timeout`,
         { retry: 0 }
       )
@@ -761,12 +761,12 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(`http://localhost:${server.server.address().port}/a`)
+    const resultRoot = await request(`http://localhost:${server.server.address().port}/a`)
     t.assert.deepStrictEqual(resultRoot.statusCode, 200)
 
     let errored = false
     try {
-      await await got(`http://localhost:${server.server.address().port}/api2/a`)
+      await await request(`http://localhost:${server.server.address().port}/api2/a`)
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 404)
       errored = true
@@ -784,7 +784,7 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `http://localhost:${server.server.address().port}/this-has-data`,
       {
         method: 'POST',
@@ -796,7 +796,7 @@ async function run () {
 
     let errored = false
     try {
-      await await got(`http://localhost:${server.server.address().port}/a`)
+      await await request(`http://localhost:${server.server.address().port}/a`)
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 404)
       errored = true
@@ -834,14 +834,14 @@ async function run () {
 
     await server.listen({ port: 0 })
     t.after(() => server.close())
-    await got(`http://localhost:${server.server.address().port}/a`, {
+    await request(`http://localhost:${server.server.address().port}/a`, {
       headers: {
         'test-header': 'valid-value'
       }
     })
 
     try {
-      await got(`http://localhost:${server.server.address().port}/a`, {
+      await request(`http://localhost:${server.server.address().port}/a`, {
         headers: {
           'test-header': 'invalid-value'
         }
@@ -852,7 +852,7 @@ async function run () {
     }
 
     try {
-      await got(`http://localhost:${server.server.address().port}/a`)
+      await request(`http://localhost:${server.server.address().port}/a`)
       t.assert.fail()
     } catch (err) {
       t.assert.strictEqual(err.response.statusCode, 404)
@@ -876,14 +876,14 @@ async function run () {
     await server.listen({ port: 0 })
     t.after(() => server.close())
 
-    const resultProxied = await got(`http://localhost:${server.server.address().port}/a`, {
+    const resultProxied = await request(`http://localhost:${server.server.address().port}/a`, {
       headers: {
         'test-header': 'with-proxy'
       }
     })
     t.assert.strictEqual(resultProxied.body, 'this is a')
 
-    const resultUnproxied = await got(`http://localhost:${server.server.address().port}/a`, {
+    const resultUnproxied = await request(`http://localhost:${server.server.address().port}/a`, {
       headers: {
         'test-header': 'without-proxy'
       }
@@ -912,12 +912,12 @@ async function run () {
     t.after(() => { proxyServer.close() })
     t.after(() => { appServer.close() })
 
-    const resultRoot = await got(
+    const resultRoot = await request(
       `${proxyAddress}/second-service?lang=en`
     )
     t.assert.strictEqual(resultRoot.body, 'Hello World - lang = en')
 
-    const resultFooRoute = await got(
+    const resultFooRoute = await request(
       `${proxyAddress}/second-service/foo?lang=en`
     )
     t.assert.strictEqual(resultFooRoute.body, 'Hello World (foo) - lang = en')
@@ -938,7 +938,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/123/endpoint?foo=bar&foo=baz&abc=qux`
     )
     const queryParams = JSON.stringify(qs.parse('foo=bar&foo=baz&abc=qux'))
@@ -967,7 +967,7 @@ async function run () {
       const {
         statusCode,
         body
-      } = await got(`http://localhost:${server.server.address().port}/`)
+      } = await request(`http://localhost:${server.server.address().port}/`)
       t.assert.strictEqual(statusCode, 200)
       t.assert.strictEqual(body, 'this is root')
     }
@@ -976,7 +976,7 @@ async function run () {
       const {
         statusCode,
         body
-      } = await got(`http://localhost:${server.server.address().port}/fake-a`)
+      } = await request(`http://localhost:${server.server.address().port}/fake-a`)
       t.assert.strictEqual(statusCode, 200)
       t.assert.strictEqual(body, 'this is a')
     }
@@ -1004,7 +1004,7 @@ async function run () {
       proxyServer.close()
     })
 
-    const firstProxyPrefix = await got(
+    const firstProxyPrefix = await request(
       `http://localhost:${proxyServer.server.address().port}/api/abc`
     )
     t.assert.strictEqual(firstProxyPrefix.body, 'this is /api2/a')

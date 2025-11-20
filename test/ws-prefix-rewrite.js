@@ -7,7 +7,7 @@ const Fastify = require('fastify')
 const fastifyWebSocket = require('@fastify/websocket')
 const proxy = require('..')
 const WebSocket = require('ws')
-const got = require('got')
+const { request } = require('./helper/helper')
 
 const level = 'warn'
 
@@ -51,7 +51,7 @@ async function processRequest (t, frontendURL, path, expected) {
   }
 
   try {
-    const result = await got(url)
+    const result = await request(url)
     gotResult = result.body
   } catch {
     gotResult = 'error'

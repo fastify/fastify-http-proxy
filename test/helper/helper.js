@@ -76,8 +76,58 @@ async function createServices ({ t, wsReconnectOptions, wsTargetOptions, wsServe
   }
 }
 
+// Helper function to wrap fetch
+async function request (url, options = {}) {
+  // Handle got's object format: request({ url: '...', headers: {...} })
+  if (typeof url === 'object' && url.url) {
+    options = url
+    url = options.url
+  }
+
+  const fetchOptions = {
+    method: options.method || 'GET',
+    headers: options.headers || {},
+    redirect: options.followRedirect === false ? 'manual' : 'follow'
+  }
+
+  if (options.json) {
+    fetchOptions.headers['content-type'] = 'application/json'
+    fetchOptions.body = JSON.stringify(options.json)
+  }
+
+  if (options.retry !== undefined) {
+    // Native fetch doesn't have retry, just ignore it
+  }
+
+  const response = await fetch(url, fetchOptions)
+
+  // Convert fetch Response to got-like response
+  const result = {
+    statusCode: response.status,
+    statusMessage: response.statusText,
+    headers: Object.fromEntries(response.headers.entries())
+  }
+
+  // Handle response body based on responseType
+  if (options.responseType === 'json') {
+    result.body = await response.json()
+  } else {
+    result.body = await response.text()
+  }
+
+  // Throw on HTTP errors like got does
+  if (!response.ok && response.status !== 302) {
+    const error = new Error(`Response code ${response.status} (${response.statusText})`)
+    error.response = result
+    throw error
+  }
+
+  return result
+}
+
 module.exports = {
   waitForLogMessage,
   createTargetServer,
-  createServices
+  createServices,
+  request
 }
