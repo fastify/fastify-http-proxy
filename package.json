@@ -9,7 +9,7 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "lint:typescript": "npm run lint:fix - --parser @typescript-eslint/parser --plugin typescript \"test/types/*.ts\"",
-    "test": "npm run lint && borp -C --check-coverage --reporter=@jsumners/line-reporter && npm run typescript",
+    "test": "npm run lint && borp -C --check-coverage && npm run typescript",
     "typescript": "tsd"
   },
   "repository": {
@@ -58,7 +58,6 @@
   ],
   "devDependencies": {
     "@fastify/websocket": "^11.2.0",
-    "@jsumners/line-reporter": "^1.0.1",
     "@types/node": "^24.10.1",
     "@types/ws": "^8.18.1",
     "borp": "^0.21.0",
