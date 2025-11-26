@@ -1,5 +1,5 @@
 {
-  "name": "proxy",
+  "name": "fastify-http-proxy-reconnection-proxy-exapmle",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
