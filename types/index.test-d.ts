@@ -25,14 +25,21 @@ app.register(fastifyHttpProxy, {
   preHandler: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw)
     expectType<RawReplyDefaultExpression>(reply.raw)
+    expectType<(url: string, params?: unknown, prefix?: string) => { url: string; options: unknown }>(reply.fromParameters)
   },
   beforeHandler: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw)
     expectType<RawReplyDefaultExpression>(reply.raw)
+    expectType<(url: string, params?: unknown, prefix?: string) => { url: string; options: unknown }>(reply.fromParameters)
   },
   preValidation: (request, reply) => {
     expectType<RawRequestDefaultExpression>(request.raw)
     expectType<RawReplyDefaultExpression>(reply.raw)
+    expectType<(url: string, params?: unknown, prefix?: string) => { url: string; options: unknown }>(reply.fromParameters)
+
+    const result = reply.fromParameters('/')
+    expectType<unknown>(result.options)
+    expectType<string>(result.url)
   },
   base: 'whatever',
   cacheURLs: 10,

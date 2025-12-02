@@ -2,20 +2,41 @@
 
 import {
   FastifyPluginCallback,
+  FastifyReply,
   FastifyRequest,
   preHandlerHookHandler,
   preValidationHookHandler,
   RawServerBase,
   RequestGenericInterface,
 } from 'fastify'
-
 import {
   FastifyReplyFromOptions,
   FastifyReplyFromHooks,
 } from '@fastify/reply-from'
-
 import { ClientOptions, ServerOptions, WebSocket } from 'ws'
 import { Logger } from 'pino'
+
+type FastifyReplyWithFromParameters = FastifyReply & {
+  fromParameters: (
+    url: string,
+    params?: unknown,
+    prefix?: string
+  ) => { url: string; options: unknown };
+}
+
+type ProxyPreHandlerHookHandler = (
+  this: preHandlerHookHandler,
+  request: Parameters<preHandlerHookHandler>[0],
+  reply: FastifyReplyWithFromParameters,
+  done: Parameters<preHandlerHookHandler>[2]
+) => void
+
+type ProxyPreValidationHookHandler = (
+  this: preValidationHookHandler,
+  request: Parameters<preValidationHookHandler>[0],
+  reply: FastifyReplyWithFromParameters,
+  done: Parameters<preValidationHookHandler>[2]
+) => void
 
 interface WebSocketHooks {
   onConnect?: (context: { log: Logger }, source: WebSocket, target: WebSocket) => void;
@@ -42,6 +63,7 @@ interface FastifyHttpProxyWebsocketOptionsEnabled {
   wsHooks?: WebSocketHooks;
   wsReconnect?: WebSocketReconnectOptions;
 }
+
 interface FastifyHttpProxyWebsocketOptionsDisabled {
   websocket?: false | never;
   wsUpstream?: never;
@@ -64,9 +86,9 @@ declare namespace fastifyHttpProxy {
     prefix?: string;
     rewritePrefix?: string;
     proxyPayloads?: boolean;
-    preHandler?: preHandlerHookHandler;
-    beforeHandler?: preHandlerHookHandler;
-    preValidation?: preValidationHookHandler;
+    preHandler?: ProxyPreHandlerHookHandler;
+    beforeHandler?: ProxyPreHandlerHookHandler;
+    preValidation?: ProxyPreValidationHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
     wsClientOptions?: ClientOptions & { queryString?: { [key: string]: unknown } | QueryStringFunction; };
