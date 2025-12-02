@@ -846,6 +846,27 @@ async function run () {
     t.assert.strictEqual(body, `this is "variable-api" endpoint with id 123 and query params ${queryParams}`)
   })
 
+  test('check against traversal attempts', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}/bar/`,
+      preHandler (_, reply) {
+        reply.from('/foo/%2E%2E/bar')
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    {
+      const response = await fetch(`http://localhost:${server.server.address().port}/%2e%2e`)
+      t.assert.strictEqual(response.status, 400)
+      const text = await response.json()
+      t.assert.strictEqual(text.error, 'Bad Request')
+      t.assert.strictEqual(text.message, 'source/request contain invalid characters')
+    }
+  })
+
   test('manual from call via fromParameters', async t => {
     const server = Fastify()
     server.register(proxy, {

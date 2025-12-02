@@ -78,7 +78,7 @@
     "why-is-node-running": "^3.2.2"
   },
   "dependencies": {
-    "@fastify/reply-from": "^12.4.0",
+    "@fastify/reply-from": "^12.5.0",
     "fast-querystring": "^1.1.2",
     "fastify-plugin": "^5.1.0",
     "ws": "^8.18.3"
