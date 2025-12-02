@@ -77,6 +77,12 @@ type FastifyHttpProxy = FastifyPluginCallback<
 >
 
 declare namespace fastifyHttpProxy {
+  type ProxyPreRewriteHookHandler = (
+    url: string,
+    params: unknown,
+    prefix: string
+  ) => string
+
   type QueryStringFunction = (
     search: string | undefined,
     reqUrl: string,
@@ -91,6 +97,7 @@ declare namespace fastifyHttpProxy {
     preHandler?: ProxyPreHandlerHookHandler;
     beforeHandler?: ProxyPreHandlerHookHandler;
     preValidation?: ProxyPreValidationHookHandler;
+    preRewrite?: ProxyPreRewriteHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
     wsClientOptions?: ClientOptions & { queryString?: { [key: string]: unknown } | QueryStringFunction; };

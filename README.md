@@ -203,6 +203,18 @@ A function that will be executed before rewriting the URL. It receives the URL, 
 
 The function cannot return a promise.
 
+```javascript
+// `/api/abc` will be proxied to `http://api-upstream.com/api2/xyz`
+fastify.register(proxy, {
+  upstream: `http://api-upstream.com`,
+  prefix: '/api',
+  rewritePrefix: '/api2/',
+  preRewrite (url, params, prefix) {
+    return url.replace('abc', 'xyz');
+  }
+})
+```
+
 ### `websocket`
 
 This module has _partial_ support for forwarding websockets by passing a
