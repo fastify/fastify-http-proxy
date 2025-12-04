@@ -41,6 +41,12 @@ app.register(fastifyHttpProxy, {
     expectType<unknown>(result.options)
     expectType<string>(result.url)
   },
+  preRewrite: (url, params, prefix): string => {
+    expectType<string>(url)
+    expectType<unknown>(params)
+    expectType<string>(prefix)
+    return ''
+  },
   base: 'whatever',
   cacheURLs: 10,
   undici: {
