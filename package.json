@@ -60,7 +60,7 @@
     "@fastify/websocket": "^11.2.0",
     "@types/node": "^25.0.3",
     "@types/ws": "^8.18.1",
-    "borp": "^0.21.0",
+    "borp": "^1.0.0",
     "eslint": "^9.39.1",
     "express": "^5.1.0",
     "express-http-proxy": "^2.1.2",
