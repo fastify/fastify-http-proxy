@@ -61,7 +61,7 @@
     "@types/node": "^25.0.3",
     "@types/ws": "^8.18.1",
     "borp": "^1.0.0",
-    "eslint": "^9.39.1",
+    "eslint": "^10.0.2",
     "express": "^5.1.0",
     "express-http-proxy": "^2.1.2",
     "fast-proxy": "^2.2.0",
