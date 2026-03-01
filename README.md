@@ -199,7 +199,7 @@ An array that contains the routes to handle. Default: `['/', '/*']`.
 
 ### `preRewrite`
 
-A function that will be executed before rewriting the URL. It receives the URL, the request parameters and the prefix and must return the new URL. 
+A function that will be executed before rewriting the URL. It receives the URL, the request parameters and the prefix and must return the new URL.
 
 The function cannot return a promise.
 
@@ -271,7 +271,7 @@ See the example in [examples/reconnection](examples/reconnection).
 
 ### `wsHooks`
 
-On websocket events, the following hooks are available, note **the hooks are all synchronous**.  
+On websocket events, the following hooks are available, note **the hooks are all synchronous**.
 The `context` object is passed to all hooks and contains the `log` property.
 
 - `onIncomingMessage`: A hook function that is called when the request is received from the client `onIncomingMessage(context, source, target, { data, binary })` (default: `undefined`).

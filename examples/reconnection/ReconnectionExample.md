@@ -56,5 +56,5 @@ Examples of how hooks can be used based on the target service type:
 - GraphQL subscriptions: Resend the subscription from the last received message.
 - Message brokers: Resend messages starting from the last successfully processed message.
 
-In this example, the proxy re-sends the messages from the last ping to ensure all the messages are sent to the target, without any additional logic. 
+In this example, the proxy re-sends the messages from the last ping to ensure all the messages are sent to the target, without any additional logic.
 Resending messages from the last pong ensures that the target does not miss any messages, but it may send messages more than once.
