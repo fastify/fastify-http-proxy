@@ -618,7 +618,7 @@ async function fastifyHttpProxy (fastify, opts) {
 
   function handler (request, reply) {
     const { url, options } = fromParameters(request.url, request.params, this.prefix)
-    const dest = url.split('?')[0]
+    const dest = url.split('?', 1)[0]
 
     if (request.raw[kWs]) {
       reply.hijack()
