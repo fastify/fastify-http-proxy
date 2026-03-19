@@ -605,11 +605,12 @@ async function fastifyHttpProxy (fastify, opts) {
       }
 
       dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
-      if (queryParams) {
-        dest += `?${qs.stringify(queryParams)}`
-      }
     } else {
       dest = dest.replace(prefix, rewritePrefix)
+    }
+
+    if (queryParams) {
+      dest += `?${qs.stringify(queryParams)}`
     }
 
     return { url: dest || '/', options: replyOpts }
@@ -617,17 +618,18 @@ async function fastifyHttpProxy (fastify, opts) {
 
   function handler (request, reply) {
     const { url, options } = fromParameters(request.url, request.params, this.prefix)
+    const dest = url.split('?')[0]
 
     if (request.raw[kWs]) {
       reply.hijack()
       try {
-        wsProxy.handleUpgrade(request, url, noop)
+        wsProxy.handleUpgrade(request, dest, noop)
       } /* c8 ignore start */ catch (err) {
         request.log.warn({ err }, 'websocket proxy error')
       } /* c8 ignore stop */
       return
     }
-    reply.from(url, options)
+    reply.from(dest, options)
   }
 
   fastify.decorateReply('fromParameters', fromParameters)
