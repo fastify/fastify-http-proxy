@@ -38,6 +38,10 @@ async function run () {
     return 'this is /api2/a'
   })
 
+  origin.get('/api2/echo-query', async (request) => {
+    return `query: ${JSON.stringify(request.query)}`
+  })
+
   origin.get('/variable-api/:id/endpoint', async (request) => {
     return `this is "variable-api" endpoint with id ${request.params.id}`
   })
@@ -898,6 +902,27 @@ async function run () {
       t.assert.strictEqual(response.status, 200)
       t.assert.strictEqual(body, 'this is a')
     }
+  })
+
+  test('fromParameters should preserve query params with non-parameterized prefix', async t => {
+    let fromParametersUrl
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      preHandler (request, reply, done) {
+        const { url } = reply.fromParameters(request.url, request.params, '/api')
+        fromParametersUrl = url
+        done()
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    await fetch(`http://localhost:${server.server.address().port}/api/echo-query?foo=bar&baz=qux`)
+    t.assert.strictEqual(fromParametersUrl, '/api2/echo-query?foo=bar&baz=qux')
   })
 
   test('preRewrite handler', async t => {
