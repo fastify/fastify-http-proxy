@@ -925,6 +925,27 @@ async function run () {
     t.assert.strictEqual(fromParametersUrl, '/api2/echo-query?foo=bar&baz=qux')
   })
 
+  test('fromParameters should only rewrite a leading non-parameterized prefix', async t => {
+    let fromParametersUrl
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      preHandler (request, reply, done) {
+        const { url } = reply.fromParameters('/foo/api/bar', request.params, '/api')
+        fromParametersUrl = url
+        done()
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    await fetch(`http://localhost:${server.server.address().port}/api/a`)
+    t.assert.strictEqual(fromParametersUrl, '/foo/api/bar')
+  })
+
   test('preRewrite handler', async t => {
     const proxyServer = Fastify()
 
