@@ -604,8 +604,10 @@ async function fastifyHttpProxy (fastify, opts) {
         rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
       }
 
-      dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
-    } else {
+      if (dest.startsWith(prefixPathWithVariables)) {
+        dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
+      }
+    } else if (dest.startsWith(prefix)) {
       dest = dest.replace(prefix, rewritePrefix)
     }
 
