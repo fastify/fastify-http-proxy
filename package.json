@@ -69,7 +69,7 @@
     "http-proxy": "^1.18.1",
     "neostandard": "^0.12.2",
     "pino": "^10.1.0",
-    "pino-test": "^1.1.0",
+    "pino-test": "^2.0.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tsd": "^0.33.0",
