@@ -1,6 +1,6 @@
 {
   "name": "@fastify/http-proxy",
-  "version": "11.4.3",
+  "version": "11.4.4",
   "description": "proxy http requests, for Fastify",
   "main": "index.js",
   "type": "commonjs",
@@ -77,7 +77,7 @@
     "why-is-node-running": "^3.2.2"
   },
   "dependencies": {
-    "@fastify/reply-from": "^12.5.0",
+    "@fastify/reply-from": "^12.6.2",
     "fast-querystring": "^1.1.2",
     "fastify-plugin": "^5.1.0",
     "ws": "^8.18.3"
