@@ -10,7 +10,7 @@
     "lint:fix": "eslint --fix",
     "lint:typescript": "npm run lint:fix - --parser @typescript-eslint/parser --plugin typescript \"test/types/*.ts\"",
     "test": "npm run lint && borp -C --check-coverage && npm run typescript",
-    "typescript": "tsd"
+    "typescript": "tstyche"
   },
   "repository": {
     "type": "git",
@@ -72,8 +72,8 @@
     "pino-test": "^2.0.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "tsd": "^0.33.0",
     "typescript": "~6.0.2",
+    "tstyche": "^7.0.0",
     "why-is-node-running": "^3.2.2"
   },
   "dependencies": {
@@ -81,9 +81,6 @@
     "fast-querystring": "^1.1.2",
     "fastify-plugin": "^5.1.0",
     "ws": "^8.18.3"
-  },
-  "tsd": {
-    "directory": "test/types"
   },
   "publishConfig": {
     "access": "public"
