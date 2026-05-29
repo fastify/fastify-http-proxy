@@ -437,6 +437,64 @@ async function run () {
     }
   })
 
+  test('custom handler can handle response', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      replyOptions: {
+        contentType: 'text/plain'
+      },
+      handler (request, reply, dest, options) {
+        t.assert.strictEqual(request.url, '/api/a')
+        t.assert.strictEqual(dest, '/api2/a')
+        t.assert.strictEqual(options.contentType, 'text/plain')
+
+        return reply.send({ dest })
+      }
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    const response = await fetch(`http://localhost:${proxyServer.server.address().port}/api/a`)
+    const body = await response.json()
+
+    t.assert.strictEqual(response.status, 200)
+    t.assert.deepStrictEqual(body, { dest: '/api2/a' })
+  })
+
+  test('custom handler can delegate to reply.from()', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      handler (_request, reply, dest, options) {
+        t.assert.strictEqual(dest, '/api2/a')
+        return reply.from(dest, options)
+      }
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    const response = await fetch(`http://localhost:${proxyServer.server.address().port}/api/a`)
+    const body = await response.text()
+
+    t.assert.strictEqual(response.status, 200)
+    t.assert.strictEqual(body, 'this is /api2/a')
+  })
+
   test('rewritePrefix', async t => {
     const proxyServer = Fastify()
 

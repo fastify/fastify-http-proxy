@@ -40,6 +40,13 @@ type ProxyPreValidationHookHandler = (
   done: Parameters<preValidationHookHandler>[2]
 ) => void
 
+type ProxyHandler = (
+  request: FastifyRequest,
+  reply: FastifyReplyWithFromParameters,
+  dest: string,
+  options: FastifyReplyFromHooks
+) => unknown
+
 interface WebSocketHooks {
   onConnect?: (context: { log: Logger }, source: WebSocket, target: WebSocket) => void;
   onDisconnect?: (context: { log: Logger }, source: WebSocket) => void;
@@ -97,6 +104,7 @@ declare namespace fastifyHttpProxy {
     preHandler?: ProxyPreHandlerHookHandler;
     beforeHandler?: ProxyPreHandlerHookHandler;
     preValidation?: ProxyPreValidationHookHandler;
+    handler?: ProxyHandler;
     preRewrite?: ProxyPreRewriteHookHandler;
     config?: Object;
     replyOptions?: FastifyReplyFromHooks;
