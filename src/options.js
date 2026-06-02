@@ -13,6 +13,10 @@ function validateOptions (options) {
     throw new Error('upstream must be specified')
   }
 
+  if (options.handler !== undefined && typeof options.handler !== 'function') {
+    throw new Error('handler must be a function')
+  }
+
   if (options.wsReconnect) {
     const wsReconnect = options.wsReconnect
 

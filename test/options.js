@@ -14,6 +14,9 @@ test('validateOptions', (t) => {
 
   assert.throws(() => validateOptions({}), /upstream must be specified/)
 
+  assert.throws(() => validateOptions({ ...requiredOptions, handler: '1' }), /handler must be a function/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, handler: () => { } }))
+
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { pingInterval: -1 } }), /wsReconnect.pingInterval must be a non-negative number/)
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { pingInterval: '1' } }), /wsReconnect.pingInterval must be a non-negative number/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { pingInterval: 1 } }))

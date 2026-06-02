@@ -141,6 +141,21 @@ Rewrite the prefix to the specified string. Default: `''`.
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
 
+### `handler`
+
+A function to replace the default HTTP proxy handler. It receives the request, reply, rewritten destination, and reply options.
+
+By default, the handler calls `reply.from(dest, options)`. Use this option to customize the response handling while keeping the proxy URL rewriting behavior.
+
+```javascript
+fastify.register(proxy, {
+  upstream: 'http://api-upstream.com',
+  async handler (request, reply, dest, options) {
+    return reply.from(dest, options)
+  }
+})
+```
+
 ### `proxyPayloads`
 
 When this option is `false`, you will be able to access the body but it will also disable direct pass through of the payload. As a result, it is left up to the implementation to properly parse and proxy the payload correctly.
