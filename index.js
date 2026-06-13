@@ -522,6 +522,10 @@ function generateRewritePrefix (prefix, opts) {
 async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
+  const replyHandler = opts.handler ?? function replyHandler (_, reply, dest, options) {
+    return reply.from(dest, options)
+  }
+
   const preHandler = opts.preHandler || opts.beforeHandler
   const preRewrite = typeof opts.preRewrite === 'function' ? opts.preRewrite : noopPreRewrite
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
@@ -631,7 +635,7 @@ async function fastifyHttpProxy (fastify, opts) {
       } /* c8 ignore stop */
       return
     }
-    reply.from(dest, options)
+    return replyHandler(request, reply, dest, options)
   }
 
   fastify.decorateReply('fromParameters', fromParameters)

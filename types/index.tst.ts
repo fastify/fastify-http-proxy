@@ -6,6 +6,7 @@ import fastify, {
   type RequestGenericInterface,
 } from 'fastify'
 import { expect } from 'tstyche'
+import { type FastifyReplyFromHooks } from '@fastify/reply-from'
 import fastifyHttpProxy from '..'
 
 const app = fastify()
@@ -58,6 +59,13 @@ app.register(fastifyHttpProxy, {
     const result = reply.fromParameters('/')
     expect(result.options).type.toBe<unknown>()
     expect(result.url).type.toBe<string>()
+  },
+  handler: (request, reply, dest, options) => {
+    expect(request).type.toBe<FastifyRequest>()
+    expect(reply.raw).type.toBe<RawReplyDefaultExpression>()
+    expect(dest).type.toBe<string>()
+    expect(options).type.toBe<FastifyReplyFromHooks>()
+    return reply.from(dest, options)
   },
   preRewrite: (url, params, prefix): string => {
     expect(url).type.toBe<string>()

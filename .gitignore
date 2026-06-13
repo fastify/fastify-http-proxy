@@ -151,3 +151,9 @@ yarn.lock
 # diag files
 *clinic*
 *0x*
+
+# ai files
+.pi
+.claude
+CLAUDE.md
+AGENTS.md
