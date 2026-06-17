@@ -79,7 +79,7 @@
   "dependencies": {
     "@fastify/reply-from": "^12.6.2",
     "fast-querystring": "^1.1.2",
-    "fastify-plugin": "^5.1.0",
+    "fastify-plugin": "^6.0.0",
     "ws": "^8.18.3"
   },
   "publishConfig": {
