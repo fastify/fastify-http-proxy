@@ -202,7 +202,7 @@ In other words, the [prefix](https://github.com/fastify/fastify-http-proxy#prefi
 
 If you want to preserve the original path, this option will disable this internal operation. Default: `true`.
 
-Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rewriteheadersheaders-request) option of [`@fastify/reply-from`](http://npm.im/fastify-reply-from) will retrieve headers modified (reminder: only `location` is updated among all headers) in parameter but with this option, the headers are unchanged.
+Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rewriteheadersheaders-request) option of [`@fastify/reply-from`](https://www.npmjs.com/package/fastify-reply-from) will retrieve headers modified (reminder: only `location` is updated among all headers) in parameter but with this option, the headers are unchanged.
 
 ### `httpMethods`
 
