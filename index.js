@@ -3,7 +3,7 @@ const { setTimeout: wait } = require('node:timers/promises')
 const From = require('@fastify/reply-from')
 const { ServerResponse } = require('node:http')
 const WebSocket = require('ws')
-const { convertUrlToWebSocket } = require('./utils')
+const { convertUrlToWebSocket, sanitizeHeaders } = require('./utils')
 const fp = require('fastify-plugin')
 const qs = require('fast-querystring')
 const { validateOptions } = require('./src/options')
@@ -558,6 +558,11 @@ async function fastifyHttpProxy (fastify, opts) {
     if (oldRewriteHeaders) {
       headers = oldRewriteHeaders(headers, req)
     }
+
+    // Sanitize header values so an upstream reply with an invalid header
+    // does not crash the whole request.
+    headers = sanitizeHeaders(headers)
+
     return headers
   }
 
