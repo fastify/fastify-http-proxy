@@ -22,6 +22,7 @@ app.register(fastifyHttpProxy, {
   http2: false,
   config: { key: 1 },
   replyOptions: { contentType: 'application/json' },
+  routes: ['/', '/*'],
   httpMethods: ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS'],
   preHandler: (request, reply) => {
     expect(request.raw).type.toBe<RawRequestDefaultExpression>()

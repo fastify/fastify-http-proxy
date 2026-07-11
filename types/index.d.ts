@@ -110,6 +110,7 @@ declare namespace fastifyHttpProxy {
     replyOptions?: FastifyReplyFromHooks;
     wsClientOptions?: ClientOptions & { queryString?: { [key: string]: unknown } | QueryStringFunction; };
     wsServerOptions?: ServerOptions;
+    routes?: string[];
     httpMethods?: string[];
     constraints?: { [name: string]: any };
     internalRewriteLocationHeader?: boolean;
