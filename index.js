@@ -14,6 +14,7 @@ const urlPattern = /^https?:\/\//
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
+const kWsPrefixes = Symbol('wsPrefixes')
 
 function liftErrorCode (code) {
   /* c8 ignore start */
@@ -361,6 +362,19 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   })
 }
 
+function isUpgradeWithinPrefixes (rawRequest, prefixes) {
+  const pathname = rawRequest.url.split('?', 1)[0]
+  for (const prefix of prefixes) {
+    // Normalise the prefix to its path without a trailing slash. A proxy
+    // mounted at the root ('' or '/') owns every upgrade.
+    const base = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix
+    if (base === '' || pathname === base || pathname.startsWith(`${base}/`)) {
+      return true
+    }
+  }
+  return false
+}
+
 function handleUpgrade (fastify, rawRequest, socket, head) {
   // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
   rawRequest[kWs] = socket
@@ -394,10 +408,25 @@ class WebSocketProxy {
     })
 
     if (!fastify.server[kWsUpgradeListener]) {
-      fastify.server[kWsUpgradeListener] = (rawRequest, socket, head) =>
-        handleUpgrade(fastify, rawRequest, socket, head)
+      // A single 'upgrade' listener is shared by every proxy registered on
+      // this server. When the proxy coexists with other 'upgrade' listeners
+      // (e.g. @fastify/websocket), it must only handle upgrades that target
+      // one of the registered proxy prefixes, otherwise it would hijack
+      // WebSocket endpoints it does not own. When the proxy is the only
+      // 'upgrade' listener, every upgrade is dispatched as before so that
+      // out-of-prefix requests are still routed (and rejected) normally.
+      const prefixes = fastify.server[kWsPrefixes] = []
+      fastify.server[kWsUpgradeListener] = (rawRequest, socket, head) => {
+        if (
+          fastify.server.listenerCount('upgrade') === 1 ||
+          isUpgradeWithinPrefixes(rawRequest, prefixes)
+        ) {
+          handleUpgrade(fastify, rawRequest, socket, head)
+        }
+      }
       fastify.server.on('upgrade', fastify.server[kWsUpgradeListener])
     }
+    fastify.server[kWsPrefixes].push(fastify.prefix)
 
     this.handleUpgrade = (request, dest, cb) => {
       wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
