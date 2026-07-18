@@ -1034,8 +1034,9 @@ async function run () {
           return
         }
 
-        const { url, options } = reply.fromParameters('/a')
-        reply.from(url, options)
+        const fromParameters = reply.fromParameters('/a')
+        t.assert.deepStrictEqual(Object.keys(fromParameters), ['url', 'options'])
+        reply.from(fromParameters.url, fromParameters.options)
       }
     })
 
