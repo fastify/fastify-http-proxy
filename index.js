@@ -519,6 +519,68 @@ function generateRewritePrefix (prefix, opts) {
   return rewritePrefix
 }
 
+// Find the raw path boundary matching the router-normalized prefix without decoding the suffix.
+function getRawPrefixLength (path, prefix, options) {
+  if (options.ignoreDuplicateSlashes) {
+    prefix = prefix.replace(/\/\/+/g, '/')
+  }
+  if (!options.caseSensitive) {
+    prefix = prefix.toLowerCase()
+  }
+  if (prefix.length === 0) {
+    return 0
+  }
+
+  let pathIndex = 0
+  let decodedPrefix = ''
+  let previousWasSlash = false
+
+  while (pathIndex < path.length) {
+    const isSlash = path[pathIndex] === '/'
+    if (options.ignoreDuplicateSlashes && isSlash && previousWasSlash) {
+      pathIndex++
+      continue
+    }
+
+    let rawLength = 1
+    let decodedCharacter
+
+    if (path[pathIndex] === '%') {
+      rawLength = 3
+
+      // A percent-encoded UTF-8 character can contain up to four byte triplets.
+      while (true) {
+        try {
+          decodedCharacter = decodeURI(path.slice(pathIndex, pathIndex + rawLength))
+          break
+        } catch (error) {
+          if (rawLength === 12 || path[pathIndex + rawLength] !== '%') {
+            throw error
+          }
+          rawLength += 3
+        }
+      }
+    } else {
+      rawLength = path.codePointAt(pathIndex) > 0xFFFF ? 2 : 1
+      decodedCharacter = path.slice(pathIndex, pathIndex + rawLength)
+    }
+
+    decodedPrefix += decodedCharacter
+    pathIndex += rawLength
+    previousWasSlash = isSlash
+
+    const normalizedDecodedPrefix = options.caseSensitive ? decodedPrefix : decodedPrefix.toLowerCase()
+    if (normalizedDecodedPrefix === prefix) {
+      return pathIndex
+    }
+    if (normalizedDecodedPrefix.length >= prefix.length) {
+      return -1
+    }
+  }
+
+  return -1
+}
+
 async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
@@ -529,6 +591,13 @@ async function fastifyHttpProxy (fastify, opts) {
   const preHandler = opts.preHandler || opts.beforeHandler
   const preRewrite = typeof opts.preRewrite === 'function' ? opts.preRewrite : noopPreRewrite
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
+  const initialConfig = fastify.initialConfig
+  const routerOptions = initialConfig.routerOptions || {}
+  const prefixMatchingOptions = {
+    caseSensitive: routerOptions.caseSensitive ?? initialConfig.caseSensitive,
+    ignoreDuplicateSlashes: routerOptions.ignoreDuplicateSlashes ?? initialConfig.ignoreDuplicateSlashes,
+    ignoreTrailingSlash: routerOptions.ignoreTrailingSlash ?? initialConfig.ignoreTrailingSlash
+  }
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -605,19 +674,50 @@ async function fastifyHttpProxy (fastify, opts) {
     let dest = path
 
     if (prefix.includes(':')) {
-      const requestedPathElements = path.split('/')
-      const prefixPathWithVariables = prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      let normalizedPath = path
+      let normalizedPrefix = prefix
+      if (prefixMatchingOptions.ignoreDuplicateSlashes) {
+        normalizedPath = normalizedPath.replace(/\/\/+/g, '/')
+        normalizedPrefix = normalizedPrefix.replace(/\/\/+/g, '/')
+      }
+
+      const requestedPathElements = normalizedPath.split('/')
+      const prefixPathWithVariables = normalizedPrefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      const decodedPrefixPath = decodeURI(prefixPathWithVariables)
 
       let rewritePrefixWithVariables = rewritePrefix
       for (const [name, value] of Object.entries(params)) {
         rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
       }
 
-      if (dest.startsWith(prefixPathWithVariables)) {
-        dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
+      let rawPrefixLength = getRawPrefixLength(dest, decodedPrefixPath, prefixMatchingOptions)
+      if (rawPrefixLength === -1 && prefixMatchingOptions.ignoreTrailingSlash && decodedPrefixPath.endsWith('/')) {
+        const lengthWithoutTrailingSlash = getRawPrefixLength(dest, decodedPrefixPath.slice(0, -1), prefixMatchingOptions)
+        if (lengthWithoutTrailingSlash === dest.length) {
+          rawPrefixLength = lengthWithoutTrailingSlash
+        }
       }
-    } else if (dest.startsWith(prefix)) {
-      dest = dest.replace(prefix, rewritePrefix)
+
+      if (rawPrefixLength !== -1) {
+        dest = rewritePrefixWithVariables + dest.slice(rawPrefixLength)
+      }
+    } else {
+      let rawPrefixLength = getRawPrefixLength(dest, prefix, prefixMatchingOptions)
+      let normalizedPrefix = prefix
+      if (prefixMatchingOptions.ignoreDuplicateSlashes) {
+        normalizedPrefix = normalizedPrefix.replace(/\/\/+/g, '/')
+      }
+
+      if (rawPrefixLength === -1 && prefixMatchingOptions.ignoreTrailingSlash && normalizedPrefix.length > 1 && normalizedPrefix.endsWith('/')) {
+        const lengthWithoutTrailingSlash = getRawPrefixLength(dest, normalizedPrefix.slice(0, -1), prefixMatchingOptions)
+        if (lengthWithoutTrailingSlash === dest.length) {
+          rawPrefixLength = lengthWithoutTrailingSlash
+        }
+      }
+
+      if (rawPrefixLength !== -1) {
+        dest = rewritePrefix + dest.slice(rawPrefixLength)
+      }
     }
 
     if (queryParams) {
