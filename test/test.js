@@ -42,6 +42,18 @@ async function run () {
     return `query: ${JSON.stringify(request.query)}`
   })
 
+  origin.get('/api/admin/secrets', async () => {
+    return 'unsafe endpoint'
+  })
+
+  origin.get('/safe', async (request) => {
+    return request.url
+  })
+
+  origin.get('/safe/*', async (request) => {
+    return request.url
+  })
+
   origin.get('/variable-api/:id/endpoint', async (request) => {
     return `this is "variable-api" endpoint with id ${request.params.id}`
   })
@@ -515,6 +527,89 @@ async function run () {
     t.assert.strictEqual(body, 'this is /api2/a')
   })
 
+  test('rewritePrefix rewrites URL-encoded prefixes', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/safe'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    const unsafeResponse = await fetch(`http://localhost:${origin.server.address().port}/api/admin/secrets`)
+    t.assert.strictEqual(await unsafeResponse.text(), 'unsafe endpoint')
+
+    const cases = [
+      ['/%61pi/admin/secrets', '/safe/admin/secrets'],
+      ['/%61%70%69/admin/secrets', '/safe/admin/secrets'],
+      ['/a%70i/admin/%73ecrets', '/safe/admin/%73ecrets']
+    ]
+
+    for (const [path, expectedPath] of cases) {
+      const response = await fetch(`http://localhost:${proxyServer.server.address().port}${path}`)
+      const body = await response.text()
+      t.assert.strictEqual(body, expectedPath)
+    }
+  })
+
+  test('prefix stripping handles URL-encoded prefixes', async t => {
+    const proxyServer = Fastify()
+
+    proxyServer.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api'
+    })
+
+    await proxyServer.listen({ port: 0 })
+
+    t.after(() => {
+      proxyServer.close()
+    })
+
+    for (const path of ['/%61pi/a', '/%61%70%69/a']) {
+      const response = await fetch(`http://localhost:${proxyServer.server.address().port}${path}`)
+      const body = await response.text()
+      t.assert.strictEqual(body, 'this is a')
+    }
+  })
+
+  test('rewritePrefix follows router path normalization', async t => {
+    const cases = [
+      [{ caseSensitive: false }, '/api', '/%41PI/admin/secrets', '/safe/admin/secrets'],
+      [{ caseSensitive: false }, '/ΟΣ', '/%CE%9F%CE%A3/admin/secrets', '/safe/admin/secrets'],
+      [{ ignoreDuplicateSlashes: true }, '/api', '//%61pi/admin/secrets', '/safe/admin/secrets'],
+      [{ ignoreDuplicateSlashes: true }, '/api//:id', '/%61pi/123', '/safe'],
+      [{ ignoreDuplicateSlashes: true }, '/api///:id', '/%61pi/123/admin', '/safe/admin'],
+      [{ ignoreTrailingSlash: true }, '/api/', '/%61pi', '/safe'],
+      [{ ignoreTrailingSlash: true }, '/api/:id/', '/%61pi/123', '/safe'],
+      [{ ignoreDuplicateSlashes: true, ignoreTrailingSlash: true }, '/api//', '/%61pi', '/safe'],
+      [{ ignoreDuplicateSlashes: true, ignoreTrailingSlash: true }, '/api/:id//', '/%61pi/123', '/safe']
+    ]
+
+    for (const [routerOptions, prefix, path, expectedPath] of cases) {
+      const proxyServer = Fastify({ routerOptions })
+
+      proxyServer.register(proxy, {
+        upstream: `http://localhost:${origin.server.address().port}`,
+        prefix,
+        rewritePrefix: '/safe'
+      })
+
+      await proxyServer.listen({ port: 0 })
+      t.after(() => proxyServer.close())
+
+      const response = await fetch(`http://localhost:${proxyServer.server.address().port}${path}`)
+      const body = await response.text()
+      t.assert.strictEqual(body, expectedPath)
+    }
+  })
+
   test('rewritePrefix without prefix', async t => {
     const proxyServer = Fastify()
 
@@ -939,8 +1034,9 @@ async function run () {
           return
         }
 
-        const { url, options } = reply.fromParameters('/a')
-        reply.from(url, options)
+        const fromParameters = reply.fromParameters('/a')
+        t.assert.deepStrictEqual(Object.keys(fromParameters), ['url', 'options'])
+        reply.from(fromParameters.url, fromParameters.options)
       }
     })
 
@@ -960,6 +1056,41 @@ async function run () {
       t.assert.strictEqual(response.status, 200)
       t.assert.strictEqual(body, 'this is a')
     }
+  })
+
+  test('fromParameters rewrites encoded multibyte prefixes without decoding the suffix', async t => {
+    const server = Fastify()
+    let assertionsRan = false
+
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/safe',
+      preHandler (_request, reply, done) {
+        const cases = [
+          ['/caf%C3%A9/%64ata', '/café', '/safe/%64ata'],
+          ['/%F0%9F%98%80/%64ata', '/😀', '/safe/%64ata'],
+          ['/😀/%64ata', '/😀', '/safe/%64ata'],
+          ['/a', '/api', '/a'],
+          ['/a', '', '/safe/a']
+        ]
+
+        for (const [url, prefix, expected] of cases) {
+          t.assert.strictEqual(reply.fromParameters(url, {}, prefix).url, expected)
+        }
+
+        t.assert.throws(() => reply.fromParameters('/%ZZ', {}, '/x'), URIError)
+        t.assert.throws(() => reply.fromParameters('/%F0%9F%98%ZZ', {}, '/😀'), URIError)
+        assertionsRan = true
+        done()
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    await fetch(`http://localhost:${server.server.address().port}/api/a`)
+    t.assert.ok(assertionsRan)
   })
 
   test('fromParameters should preserve query params with non-parameterized prefix', async t => {

@@ -11,8 +11,10 @@ const { validateOptions } = require('./src/options')
 const defaultRoutes = ['/', '/*']
 const defaultHttpMethods = ['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']
 const urlPattern = /^https?:\/\//
+const absoluteUrlPattern = /^[a-zA-Z][a-zA-Z\d+.-]*:/
 const kWs = Symbol('ws')
 const kWsHead = Symbol('wsHead')
+const kWsRewritePrefix = Symbol('wsRewritePrefix')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
 const kWsPrefixes = Symbol('wsPrefixes')
 
@@ -86,6 +88,55 @@ function noop () { }
 
 function noopPreRewrite (url) {
   return url
+}
+
+function invalidWebSocketDestination () {
+  const err = new Error('source/request contain invalid characters')
+  err.statusCode = 400
+  return err
+}
+
+function validateWebSocketDestination (dest) {
+  const normalizedReference = dest
+    .replaceAll('\t', '')
+    .replaceAll('\n', '')
+    .replaceAll('\r', '')
+    .replaceAll('\0', '')
+    .trimStart()
+    .replaceAll('\\', '/')
+
+  if (absoluteUrlPattern.test(normalizedReference) || normalizedReference.startsWith('//')) {
+    throw invalidWebSocketDestination()
+  }
+
+  let decoded
+  try {
+    decoded = decodeURIComponent(normalizedReference)
+  } catch {
+    throw invalidWebSocketDestination()
+  }
+
+  if (decoded === '..' || decoded.includes('/..') || decoded.includes('../')) {
+    throw invalidWebSocketDestination()
+  }
+}
+
+function resolveWebSocketDestination (dest, rewritePrefix, upstream = 'ws://fastify-http-proxy.invalid') {
+  validateWebSocketDestination(dest)
+
+  const base = new URL(upstream)
+  const target = new URL(dest, base)
+  const prefix = new URL(rewritePrefix, base)
+  const prefixBoundary = prefix.pathname.endsWith('/')
+    ? prefix.pathname
+    : `${prefix.pathname}/`
+  const isWithinPrefix = target.pathname === prefix.pathname || target.pathname.startsWith(prefixBoundary)
+
+  if (target.origin !== base.origin || prefix.origin !== base.origin || !isWithinPrefix) {
+    throw invalidWebSocketDestination()
+  }
+
+  return target
 }
 
 function createContext (logger) {
@@ -466,21 +517,22 @@ class WebSocketProxy {
 
   findUpstream (request, dest) {
     const { search } = new URL(request.url, 'ws://127.0.0.1')
+    const rewritePrefix = request.raw[kWsRewritePrefix] || '/'
 
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
-      const target = new URL(dest, this.wsUpstream)
+      const target = resolveWebSocketDestination(dest, rewritePrefix, this.wsUpstream)
       target.search = search
       return target
     }
 
     if (typeof this.upstream === 'string' && this.upstream !== '') {
-      const target = new URL(dest, this.upstream)
+      const target = resolveWebSocketDestination(dest, rewritePrefix, this.upstream)
       target.search = search
       return target
     }
 
     const upstream = this.getUpstream(request, '')
-    const target = new URL(dest, upstream)
+    const target = resolveWebSocketDestination(dest, rewritePrefix, upstream)
     /* c8 ignore next */
     target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
     target.search = search
@@ -548,6 +600,68 @@ function generateRewritePrefix (prefix, opts) {
   return rewritePrefix
 }
 
+// Find the raw path boundary matching the router-normalized prefix without decoding the suffix.
+function getRawPrefixLength (path, prefix, options) {
+  if (options.ignoreDuplicateSlashes) {
+    prefix = prefix.replace(/\/\/+/g, '/')
+  }
+  if (!options.caseSensitive) {
+    prefix = prefix.toLowerCase()
+  }
+  if (prefix.length === 0) {
+    return 0
+  }
+
+  let pathIndex = 0
+  let decodedPrefix = ''
+  let previousWasSlash = false
+
+  while (pathIndex < path.length) {
+    const isSlash = path[pathIndex] === '/'
+    if (options.ignoreDuplicateSlashes && isSlash && previousWasSlash) {
+      pathIndex++
+      continue
+    }
+
+    let rawLength = 1
+    let decodedCharacter
+
+    if (path[pathIndex] === '%') {
+      rawLength = 3
+
+      // A percent-encoded UTF-8 character can contain up to four byte triplets.
+      while (true) {
+        try {
+          decodedCharacter = decodeURI(path.slice(pathIndex, pathIndex + rawLength))
+          break
+        } catch (error) {
+          if (rawLength === 12 || path[pathIndex + rawLength] !== '%') {
+            throw error
+          }
+          rawLength += 3
+        }
+      }
+    } else {
+      rawLength = path.codePointAt(pathIndex) > 0xFFFF ? 2 : 1
+      decodedCharacter = path.slice(pathIndex, pathIndex + rawLength)
+    }
+
+    decodedPrefix += decodedCharacter
+    pathIndex += rawLength
+    previousWasSlash = isSlash
+
+    const normalizedDecodedPrefix = options.caseSensitive ? decodedPrefix : decodedPrefix.toLowerCase()
+    if (normalizedDecodedPrefix === prefix) {
+      return pathIndex
+    }
+    if (normalizedDecodedPrefix.length >= prefix.length) {
+      return -1
+    }
+  }
+
+  return -1
+}
+
 async function fastifyHttpProxy (fastify, opts) {
   opts = validateOptions(opts)
 
@@ -558,6 +672,13 @@ async function fastifyHttpProxy (fastify, opts) {
   const preHandler = opts.preHandler || opts.beforeHandler
   const preRewrite = typeof opts.preRewrite === 'function' ? opts.preRewrite : noopPreRewrite
   const rewritePrefix = generateRewritePrefix(fastify.prefix, opts)
+  const initialConfig = fastify.initialConfig
+  const routerOptions = initialConfig.routerOptions || {}
+  const prefixMatchingOptions = {
+    caseSensitive: routerOptions.caseSensitive ?? initialConfig.caseSensitive,
+    ignoreDuplicateSlashes: routerOptions.ignoreDuplicateSlashes ?? initialConfig.ignoreDuplicateSlashes,
+    ignoreTrailingSlash: routerOptions.ignoreTrailingSlash ?? initialConfig.ignoreTrailingSlash
+  }
 
   const fromOpts = Object.assign({}, opts)
   fromOpts.base = opts.upstream
@@ -627,40 +748,81 @@ async function fastifyHttpProxy (fastify, opts) {
     return components
   }
 
-  function fromParameters (url, params = {}, prefix = '/') {
+  function fromParametersWithRewritePrefix (url, params = {}, prefix = '/') {
     url = preRewrite(url, params, prefix)
 
     const { path, queryParams } = extractUrlComponents(url)
     let dest = path
+    let effectiveRewritePrefix = rewritePrefix
 
     if (prefix.includes(':')) {
-      const requestedPathElements = path.split('/')
-      const prefixPathWithVariables = prefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      let normalizedPath = path
+      let normalizedPrefix = prefix
+      if (prefixMatchingOptions.ignoreDuplicateSlashes) {
+        normalizedPath = normalizedPath.replace(/\/\/+/g, '/')
+        normalizedPrefix = normalizedPrefix.replace(/\/\/+/g, '/')
+      }
+
+      const requestedPathElements = normalizedPath.split('/')
+      const prefixPathWithVariables = normalizedPrefix.split('/').map((_, index) => requestedPathElements[index]).join('/')
+      const decodedPrefixPath = decodeURI(prefixPathWithVariables)
 
       let rewritePrefixWithVariables = rewritePrefix
       for (const [name, value] of Object.entries(params)) {
         rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
       }
 
-      if (dest.startsWith(prefixPathWithVariables)) {
-        dest = dest.replace(prefixPathWithVariables, rewritePrefixWithVariables)
+      let rawPrefixLength = getRawPrefixLength(dest, decodedPrefixPath, prefixMatchingOptions)
+      if (rawPrefixLength === -1 && prefixMatchingOptions.ignoreTrailingSlash && decodedPrefixPath.endsWith('/')) {
+        const lengthWithoutTrailingSlash = getRawPrefixLength(dest, decodedPrefixPath.slice(0, -1), prefixMatchingOptions)
+        if (lengthWithoutTrailingSlash === dest.length) {
+          rawPrefixLength = lengthWithoutTrailingSlash
+        }
       }
-    } else if (dest.startsWith(prefix)) {
-      dest = dest.replace(prefix, rewritePrefix)
+
+      if (rawPrefixLength !== -1) {
+        dest = rewritePrefixWithVariables + dest.slice(rawPrefixLength)
+        effectiveRewritePrefix = rewritePrefixWithVariables
+      }
+    } else {
+      let rawPrefixLength = getRawPrefixLength(dest, prefix, prefixMatchingOptions)
+      let normalizedPrefix = prefix
+      if (prefixMatchingOptions.ignoreDuplicateSlashes) {
+        normalizedPrefix = normalizedPrefix.replace(/\/\/+/g, '/')
+      }
+
+      if (rawPrefixLength === -1 && prefixMatchingOptions.ignoreTrailingSlash && normalizedPrefix.length > 1 && normalizedPrefix.endsWith('/')) {
+        const lengthWithoutTrailingSlash = getRawPrefixLength(dest, normalizedPrefix.slice(0, -1), prefixMatchingOptions)
+        if (lengthWithoutTrailingSlash === dest.length) {
+          rawPrefixLength = lengthWithoutTrailingSlash
+        }
+      }
+
+      if (rawPrefixLength !== -1) {
+        dest = rewritePrefix + dest.slice(rawPrefixLength)
+      }
     }
 
     if (queryParams) {
       dest += `?${qs.stringify(queryParams)}`
     }
 
-    return { url: dest || '/', options: replyOpts }
+    return { url: dest || '/', options: replyOpts, rewritePrefix: effectiveRewritePrefix }
+  }
+
+  function fromParameters (url, params = {}, prefix = '/') {
+    const result = fromParametersWithRewritePrefix(url, params, prefix)
+    return { url: result.url, options: result.options }
   }
 
   function handler (request, reply) {
-    const { url, options } = fromParameters(request.url, request.params, this.prefix)
+    const { url, options, rewritePrefix: effectiveRewritePrefix } = fromParametersWithRewritePrefix(request.url, request.params, this.prefix)
     const dest = url.split('?', 1)[0]
 
     if (request.raw[kWs]) {
+      // Validate before hijacking so Fastify can return a 400 response.
+      request.raw[kWsRewritePrefix] = effectiveRewritePrefix
+      resolveWebSocketDestination(dest, effectiveRewritePrefix)
       reply.hijack()
       try {
         wsProxy.handleUpgrade(request, dest, noop)
