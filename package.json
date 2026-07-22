@@ -72,7 +72,7 @@
     "pino-test": "^2.0.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "typescript": "~6.0.2",
+    "typescript": "~7.0.2",
     "tstyche": "^7.0.0",
     "why-is-node-running": "^3.2.2"
   },
