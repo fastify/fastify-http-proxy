@@ -103,3 +103,20 @@ test('a root proxy still owns upgrades when coexisting with another listener', a
   // The root proxy owns every path, so an arbitrary path is still proxied.
   assert.strictEqual(await connect(port, '/anything'), 'proxied:hello')
 })
+
+test('multiple proxies each own their own prefix', async (t) => {
+  const upstream = await createEchoUpstream(t)
+
+  const server = Fastify()
+  server.register(proxy, { prefix: '/pub', upstream, websocket: true })
+  server.register(proxy, { prefix: '/api', upstream, websocket: true })
+  await server.listen({ port: 0, host: '127.0.0.1' })
+  t.after(() => { server.close() })
+  const port = server.server.address().port
+
+  mountStandalone(t, server, '/standalone')
+
+  assert.strictEqual(await connect(port, '/standalone'), 'standalone:hello')
+  assert.strictEqual(await connect(port, '/pub/x'), 'proxied:hello')
+  assert.strictEqual(await connect(port, '/api/x'), 'proxied:hello')
+})
