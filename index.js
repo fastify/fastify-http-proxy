@@ -90,13 +90,13 @@ function noopPreRewrite (url) {
   return url
 }
 
-function invalidWebSocketDestination () {
+function invalidDestination () {
   const err = new Error('source/request contain invalid characters')
   err.statusCode = 400
   return err
 }
 
-function validateWebSocketDestination (dest) {
+function validateDestination (dest) {
   const normalizedReference = dest
     .replaceAll('\t', '')
     .replaceAll('\n', '')
@@ -106,23 +106,23 @@ function validateWebSocketDestination (dest) {
     .replaceAll('\\', '/')
 
   if (absoluteUrlPattern.test(normalizedReference) || normalizedReference.startsWith('//')) {
-    throw invalidWebSocketDestination()
+    throw invalidDestination()
   }
 
   let decoded
   try {
     decoded = decodeURIComponent(normalizedReference)
   } catch {
-    throw invalidWebSocketDestination()
+    throw invalidDestination()
   }
 
   if (decoded === '..' || decoded.includes('/..') || decoded.includes('../')) {
-    throw invalidWebSocketDestination()
+    throw invalidDestination()
   }
 }
 
-function resolveWebSocketDestination (dest, rewritePrefix, upstream = 'ws://fastify-http-proxy.invalid') {
-  validateWebSocketDestination(dest)
+function resolveDestination (dest, rewritePrefix, upstream = 'http://fastify-http-proxy.invalid') {
+  validateDestination(dest)
 
   const base = new URL(upstream)
   const target = new URL(dest, base)
@@ -133,7 +133,7 @@ function resolveWebSocketDestination (dest, rewritePrefix, upstream = 'ws://fast
   const isWithinPrefix = target.pathname === prefix.pathname || target.pathname.startsWith(prefixBoundary)
 
   if (target.origin !== base.origin || prefix.origin !== base.origin || !isWithinPrefix) {
-    throw invalidWebSocketDestination()
+    throw invalidDestination()
   }
 
   return target
@@ -520,19 +520,19 @@ class WebSocketProxy {
     const rewritePrefix = request.raw[kWsRewritePrefix] || '/'
 
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
-      const target = resolveWebSocketDestination(dest, rewritePrefix, this.wsUpstream)
+      const target = resolveDestination(dest, rewritePrefix, this.wsUpstream)
       target.search = search
       return target
     }
 
     if (typeof this.upstream === 'string' && this.upstream !== '') {
-      const target = resolveWebSocketDestination(dest, rewritePrefix, this.upstream)
+      const target = resolveDestination(dest, rewritePrefix, this.upstream)
       target.search = search
       return target
     }
 
     const upstream = this.getUpstream(request, '')
-    const target = resolveWebSocketDestination(dest, rewritePrefix, upstream)
+    const target = resolveDestination(dest, rewritePrefix, upstream)
     /* c8 ignore next */
     target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
     target.search = search
@@ -812,6 +812,9 @@ async function fastifyHttpProxy (fastify, opts) {
 
   function fromParameters (url, params = {}, prefix = '/') {
     const result = fromParametersWithRewritePrefix(url, params, prefix)
+    // Reject traversal escapes (including backslash dot-segments) so callers that
+    // proxy the returned url via reply.from() get the same protection as the handler.
+    validateDestination(result.url.split('?', 1)[0])
     return { url: result.url, options: result.options }
   }
 
@@ -822,7 +825,7 @@ async function fastifyHttpProxy (fastify, opts) {
     if (request.raw[kWs]) {
       // Validate before hijacking so Fastify can return a 400 response.
       request.raw[kWsRewritePrefix] = effectiveRewritePrefix
-      resolveWebSocketDestination(dest, effectiveRewritePrefix)
+      resolveDestination(dest, effectiveRewritePrefix)
       reply.hijack()
       try {
         wsProxy.handleUpgrade(request, dest, noop)
@@ -831,7 +834,16 @@ async function fastifyHttpProxy (fastify, opts) {
       } /* c8 ignore stop */
       return
     }
-    return replyHandler(request, reply, dest, options)
+
+    let upstream = opts.upstream
+    let handlerOptions = options
+    if (typeof options.getUpstream === 'function') {
+      upstream = options.getUpstream(request, upstream)
+      handlerOptions = { ...options, getUpstream: () => upstream }
+    }
+
+    resolveDestination(dest, effectiveRewritePrefix, upstream || undefined)
+    return replyHandler(request, reply, dest, handlerOptions)
   }
 
   fastify.decorateReply('fromParameters', fromParameters)
