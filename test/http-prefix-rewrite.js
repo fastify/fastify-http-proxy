@@ -150,3 +150,34 @@ test('reply.fromParameters cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 })
+
+test('HTTP request with a falsy dynamic upstream falls back to the default validation host', async t => {
+  const backend = Fastify()
+  const frontend = Fastify()
+
+  t.after(async () => {
+    await frontend.close()
+    await backend.close()
+  })
+
+  backend.get('/internal/*', request => `internal:${request.url}`)
+  await backend.listen({ port: 0, host: '127.0.0.1' })
+
+  frontend.register(proxy, {
+    upstream: '',
+    prefix: '/pub',
+    rewritePrefix: '/internal',
+    replyOptions: {
+      // Keep upstream falsy after getUpstream()
+      getUpstream () {
+        return ''
+      }
+    }
+  })
+  await frontend.listen({ port: 0, host: '127.0.0.1' })
+
+  const port = frontend.server.address().port
+  const response = await request(port, '/pub/foo')
+
+  t.assert.strictEqual(response.statusCode, 500)
+})
