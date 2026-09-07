@@ -888,8 +888,8 @@ async function run () {
 
   test('constraints', async t => {
     const server = Fastify({
-      constraints: {
-        testConstraint: getTestConstraint()
+      routerOptions: {
+        constraints: { testConstraint: getTestConstraint() }
       }
     })
     server.register(proxy, {
@@ -920,8 +920,10 @@ async function run () {
 
   test('constraints with unconstrained routes', async t => {
     const server = Fastify({
-      constraints: {
-        testConstraint: getTestConstraint()
+      routerOptions: {
+        constraints: {
+          testConstraint: getTestConstraint()
+        }
       }
     })
     server.get('/a', {
