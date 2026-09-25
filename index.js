@@ -145,8 +145,13 @@ function createContext (logger) {
 
 function proxyWebSockets (logger, source, target, hooks) {
   const context = createContext(logger)
+  // close() is bound to the close/error events of both sockets and closes the
+  // other side itself, so tearing the link down re-enters it. The link is only
+  // disconnected once, so the hook is only called once.
+  let disconnected = false
   function close (code, reason) {
-    if (hooks.onDisconnect) {
+    if (hooks.onDisconnect && !disconnected) {
+      disconnected = true
       waitConnection(target, () => {
         try {
           hooks.onDisconnect(context, source)
@@ -252,6 +257,10 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
 
 function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, isReconnecting = false) {
   const context = createContext(logger)
+  // See proxyWebSockets: close() is reachable from both sockets and closes the
+  // target before reaching the hook, so the teardown comes back around. A
+  // reconnection re-enters this function with a fresh target and a fresh flag.
+  let disconnected = false
   function close (code, reason) {
     target.pingTimer && clearInterval(target.pingTimer)
     target.pingTimer = undefined
@@ -267,7 +276,8 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
       return
     }
 
-    if (hooks.onDisconnect) {
+    if (hooks.onDisconnect && !disconnected) {
+      disconnected = true
       try {
         hooks.onDisconnect(context, source)
       } catch (err) {

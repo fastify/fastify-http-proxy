@@ -325,3 +325,27 @@ test('should handle throwing an error in onDisconnect hook', async (t) => {
 
   await waitForLogMessage(loggerSpy, 'proxy ws error from onDisconnect hook')
 })
+
+test('should call onDisconnect hook once per connection', async (t) => {
+  let calls = 0
+  let onFirstCall
+  const firstCall = new Promise((resolve) => { onFirstCall = resolve })
+  const onDisconnect = () => {
+    calls++
+    onFirstCall()
+  }
+
+  const wsReconnectOptions = {
+    logs: true,
+  }
+
+  const { client } = await createServices({ t, wsReconnectOptions, wsHooks: { onDisconnect } })
+  client.close()
+
+  await firstCall
+  // close() closes the target and is also bound to the target's own close
+  // event, so the teardown can re-enter and report a second disconnect.
+  await wait(500)
+
+  assert.strictEqual(calls, 1)
+})
