@@ -8,6 +8,7 @@ const WebSocket = require('ws')
 const { createServer } = require('node:http')
 const { promisify } = require('node:util')
 const { once } = require('node:events')
+const { setTimeout: wait } = require('node:timers/promises')
 const { waitForLogMessage, createServices } = require('./helper/helper')
 const cookieValue = 'foo=bar'
 const subprotocolValue = 'foo-subprotocol'
@@ -809,4 +810,25 @@ test('should handle throwing an error in onDisconnect hook', async (t) => {
   client.close()
 
   await waitForLogMessage(loggerSpy, 'proxy ws error from onDisconnect hook')
+})
+
+test('should call onDisconnect hook once per connection', async (t) => {
+  let calls = 0
+  let onFirstCall
+  const firstCall = new Promise((resolve) => { onFirstCall = resolve })
+  const onDisconnect = () => {
+    calls++
+    onFirstCall()
+  }
+
+  const { client } = await createServices({ t, wsHooks: { onDisconnect } })
+  client.close()
+
+  await firstCall
+  // close() is bound to both the source and the target socket, and it closes
+  // the other side itself, so a single disconnect can come back around a
+  // second time. Give that second invocation room to arrive.
+  await wait(500)
+
+  assert.strictEqual(calls, 1)
 })
