@@ -51,7 +51,11 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
     '/pub/dir\\..\\..\\secret',
     '/pub/dir/../../secret',
     '/pub/%2E%2E/secret',
-    '/pub/..%2F..%2Fsecret'
+    '/pub/..%2F..%2Fsecret',
+    '/pub/dir%5c..%5c..%5csecret',
+    '/pub/dir%5C..%5C..%5Csecret',
+    '/pub/%5c..%5csecret',
+    '/pub/%5C..%5Csecret'
   ]
   for (const path of escapePaths) {
     const escaped = await request(port, path)
@@ -63,9 +67,9 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 
-  const encodedBackslashes = await request(port, '/pub/dir%5C..%5C..%5Csecret')
-  t.assert.strictEqual(encodedBackslashes.statusCode, 200)
-  t.assert.strictEqual(encodedBackslashes.body, 'internal:/internal/dir%5C..%5C..%5Csecret')
+  const encodedBackslash = await request(port, '/pub/foo%5Cbar')
+  t.assert.strictEqual(encodedBackslash.statusCode, 200)
+  t.assert.strictEqual(encodedBackslash.body, 'internal:/internal/foo%5Cbar')
 })
 
 test('HTTP paths are validated against a dynamic upstream once per request', async t => {

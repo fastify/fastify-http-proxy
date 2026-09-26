@@ -320,7 +320,11 @@ const escapeVectors = [
   ['/api/%2E%2E/secret', '/secret', parameterizedProxyOptions],
   ['/api/..%2F..%2Fsecret', '/secret', parameterizedProxyOptions],
   ['/api/..\\..\\secret', '/secret', parameterizedProxyOptions],
-  ['/api/..%5C..%5Csecret', '/secret', parameterizedProxyOptions]
+  ['/api/..%5C..%5Csecret', '/secret', parameterizedProxyOptions],
+  ['/pub/%5c..%5csecret', '/secret'],
+  ['/pub/%5C..%5Csecret', '/secret'],
+  ['/pub/%5c..%5c..%5csecret', '/secret'],
+  ['/pub/%5C..%5C..%5Csecret', '/secret']
 ]
 
 for (const [vector, escapedPath, proxyOptions = defaultProxyOptions] of escapeVectors) {
