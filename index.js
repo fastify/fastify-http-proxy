@@ -116,7 +116,9 @@ function validateDestination (dest) {
     throw invalidDestination()
   }
 
-  if (decoded === '..' || decoded.includes('/..') || decoded.includes('../')) {
+  decoded = decoded.replaceAll('\\', '/')
+
+  if (decoded.split('/').includes('..')) {
     throw invalidDestination()
   }
 }

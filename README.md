@@ -137,6 +137,8 @@ request.
 
 Rewrite the prefix to the specified string. Default: `''`.
 
+Destination paths containing dot-segments that could escape the rewritten prefix are rejected with a `400` response. This check also accounts for percent-encoded `/` and `\` path separators.
+
 ### `preHandler`
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
