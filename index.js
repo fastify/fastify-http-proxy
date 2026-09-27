@@ -480,6 +480,11 @@ class WebSocketProxy {
       // out-of-prefix requests are still routed (and rejected) normally.
       const prefixes = fastify.server[kWsPrefixes] = []
       fastify.server[kWsUpgradeListener] = (rawRequest, socket, head) => {
+        // Socket already claimed by another 'upgrade' listener: a second
+        // assignSocket() would throw ERR_HTTP_SOCKET_ASSIGNED.
+        if (socket._httpMessage) {
+          return
+        }
         if (
           fastify.server.listenerCount('upgrade') === 1 ||
           isUpgradeWithinPrefixes(rawRequest, prefixes)
@@ -487,7 +492,9 @@ class WebSocketProxy {
           handleUpgrade(fastify, rawRequest, socket, head)
         }
       }
-      fastify.server.on('upgrade', fastify.server[kWsUpgradeListener])
+      // Run first, whatever the registration order, so proxy prefixes are
+      // never claimed by another listener (e.g. @fastify/websocket).
+      fastify.server.prependListener('upgrade', fastify.server[kWsUpgradeListener])
     }
     fastify.server[kWsPrefixes].push(fastify.prefix)
 
