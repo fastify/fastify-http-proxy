@@ -153,9 +153,6 @@ test('getUpstream', async (t) => {
 
   let _req
 
-  server.server.on('upgrade', (req) => {
-    _req = req
-  })
   server.register(proxy, {
     upstream: '',
     replyOptions: {
@@ -170,6 +167,11 @@ test('getUpstream', async (t) => {
 
   await server.listen({ port: 0, host: '127.0.0.1' })
   t.after(() => { server.close() })
+
+  // Prepended after the proxy so the spy still runs first.
+  server.server.prependListener('upgrade', (req) => {
+    _req = req
+  })
 
   const options = { headers: { cookie: cookieValue } }
   const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, [subprotocolValue], options)
@@ -220,9 +222,6 @@ test('getUpstream with unset wsUpstream', async (t) => {
   const server = Fastify()
 
   let _req
-  server.server.on('upgrade', (req) => {
-    _req = req
-  })
 
   server.register(proxy, {
     wsUpstream: '',
@@ -238,6 +237,11 @@ test('getUpstream with unset wsUpstream', async (t) => {
 
   await server.listen({ port: 0, host: '127.0.0.1' })
   t.after(() => { server.close() })
+
+  // Prepended after the proxy so the spy still runs first.
+  server.server.prependListener('upgrade', (req) => {
+    _req = req
+  })
 
   const options = { headers: { cookie: cookieValue } }
   const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, [subprotocolValue], options)
