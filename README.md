@@ -256,6 +256,9 @@ A few things are missing:
 
 Pull requests are welcome to finish this feature.
 
+The proxy can coexist with other `upgrade` listeners on the same server, such as [`@fastify/websocket`](https://github.com/fastify/fastify-websocket),
+regardless of the registration order: when other listeners are present the proxy only handles upgrades targeting one of its prefixes and leaves the rest untouched. A proxy mounted at the root (no `prefix`) owns every upgrade.
+
 ### `wsUpstream`
 
 Working only if property `websocket` is `true`.
