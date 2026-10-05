@@ -744,7 +744,27 @@ async function fastifyHttpProxy (fastify, opts) {
   const constraints = opts.constraints || {}
 
   for (const url of opts.routes || defaultRoutes) {
-    fastify.route({ url, method, preHandler, config, constraints, handler })
+    // Skip methods already registered for this url, e.g. the OPTIONS '/*'
+    // preflight route added by @fastify/cors, to avoid a duplicated route error.
+    const fullUrl = fastify.prefix + url
+    const methods = []
+    const skipped = []
+    for (const m of [].concat(method)) {
+      if (fastify.hasRoute({ url: fullUrl, method: m, constraints })) {
+        skipped.push(m)
+      } else {
+        methods.push(m)
+      }
+    }
+    if (skipped.length > 0) {
+      fastify.log.debug(
+        { url: fullUrl, methods: skipped },
+        '@fastify/http-proxy: skipping methods already registered for route'
+      )
+    }
+    if (methods.length > 0) {
+      fastify.route({ url, method: methods, preHandler, config, constraints, handler })
+    }
   }
 
   let wsProxy
