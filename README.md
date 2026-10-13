@@ -210,6 +210,17 @@ Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rew
 
 An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
+Methods that are already registered for one of the proxied routes are skipped (a `debug` log entry lists the skipped methods). This allows plugins such as [`@fastify/cors`](https://github.com/fastify/fastify-cors), which registers an `OPTIONS /*` route to answer preflight requests, to be used together with this plugin. Such plugins must be registered **before** `@fastify/http-proxy`:
+
+```js
+await server.register(require('@fastify/cors'), { origin: '*' })
+await server.register(require('@fastify/http-proxy'), {
+  upstream: 'http://my-api.example.com'
+})
+```
+
+If you register them in the opposite order, remove `OPTIONS` from `httpMethods` instead, so that preflight requests are not proxied.
+
 ### `routes`
 
 An array that contains the routes to handle. Default: `['/', '/*']`.
