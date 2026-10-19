@@ -125,3 +125,74 @@ test('logs the skipped methods at debug level', async (t) => {
   t.assert.strictEqual(entry.url, '/*')
   t.assert.deepStrictEqual(entry.methods, ['OPTIONS'])
 })
+
+test('skips already registered routes when the prefix has a trailing slash', async (t) => {
+  const upstream = await createOrigin(t)
+  const server = Fastify()
+  t.after(() => server.close())
+
+  server.options('/api/*', async (_request, reply) => {
+    reply.header('x-from', 'preflight').code(204).send()
+  })
+
+  await server.register(proxy, { upstream, prefix: '/api/' })
+  await server.ready()
+
+  const preflight = await server.inject({ method: 'OPTIONS', url: '/api/a' })
+  t.assert.strictEqual(preflight.statusCode, 204)
+  t.assert.strictEqual(preflight.headers['x-from'], 'preflight')
+
+  const res = await server.inject({ method: 'GET', url: '/api/a' })
+  t.assert.strictEqual(res.body, 'this is a')
+})
+
+test('skips already registered routes when the route url has no leading slash', async (t) => {
+  const upstream = await createOrigin(t)
+  const server = Fastify()
+  t.after(() => server.close())
+
+  server.get('/prefix/foourl', async () => 'local')
+
+  await server.register(proxy, { upstream, prefix: '/prefix/', routes: ['foourl', '/*'], httpMethods: ['GET'] })
+  await server.ready()
+
+  const local = await server.inject({ method: 'GET', url: '/prefix/foourl' })
+  t.assert.strictEqual(local.body, 'local')
+
+  const res = await server.inject({ method: 'GET', url: '/prefix/a' })
+  t.assert.strictEqual(res.body, 'this is a')
+})
+
+test('skips the prefix root when it is already registered without trailing slash', async (t) => {
+  const upstream = await createOrigin(t)
+  const server = Fastify()
+  t.after(() => server.close())
+
+  server.get('/api', async () => 'local')
+
+  await server.register(proxy, { upstream, httpMethods: ['GET'], prefix: '/api' })
+  await server.ready()
+
+  const local = await server.inject({ method: 'GET', url: '/api' })
+  t.assert.strictEqual(local.body, 'local')
+
+  const res = await server.inject({ method: 'GET', url: '/api/a' })
+  t.assert.strictEqual(res.body, 'this is a')
+})
+
+test('skips the prefix root with ignoreTrailingSlash enabled', async (t) => {
+  const upstream = await createOrigin(t)
+  const server = Fastify({ routerOptions: { ignoreTrailingSlash: true } })
+  t.after(() => server.close())
+
+  server.get('/api', async () => 'local')
+
+  await server.register(proxy, { upstream, httpMethods: ['GET'], prefix: '/api' })
+  await server.ready()
+
+  const local = await server.inject({ method: 'GET', url: '/api/' })
+  t.assert.strictEqual(local.body, 'local')
+
+  const res = await server.inject({ method: 'GET', url: '/api/a' })
+  t.assert.strictEqual(res.body, 'this is a')
+})
