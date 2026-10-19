@@ -744,7 +744,46 @@ async function fastifyHttpProxy (fastify, opts) {
   const constraints = opts.constraints || {}
 
   for (const url of opts.routes || defaultRoutes) {
-    fastify.route({ url, method, preHandler, config, constraints, handler })
+    // Skip methods already registered for this url, e.g. the OPTIONS '/*'
+    // preflight route added by @fastify/cors, to avoid a duplicated route error.
+    const fullUrls = joinPrefix(fastify.prefix, url)
+    const methods = []
+    const skipped = []
+    for (const m of [].concat(method)) {
+      if (fullUrls.some(fullUrl => fastify.hasRoute({ url: fullUrl, method: m, constraints }))) {
+        skipped.push(m)
+      } else {
+        methods.push(m)
+      }
+    }
+    if (skipped.length > 0) {
+      fastify.log.debug(
+        { url: fullUrls[0], methods: skipped },
+        '@fastify/http-proxy: skipping methods already registered for route'
+      )
+    }
+    if (methods.length > 0) {
+      fastify.route({ url, method: methods, preHandler, config, constraints, handler })
+    }
+  }
+
+  // Mirrors how Fastify joins the plugin prefix and the route url, so that
+  // the lookup above targets the very same paths `fastify.route()` registers.
+  function joinPrefix (prefix, url) {
+    if (url === '/' && prefix.length > 0) {
+      // '/prefix' is always registered, '/prefix/' only when the router
+      // options do not make it redundant
+      const { ignoreTrailingSlash, ignoreDuplicateSlashes } = prefixMatchingOptions
+      if (ignoreTrailingSlash !== true && (ignoreDuplicateSlashes !== true || !prefix.endsWith('/'))) {
+        return [prefix, prefix + '/']
+      }
+      return [prefix]
+    }
+    if (url[0] === '/' && prefix.endsWith('/')) {
+      // '/prefix/' + '/route' is registered as '/prefix/route'
+      return [prefix + url.slice(1)]
+    }
+    return [prefix + url]
   }
 
   let wsProxy
