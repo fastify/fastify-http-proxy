@@ -146,13 +146,30 @@ test('reply.fromParameters cannot escape rewritePrefix', async t => {
 
   const port = frontend.server.address().port
 
-  const escaped = await request(port, '/pub/dir\\..\\..\\secret')
-  t.assert.strictEqual(escaped.statusCode, 400, 'fromParameters must reject backslash traversal')
-  t.assert.strictEqual(escapedPathHit, false, 'escaped path must not be reached via fromParameters')
+  const escapePaths = [
+    '/pub/dir\\..\\..\\secret',
+    '/pub/dir\\..\\..\\..\\secret',
+    '/pub/dir%5C..%5C..%5Csecret',
+    '/pub/dir%5c..%5c..%5csecret',
+    '/pub/%5C..%5Csecret',
+    '/pub/%5c..%5csecret',
+    '/pub/%5C..%5C..%5Csecret',
+    '/pub/..%5Csecret'
+  ]
+  for (const path of escapePaths) {
+    const escaped = await request(port, path)
+    t.assert.strictEqual(escaped.statusCode, 400, `fromParameters must reject traversal (${path})`)
+    t.assert.strictEqual(escapedPathHit, false, `escaped path must not be reached via fromParameters (${path})`)
+  }
 
   const regular = await request(port, '/pub/foo')
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
+
+  // Negative control: a percent-encoded backslash used as benign path data must still proxy.
+  const encodedBackslash = await request(port, '/pub/foo%5Cbar')
+  t.assert.strictEqual(encodedBackslash.statusCode, 200)
+  t.assert.strictEqual(encodedBackslash.body, 'internal:/internal/foo%5Cbar')
 })
 
 test('HTTP request with a falsy dynamic upstream falls back to the default validation host', async t => {
