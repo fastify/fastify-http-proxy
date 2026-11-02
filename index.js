@@ -827,7 +827,17 @@ async function fastifyHttpProxy (fastify, opts) {
 
       let rewritePrefixWithVariables = rewritePrefix
       for (const [name, value] of Object.entries(params)) {
-        rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, value)
+        // request.params values are already URL-decoded. Re-encode them before
+        // splicing into rewritePrefix so an injected `/`, `#`, or `?` (e.g.
+        // `%2f`, `%23`, `%3f`) cannot add path segments or amputate a mandatory
+        // suffix like `/public-avatar`. Wildcard params (`*`) legitimately span
+        // multiple segments, so the segment separator `/` is preserved, but `#`
+        // and `?` are never separators and are still encoded so a wildcard value
+        // cannot amputate a mandatory suffix either.
+        const paramValue = name === '*'
+          ? value.replaceAll('#', '%23').replaceAll('?', '%3F')
+          : encodeURIComponent(value)
+        rewritePrefixWithVariables = rewritePrefixWithVariables.replace(`:${name}`, paramValue)
       }
 
       let rawPrefixLength = getRawPrefixLength(dest, decodedPrefixPath, prefixMatchingOptions)

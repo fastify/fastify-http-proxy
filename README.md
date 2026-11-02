@@ -139,6 +139,8 @@ Rewrite the prefix to the specified string. Default: `''`.
 
 Destination paths containing dot-segments that could escape the rewritten prefix are rejected with a `400` response. This check also accounts for percent-encoded `/` and `\` path separators.
 
+When `prefix`/`rewritePrefix` contain route parameters (e.g. `/:tenantId/public-avatar`), the already URL-decoded parameter values are re-encoded before being spliced into the rewritten prefix. This prevents a decoded `/`, `#`, or `?` (e.g. sent as `%2f`, `%23`, `%3f`) from injecting additional upstream path segments or amputating a mandatory suffix such as `/public-avatar`.
+
 ### `preHandler`
 
 A `preHandler` to be applied on all routes. Useful for performing actions before the proxy is executed (e.g. check for authentication).
