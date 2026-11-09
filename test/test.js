@@ -1,6 +1,7 @@
 'use strict'
 
 const { after, test } = require('node:test')
+const http = require('node:http')
 const Fastify = require('fastify')
 const proxy = require('../')
 const { Unauthorized } = require('http-errors')
@@ -235,6 +236,48 @@ async function run () {
     })
     const body = await response.json()
     t.assert.deepStrictEqual(body, { something: 'posted' })
+  })
+
+  test('streams text/plain payloads without corruption or bodyLimit restriction', async t => {
+    let receivedBuffer
+    const target = http.createServer((req, res) => {
+      const chunks = []
+      req.on('data', chunk => chunks.push(chunk))
+      req.on('end', () => {
+        receivedBuffer = Buffer.concat(chunks)
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ bytesReceived: receivedBuffer.length }))
+      })
+    })
+
+    await new Promise((resolve) => target.listen(0, resolve))
+    t.after(() => target.close())
+
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${target.address().port}`
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    const latin1 = Buffer.from('café crème', 'latin1')
+    const res1 = await fetch(`http://localhost:${server.server.address().port}/upload`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain; charset=iso-8859-1' },
+      body: latin1
+    })
+    t.assert.strictEqual(res1.status, 200)
+    t.assert.deepStrictEqual(receivedBuffer, latin1)
+
+    const largeBody = Buffer.alloc(1.5 * 1024 * 1024, 'a')
+    const res2 = await fetch(`http://localhost:${server.server.address().port}/upload`, {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: largeBody
+    })
+    t.assert.strictEqual(res2.status, 200)
+    t.assert.strictEqual(receivedBuffer.length, largeBody.length)
   })
 
   test('preValidation post payload contains invalid data', async t => {

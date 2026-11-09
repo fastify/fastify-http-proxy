@@ -716,6 +716,7 @@ async function fastifyHttpProxy (fastify, opts) {
     fastify.addHook('preValidation', opts.preValidation)
   } else if (opts.proxyPayloads !== false) {
     fastify.addContentTypeParser('application/json', bodyParser)
+    fastify.addContentTypeParser('text/plain', bodyParser)
     fastify.addContentTypeParser('*', bodyParser)
   }
 
