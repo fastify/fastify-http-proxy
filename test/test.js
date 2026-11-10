@@ -1116,6 +1116,27 @@ async function run () {
     t.assert.strictEqual(fromParametersUrl, '/api2/echo-query?foo=bar&baz=qux')
   })
 
+  test('fromParameters should preserve query params containing additional question marks', async t => {
+    let fromParametersUrl
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      preHandler (request, reply, done) {
+        const { url } = reply.fromParameters(request.url, request.params, '/api')
+        fromParametersUrl = url
+        done()
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    await fetch(`http://localhost:${server.server.address().port}/api/echo-query?next=/a?b=1&c=2`)
+    t.assert.strictEqual(fromParametersUrl, '/api2/echo-query?next=%2Fa%3Fb%3D1&c=2')
+  })
+
   test('fromParameters should only rewrite a leading non-parameterized prefix', async t => {
     let fromParametersUrl
     const server = Fastify()
