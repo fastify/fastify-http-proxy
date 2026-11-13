@@ -97,13 +97,19 @@ function invalidDestination () {
 }
 
 function validateDestination (dest) {
+  // Backslashes, raw or percent-encoded, are rejected anywhere in the path:
+  // URL parsers treat them as separators, and @fastify/reply-from refuses them
+  // too, so HTTP and WebSocket requests behave the same.
+  if (dest.includes('\\')) {
+    throw invalidDestination()
+  }
+
   const normalizedReference = dest
     .replaceAll('\t', '')
     .replaceAll('\n', '')
     .replaceAll('\r', '')
     .replaceAll('\0', '')
     .trimStart()
-    .replaceAll('\\', '/')
 
   if (absoluteUrlPattern.test(normalizedReference) || normalizedReference.startsWith('//')) {
     throw invalidDestination()
@@ -116,9 +122,7 @@ function validateDestination (dest) {
     throw invalidDestination()
   }
 
-  decoded = decoded.replaceAll('\\', '/')
-
-  if (decoded.split('/').includes('..')) {
+  if (decoded.includes('\\') || decoded.split('/').includes('..')) {
     throw invalidDestination()
   }
 }
