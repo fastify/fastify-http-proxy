@@ -81,7 +81,7 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
   }
 }
 
-async function processRequest (t, frontendURL, path, expected, httpExpected = expected) {
+async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
   const wsUrl = url.href.replace('http:', 'ws:')
   const ws = new WebSocket(wsUrl)
@@ -114,10 +114,10 @@ async function processRequest (t, frontendURL, path, expected, httpExpected = ex
   }
 
   t.assert.strictEqual(wsResult, expected)
-  t.assert.strictEqual(gotResult, httpExpected)
+  t.assert.strictEqual(gotResult, expected)
 }
 
-async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions, httpExpected }, expected, ...paths) {
+async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
   test(info, async function (t) {
     const backend = Fastify({ logger: { level } })
     const resources = { frontend: null }
@@ -149,7 +149,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions, h
     resources.frontend = frontend
 
     for (const path of paths) {
-      await processRequest(t, frontendURL, path, expected(path), httpExpected ? httpExpected(path) : expected(path))
+      await processRequest(t, frontendURL, path, expected(path))
     }
   })
 }
@@ -218,16 +218,25 @@ handleProxy(
 )
 
 handleProxy(
-  'percent-encoded backslashes remain path data',
+  'percent-encoded backslashes in the path are rejected for HTTP and WebSocket',
   {
     backendPath: '/internal',
-    proxyOptions: { websocket: true, prefix: '/pub' },
-    // Plain HTTP requests go through @fastify/reply-from, which rejects
-    // decoded backslashes in the destination path since v12.8.1.
-    httpExpected: () => 'error'
+    proxyOptions: { websocket: true, prefix: '/pub' }
   },
-  () => '/internal/foo%5C..bar',
-  '/pub/foo%5C..bar'
+  () => 'error',
+  '/pub/foo%5C..bar',
+  '/pub/foo%5Cbar',
+  '/pub/foo%5cbar'
+)
+
+handleProxy(
+  'percent-encoded backslashes in the query string are forwarded',
+  {
+    backendPath: '/internal',
+    proxyOptions: { websocket: true, prefix: '/pub' }
+  },
+  (path) => path.replace('/pub', '/internal'),
+  '/pub/foo?path=C%3A%5Ctemp'
 )
 
 test('preRewrite cannot override the WebSocket upstream origin', async t => {
