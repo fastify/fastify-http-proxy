@@ -81,7 +81,7 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
   }
 }
 
-async function processRequest (t, frontendURL, path, expected) {
+async function processRequest (t, frontendURL, path, expected, httpExpected = expected) {
   const url = new URL(path, frontendURL)
   const wsUrl = url.href.replace('http:', 'ws:')
   const ws = new WebSocket(wsUrl)
@@ -114,10 +114,10 @@ async function processRequest (t, frontendURL, path, expected) {
   }
 
   t.assert.strictEqual(wsResult, expected)
-  t.assert.strictEqual(gotResult, expected)
+  t.assert.strictEqual(gotResult, httpExpected)
 }
 
-async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
+async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions, httpExpected }, expected, ...paths) {
   test(info, async function (t) {
     const backend = Fastify({ logger: { level } })
     const resources = { frontend: null }
@@ -149,7 +149,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions },
     resources.frontend = frontend
 
     for (const path of paths) {
-      await processRequest(t, frontendURL, path, expected(path))
+      await processRequest(t, frontendURL, path, expected(path), httpExpected ? httpExpected(path) : expected(path))
     }
   })
 }
@@ -221,7 +221,10 @@ handleProxy(
   'percent-encoded backslashes remain path data',
   {
     backendPath: '/internal',
-    proxyOptions: { websocket: true, prefix: '/pub' }
+    proxyOptions: { websocket: true, prefix: '/pub' },
+    // Plain HTTP requests go through @fastify/reply-from, which rejects
+    // decoded backslashes in the destination path since v12.8.1.
+    httpExpected: () => 'error'
   },
   () => '/internal/foo%5C..bar',
   '/pub/foo%5C..bar'
