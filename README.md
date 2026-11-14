@@ -124,6 +124,8 @@ be streamed directly to the destination._
 
 An URL (including protocol) that represents the target server to use for proxying.
 
+It can be an array of URLs, if you want to use [`undici.BalancedPool`](https://undici.nodejs.org/#/docs/api/BalancedPool) (`upstream` is compatible with  [`base`](https://github.com/fastify/fastify-reply-from?tab=readme-ov-file#base) option).
+
 ### `prefix`
 
 The prefix to mount this plugin on. All the requests to the current server starting with the given prefix will be proxied to the provided upstream.
