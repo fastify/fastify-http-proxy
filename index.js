@@ -794,7 +794,10 @@ async function fastifyHttpProxy (fastify, opts) {
   }
 
   function extractUrlComponents (urlString) {
-    const [path, queryString] = urlString.split('?', 2)
+    // Split on the first '?' only: the query string itself may contain '?'.
+    const queryIndex = urlString.indexOf('?')
+    const path = queryIndex === -1 ? urlString : urlString.slice(0, queryIndex)
+    const queryString = queryIndex === -1 ? '' : urlString.slice(queryIndex + 1)
     const components = {
       path,
       queryParams: null

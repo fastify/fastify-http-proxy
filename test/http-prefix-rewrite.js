@@ -67,9 +67,10 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 
+  // @fastify/reply-from rejects decoded backslashes in the destination path
+  // since v12.8.1, so a percent-encoded backslash is no longer forwarded.
   const encodedBackslash = await request(port, '/pub/foo%5Cbar')
-  t.assert.strictEqual(encodedBackslash.statusCode, 200)
-  t.assert.strictEqual(encodedBackslash.body, 'internal:/internal/foo%5Cbar')
+  t.assert.strictEqual(encodedBackslash.statusCode, 400)
 })
 
 test('HTTP paths are validated against a dynamic upstream once per request', async t => {
@@ -166,10 +167,10 @@ test('reply.fromParameters cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 
-  // Negative control: a percent-encoded backslash used as benign path data must still proxy.
+  // @fastify/reply-from rejects decoded backslashes in the destination path
+  // since v12.8.1, so a percent-encoded backslash is no longer forwarded.
   const encodedBackslash = await request(port, '/pub/foo%5Cbar')
-  t.assert.strictEqual(encodedBackslash.statusCode, 200)
-  t.assert.strictEqual(encodedBackslash.body, 'internal:/internal/foo%5Cbar')
+  t.assert.strictEqual(encodedBackslash.statusCode, 400)
 })
 
 test('HTTP request with a falsy dynamic upstream falls back to the default validation host', async t => {
