@@ -229,6 +229,37 @@ handleProxy(
   '/pub/foo%5cbar'
 )
 
+test('raw backslashes without dot segments in WebSocket paths are rejected', async t => {
+  const backend = Fastify({ logger: { level } })
+  const frontend = Fastify({ logger: { level } })
+
+  t.after(async () => {
+    await closeFastify(frontend)
+    await closeFastify(backend)
+  })
+
+  await backend.register(fastifyWebSocket)
+
+  let upstreamHit = false
+  backend.get('/internal/*', { websocket: true }, socket => {
+    upstreamHit = true
+    socket.close()
+  })
+  await backend.listen({ port: 0, host: '127.0.0.1' })
+
+  frontend.register(proxy, {
+    upstream: `ws://127.0.0.1:${backend.server.address().port}`,
+    websocket: true,
+    prefix: '/pub',
+    rewritePrefix: '/internal'
+  })
+  await frontend.listen({ port: 0, host: '127.0.0.1' })
+
+  const statusLine = await rawWebSocketUpgrade(frontend.server.address().port, '/pub/foo\\bar')
+  t.assert.strictEqual(statusLine, 'HTTP/1.1 400 Bad Request')
+  t.assert.strictEqual(upstreamHit, false)
+})
+
 handleProxy(
   'percent-encoded backslashes in the query string are forwarded',
   {
