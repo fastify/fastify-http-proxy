@@ -1005,6 +1005,26 @@ async function run () {
     t.assert.strictEqual(body, `this is "variable-api" endpoint with id 123 and query params ${queryParams}`)
   })
 
+  test('fromParameters should keep query params after a "?" inside the query string', async t => {
+    const server = Fastify()
+    server.register(proxy, {
+      upstream: `http://localhost:${origin.server.address().port}`,
+      prefix: '/api',
+      rewritePrefix: '/api2',
+      preHandler (request, reply, done) {
+        const { url, options } = reply.fromParameters(request.url, request.params, '/api')
+        reply.from(url, options)
+      }
+    })
+
+    await server.listen({ port: 0 })
+    t.after(() => server.close())
+
+    const response = await fetch(`http://localhost:${server.server.address().port}/api/echo-query?next=/a?b=1&c=2`)
+    const body = await response.text()
+    t.assert.strictEqual(body, `query: ${JSON.stringify({ next: '/a?b=1', c: '2' })}`)
+  })
+
   test('check against traversal attempts', async t => {
     const server = Fastify()
     server.register(proxy, {
