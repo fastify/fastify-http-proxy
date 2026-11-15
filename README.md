@@ -139,6 +139,8 @@ Rewrite the prefix to the specified string. Default: `''`.
 
 Destination paths containing dot-segments that could escape the rewritten prefix are rejected with a `400` response. This check also accounts for percent-encoded `/` and `\` path separators.
 
+Destination paths containing a backslash (`\`), raw or percent-encoded as `%5C`, are rejected with a `400` response for both HTTP requests and WebSocket upgrades. Backslashes in the query string are forwarded unchanged.
+
 When `prefix`/`rewritePrefix` contain route parameters (e.g. `/:tenantId/public-avatar`), the already URL-decoded parameter values are re-encoded before being spliced into the rewritten prefix. This prevents a decoded `/`, `#`, or `?` (e.g. sent as `%2f`, `%23`, `%3f`) from injecting additional upstream path segments or amputating a mandatory suffix such as `/public-avatar`.
 
 ### `preHandler`

@@ -81,7 +81,7 @@ async function proxyServer (t, backendURL, backendPath, proxyOptions, wrapperOpt
   }
 }
 
-async function processRequest (t, frontendURL, path, expected, httpExpected = expected) {
+async function processRequest (t, frontendURL, path, expected) {
   const url = new URL(path, frontendURL)
   const wsUrl = url.href.replace('http:', 'ws:')
   const ws = new WebSocket(wsUrl)
@@ -114,10 +114,10 @@ async function processRequest (t, frontendURL, path, expected, httpExpected = ex
   }
 
   t.assert.strictEqual(wsResult, expected)
-  t.assert.strictEqual(gotResult, httpExpected)
+  t.assert.strictEqual(gotResult, expected)
 }
 
-async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions, httpExpected }, expected, ...paths) {
+async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions }, expected, ...paths) {
   test(info, async function (t) {
     const backend = Fastify({ logger: { level } })
     const resources = { frontend: null }
@@ -149,7 +149,7 @@ async function handleProxy (info, { backendPath, proxyOptions, wrapperOptions, h
     resources.frontend = frontend
 
     for (const path of paths) {
-      await processRequest(t, frontendURL, path, expected(path), httpExpected ? httpExpected(path) : expected(path))
+      await processRequest(t, frontendURL, path, expected(path))
     }
   })
 }
@@ -218,16 +218,56 @@ handleProxy(
 )
 
 handleProxy(
-  'percent-encoded backslashes remain path data',
+  'percent-encoded backslashes in the path are rejected for HTTP and WebSocket',
   {
     backendPath: '/internal',
-    proxyOptions: { websocket: true, prefix: '/pub' },
-    // Plain HTTP requests go through @fastify/reply-from, which rejects
-    // decoded backslashes in the destination path since v12.8.1.
-    httpExpected: () => 'error'
+    proxyOptions: { websocket: true, prefix: '/pub' }
   },
-  () => '/internal/foo%5C..bar',
-  '/pub/foo%5C..bar'
+  () => 'error',
+  '/pub/foo%5C..bar',
+  '/pub/foo%5Cbar',
+  '/pub/foo%5cbar'
+)
+
+test('raw backslashes without dot segments in WebSocket paths are rejected', async t => {
+  const backend = Fastify({ logger: { level } })
+  const frontend = Fastify({ logger: { level } })
+
+  t.after(async () => {
+    await closeFastify(frontend)
+    await closeFastify(backend)
+  })
+
+  await backend.register(fastifyWebSocket)
+
+  let upstreamHit = false
+  backend.get('/internal/*', { websocket: true }, socket => {
+    upstreamHit = true
+    socket.close()
+  })
+  await backend.listen({ port: 0, host: '127.0.0.1' })
+
+  frontend.register(proxy, {
+    upstream: `ws://127.0.0.1:${backend.server.address().port}`,
+    websocket: true,
+    prefix: '/pub',
+    rewritePrefix: '/internal'
+  })
+  await frontend.listen({ port: 0, host: '127.0.0.1' })
+
+  const statusLine = await rawWebSocketUpgrade(frontend.server.address().port, '/pub/foo\\bar')
+  t.assert.strictEqual(statusLine, 'HTTP/1.1 400 Bad Request')
+  t.assert.strictEqual(upstreamHit, false)
+})
+
+handleProxy(
+  'percent-encoded backslashes in the query string are forwarded',
+  {
+    backendPath: '/internal',
+    proxyOptions: { websocket: true, prefix: '/pub' }
+  },
+  (path) => path.replace('/pub', '/internal'),
+  '/pub/foo?path=C%3A%5Ctemp'
 )
 
 test('preRewrite cannot override the WebSocket upstream origin', async t => {

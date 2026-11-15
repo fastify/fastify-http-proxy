@@ -67,8 +67,7 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 
-  // @fastify/reply-from rejects decoded backslashes in the destination path
-  // since v12.8.1, so a percent-encoded backslash is no longer forwarded.
+  // Backslashes, raw or percent-encoded, are rejected anywhere in the path.
   const encodedBackslash = await request(port, '/pub/foo%5Cbar')
   t.assert.strictEqual(encodedBackslash.statusCode, 400)
 })
@@ -167,8 +166,7 @@ test('reply.fromParameters cannot escape rewritePrefix', async t => {
   t.assert.strictEqual(regular.statusCode, 200)
   t.assert.strictEqual(regular.body, 'internal:/internal/foo')
 
-  // @fastify/reply-from rejects decoded backslashes in the destination path
-  // since v12.8.1, so a percent-encoded backslash is no longer forwarded.
+  // Backslashes, raw or percent-encoded, are rejected anywhere in the path.
   const encodedBackslash = await request(port, '/pub/foo%5Cbar')
   t.assert.strictEqual(encodedBackslash.statusCode, 400)
 })
