@@ -70,19 +70,18 @@ test('websocket upgrades honour ignoreTrailingSlash', async (t) => {
   const upstream = await createPathEchoUpstream(t)
 
   const cases = [
-    // [prefix, requested path, path seen by the upstream]
-    ['/api', '/api', '/'],
-    ['/api', '/api/', '/'],
-    ['/api', '/api/nested', '/nested'],
-    ['/api', '/api/nested/', '/nested/'],
-    ['/api', '/api/?a=b', '/?a=b'],
+    { prefix: '/api', path: '/api', expected: '/' },
+    { prefix: '/api', path: '/api/', expected: '/' },
+    { prefix: '/api', path: '/api/nested', expected: '/nested' },
+    { prefix: '/api', path: '/api/nested/', expected: '/nested/' },
+    { prefix: '/api', path: '/api/?a=b', expected: '/?a=b' },
     // Only reachable without the trailing slash because of ignoreTrailingSlash.
-    ['/api/', '/api', '/'],
-    ['/api/', '/api/', '/'],
-    ['/api/', '/api/nested', '/nested']
+    { prefix: '/api/', path: '/api', expected: '/' },
+    { prefix: '/api/', path: '/api/', expected: '/' },
+    { prefix: '/api/', path: '/api/nested', expected: '/nested' }
   ]
 
-  for (const [prefix, path, expected] of cases) {
+  for (const { prefix, path, expected } of cases) {
     const server = await createProxy(t, { ignoreTrailingSlash: true }, { prefix, upstream })
     assert.strictEqual(await upstreamPath(server, path), expected, `prefix ${prefix}, path ${path}`)
   }
@@ -92,16 +91,15 @@ test('websocket upgrades honour ignoreTrailingSlash with rewritePrefix', async (
   const upstream = await createPathEchoUpstream(t)
 
   const cases = [
-    // [prefix, rewritePrefix, requested path, path seen by the upstream]
-    ['/api', '/internal', '/api', '/internal'],
-    ['/api', '/internal', '/api/', '/internal/'],
-    ['/api', '/internal', '/api/nested/', '/internal/nested/'],
-    ['/api/', '/internal/', '/api', '/internal/'],
-    ['/api/', '/internal/', '/api/', '/internal/'],
-    ['/api/', '/internal/', '/api/nested', '/internal/nested']
+    { prefix: '/api', rewritePrefix: '/internal', path: '/api', expected: '/internal' },
+    { prefix: '/api', rewritePrefix: '/internal', path: '/api/', expected: '/internal/' },
+    { prefix: '/api', rewritePrefix: '/internal', path: '/api/nested/', expected: '/internal/nested/' },
+    { prefix: '/api/', rewritePrefix: '/internal/', path: '/api', expected: '/internal/' },
+    { prefix: '/api/', rewritePrefix: '/internal/', path: '/api/', expected: '/internal/' },
+    { prefix: '/api/', rewritePrefix: '/internal/', path: '/api/nested', expected: '/internal/nested' }
   ]
 
-  for (const [prefix, rewritePrefix, path, expected] of cases) {
+  for (const { prefix, rewritePrefix, path, expected } of cases) {
     const server = await createProxy(t, { ignoreTrailingSlash: true }, { prefix, upstream, rewritePrefix })
     assert.strictEqual(await upstreamPath(server, path), expected, `prefix ${prefix}, path ${path}`)
   }
