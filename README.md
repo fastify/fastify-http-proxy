@@ -255,8 +255,7 @@ This module has _partial_ support for forwarding websockets by passing a
 A few things are missing:
 
 1. request id logging
-2. support `ignoreTrailingSlash`
-3. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
+2. forwarding more than one subprotocols. Note: Only the first subprotocol is being forwarded
 
 Pull requests are welcome to finish this feature.
 
@@ -348,11 +347,6 @@ The following benchmarks were generated on a dedicated server with an Intel(R) C
 
 The results were gathered on the second run of `autocannon -c 100 -d 5
 URL`.
-
-## TODO
-
-- [ ] Perform validations for incoming data
-- [ ] Finish implementing websocket
 
 ## License
 
