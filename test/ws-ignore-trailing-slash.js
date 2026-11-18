@@ -20,7 +20,8 @@ async function createPathEchoUpstream (t) {
   t.after(() => { wss.close() })
   t.after(() => { origin.close() })
   await promisify(origin.listen.bind(origin))({ port: 0, host: '127.0.0.1' })
-  return `ws://127.0.0.1:${origin.address().port}`
+  const { address, port } = origin.address()
+  return `ws://${address}:${port}`
 }
 
 async function createProxy (t, routerOptions, proxyOptions) {
@@ -33,7 +34,8 @@ async function createProxy (t, routerOptions, proxyOptions) {
 
 // Resolves with the upstream path, or rejects if the upgrade is refused.
 async function upstreamPath (server, path) {
-  const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}${path}`)
+  const { address, port } = server.server.address()
+  const ws = new WebSocket(`ws://${address}:${port}${path}`)
   const [event, ...args] = await Promise.race([
     once(ws, 'open').then(() => ['open']),
     once(ws, 'unexpected-response').then(([, response]) => ['unexpected-response', response])
