@@ -516,7 +516,15 @@ class WebSocketProxy {
       // ws installs its own 'error' listener from here on.
       request.raw[kWs].removeListener('error', onUpgradeSocketError)
       wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
-        this.handleConnection(socket, request, dest)
+        try {
+          this.handleConnection(socket, request, dest)
+        } catch (err) {
+          // The handshake has already been answered. Without the upstream link
+          // (and its 'error' listener) the client socket must not stay open.
+          this.logger.warn({ err }, 'websocket proxy error')
+          socket.on('error', noop)
+          socket.terminate()
+        }
         cb()
       })
     }
@@ -551,26 +559,25 @@ class WebSocketProxy {
   }
 
   findUpstream (request, dest) {
-    const { search } = new URL(request.url, 'ws://127.0.0.1')
+    // Read from the raw request-target: parsing it as a URL reference throws
+    // for targets such as '//host:99999999/' that the router can still match.
+    const search = getRawSearch(request.url)
     const rewritePrefix = request.raw[kWsRewritePrefix] || '/'
 
+    let target
     if (typeof this.wsUpstream === 'string' && this.wsUpstream !== '') {
-      const target = resolveDestination(dest, rewritePrefix, this.wsUpstream)
-      target.search = search
-      return target
+      target = resolveDestination(dest, rewritePrefix, this.wsUpstream)
+    } else if (typeof this.upstream === 'string' && this.upstream !== '') {
+      target = resolveDestination(dest, rewritePrefix, this.upstream)
+    } else {
+      const upstream = this.getUpstream(request, '')
+      target = resolveDestination(dest, rewritePrefix, upstream)
+      /* c8 ignore next */
+      target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
     }
-
-    if (typeof this.upstream === 'string' && this.upstream !== '') {
-      const target = resolveDestination(dest, rewritePrefix, this.upstream)
-      target.search = search
-      return target
-    }
-
-    const upstream = this.getUpstream(request, '')
-    const target = resolveDestination(dest, rewritePrefix, upstream)
-    /* c8 ignore next */
-    target.protocol = upstream.indexOf('http:') === 0 ? 'ws:' : 'wss'
     target.search = search
+    // A fragment is never sent to the server, and the ws client throws on it.
+    target.hash = ''
     return target
   }
 
@@ -591,15 +598,33 @@ class WebSocketProxy {
     const optionsWs = { ...this.wsClientOptions, headers }
 
     const target = new WebSocket(url, subprotocols, optionsWs)
-    this.logger.debug({ url: url.href }, 'proxy websocket')
+    try {
+      this.logger.debug({ url: url.href }, 'proxy websocket')
 
-    if (this.wsReconnect) {
-      const targetParams = { url, subprotocols, optionsWs }
-      proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams)
-    } else {
-      proxyWebSockets(this.logger, source, target, this.wsHooks)
+      if (this.wsReconnect) {
+        const targetParams = { url, subprotocols, optionsWs }
+        proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams)
+      } else {
+        proxyWebSockets(this.logger, source, target, this.wsHooks)
+      }
+    } catch (err) {
+      // The upstream client exists but its 'error' listener has not been wired
+      // yet. Terminate it so a later error (e.g. a failed connection) is not an
+      // unhandled 'error' event. Rethrow so the caller also closes the client.
+      target.on('error', noop)
+      target.terminate()
+      throw err
     }
   }
+}
+
+function getRawSearch (url) {
+  const fragmentIndex = url.indexOf('#')
+  if (fragmentIndex !== -1) {
+    url = url.slice(0, fragmentIndex)
+  }
+  const queryIndex = url.indexOf('?')
+  return queryIndex === -1 ? '' : url.slice(queryIndex)
 }
 
 function getQueryString (search, reqUrl, opts, request) {
