@@ -2,6 +2,7 @@
 const { setTimeout: wait } = require('node:timers/promises')
 const From = require('@fastify/reply-from')
 const { ServerResponse } = require('node:http')
+const { finished } = require('node:stream')
 const WebSocket = require('ws')
 const { convertUrlToWebSocket, sanitizeHeaders } = require('./utils')
 const fp = require('fastify-plugin')
@@ -501,9 +502,18 @@ class WebSocketProxy {
       // out-of-prefix requests are still routed (and rejected) normally.
       const prefixes = fastify.server[kWsPrefixes] = []
       fastify.server[kWsUpgradeListener] = (rawRequest, socket, head) => {
-        // Socket already claimed by another 'upgrade' listener: a second
-        // assignSocket() would throw ERR_HTTP_SOCKET_ASSIGNED.
+        // Socket already claimed by another 'upgrade' listener, or upgrade
+        // pipelined behind a request whose response is still attached: a
+        // second assignSocket() would throw ERR_HTTP_SOCKET_ASSIGNED.
         if (socket._httpMessage) {
+          // Node removes its own 'error' listener from the socket before
+          // emitting 'upgrade': without one, a reset crashes the process.
+          socket.on('error', noop)
+          if (fastify.server.listenerCount('upgrade') === 1) {
+            // Nobody else will take this upgrade: close the connection once
+            // the pending response has been sent.
+            finished(socket._httpMessage, () => socket.destroy())
+          }
           return
         }
         if (
