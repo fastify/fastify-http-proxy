@@ -442,7 +442,17 @@ function isUpgradeWithinPrefixes (rawRequest, prefixes) {
   return false
 }
 
+// Node removes its own listeners from the socket before emitting 'upgrade'.
+// Until ws takes the socket over (in WebSocketProxy#handleUpgrade), an 'error'
+// (e.g. ECONNRESET while an async hook is pending) would otherwise be unhandled
+// and take the whole process down.
+function onUpgradeSocketError () {
+  this.destroy()
+}
+
 function handleUpgrade (fastify, rawRequest, socket, head) {
+  // Keep the socket guarded while Fastify runs hooks and routes the request.
+  socket.on('error', onUpgradeSocketError)
   // Save a reference to the socket and then dispatch the request through the normal fastify router so that it will invoke hooks and then eventually a route handler that might upgrade the socket.
   rawRequest[kWs] = socket
   rawRequest[kWsHead] = head
@@ -503,6 +513,8 @@ class WebSocketProxy {
     fastify.server[kWsPrefixes].push(fastify.prefix)
 
     this.handleUpgrade = (request, dest, cb) => {
+      // ws installs its own 'error' listener from here on.
+      request.raw[kWs].removeListener('error', onUpgradeSocketError)
       wss.handleUpgrade(request.raw, request.raw[kWs], request.raw[kWsHead], (socket) => {
         this.handleConnection(socket, request, dest)
         cb()
