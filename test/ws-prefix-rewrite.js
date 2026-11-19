@@ -367,7 +367,12 @@ const escapeVectors = [
   ['/pub/%5c..%5csecret', '/secret'],
   ['/pub/%5C..%5Csecret', '/secret'],
   ['/pub/%5c..%5c..%5csecret', '/secret'],
-  ['/pub/%5C..%5C..%5Csecret', '/secret']
+  ['/pub/%5C..%5C..%5Csecret', '/secret'],
+  ['/pub/..;/secret', '/secret'],
+  ['/pub/..;jsessionid=abc/secret', '/secret'],
+  ['/pub/%2e%2e;/secret', '/secret'],
+  ['/pub/..%3b/secret', '/secret'],
+  ['/api/..;/secret', '/secret', parameterizedProxyOptions]
 ]
 
 for (const [vector, escapedPath, proxyOptions = defaultProxyOptions] of escapeVectors) {

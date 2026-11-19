@@ -122,9 +122,16 @@ function validateDestination (dest) {
     throw invalidDestination()
   }
 
-  if (decoded.includes('\\') || decoded.split('/').includes('..')) {
+  // Servlet containers (Tomcat, Jetty, ...) strip `;` path parameters from each
+  // segment before resolving dot-segments, so `..;x` acts as `..` upstream.
+  if (decoded.includes('\\') || decoded.split('/').some(isDotDotSegment)) {
     throw invalidDestination()
   }
+}
+
+function isDotDotSegment (segment) {
+  const semicolonIndex = segment.indexOf(';')
+  return (semicolonIndex === -1 ? segment : segment.slice(0, semicolonIndex)) === '..'
 }
 
 function resolveDestination (dest, rewritePrefix, upstream = 'http://fastify-http-proxy.invalid') {

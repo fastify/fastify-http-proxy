@@ -55,7 +55,13 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
     '/pub/dir%5c..%5c..%5csecret',
     '/pub/dir%5C..%5C..%5Csecret',
     '/pub/%5c..%5csecret',
-    '/pub/%5C..%5Csecret'
+    '/pub/%5C..%5Csecret',
+    '/pub/..;/secret',
+    '/pub/..;jsessionid=abc/secret',
+    '/pub/..;a=b;c/secret',
+    '/pub/%2e%2e;/secret',
+    '/pub/..%3b/secret',
+    '/pub/dir/..;/..;/secret'
   ]
   for (const path of escapePaths) {
     const escaped = await request(port, path)
@@ -70,6 +76,11 @@ test('HTTP paths cannot escape rewritePrefix', async t => {
   // Backslashes, raw or percent-encoded, are rejected anywhere in the path.
   const encodedBackslash = await request(port, '/pub/foo%5Cbar')
   t.assert.strictEqual(encodedBackslash.statusCode, 400)
+
+  // Matrix parameters on regular segments are still forwarded unchanged.
+  const matrixParams = await request(port, '/pub/foo;v=1/bar')
+  t.assert.strictEqual(matrixParams.statusCode, 200)
+  t.assert.strictEqual(matrixParams.body, 'internal:/internal/foo;v=1/bar')
 })
 
 test('HTTP paths are validated against a dynamic upstream once per request', async t => {
@@ -154,7 +165,13 @@ test('reply.fromParameters cannot escape rewritePrefix', async t => {
     '/pub/%5C..%5Csecret',
     '/pub/%5c..%5csecret',
     '/pub/%5C..%5C..%5Csecret',
-    '/pub/..%5Csecret'
+    '/pub/..%5Csecret',
+    '/pub/..;/secret',
+    '/pub/..;jsessionid=abc/secret',
+    '/pub/..;a=b;c/secret',
+    '/pub/%2e%2e;/secret',
+    '/pub/..%3b/secret',
+    '/pub/dir/..;/..;/secret'
   ]
   for (const path of escapePaths) {
     const escaped = await request(port, path)
