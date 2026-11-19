@@ -283,6 +283,12 @@ It also supports an additional `rewriteRequestHeaders(headers, request)` functio
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
 
+The client's `Origin` header is always forwarded to the upstream, so that the upstream can enforce its own
+origin checks (e.g. against cross-site WebSocket hijacking). This happens regardless of `rewriteRequestHeaders`,
+unless an `origin` option is set in `wsClientOptions` or the rewritten headers already contain an `Origin` header.
+Note that the upstream receives its own address in the `Host` header, so an upstream that requires `Origin`
+to match `Host` needs to allow the origins of the clients served by the proxy.
+
 ### `wsReconnect`
 
 **Experimental.** (default: `disabled`)

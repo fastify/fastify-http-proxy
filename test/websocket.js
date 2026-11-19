@@ -836,3 +836,73 @@ test('should call onDisconnect hook once per connection', async (t) => {
 
   assert.strictEqual(calls, 1)
 })
+
+async function originTest (t, proxyOptions, clientOrigin) {
+  const origin = createServer()
+  const wss = new WebSocket.Server({ server: origin })
+  t.after(() => { wss.close() })
+  t.after(() => { origin.close() })
+
+  const received = once(wss, 'connection')
+
+  await promisify(origin.listen.bind(origin))({ port: 0, host: '127.0.0.1' })
+  const server = Fastify()
+  server.register(proxy, {
+    upstream: `ws://127.0.0.1:${origin.address().port}`,
+    websocket: true,
+    ...proxyOptions
+  })
+
+  await server.listen({ port: 0, host: '127.0.0.1' })
+  t.after(() => { server.close() })
+
+  const ws = new WebSocket(`ws://127.0.0.1:${server.server.address().port}`, clientOrigin ? { origin: clientOrigin } : {})
+  t.after(() => { ws.close() })
+  await once(ws, 'open')
+
+  const [, request] = await received
+  return request.headers
+}
+
+test('websocket proxy forwards the client Origin header', async (t) => {
+  const headers = await originTest(t, {}, 'https://client.example')
+  t.assert.strictEqual(headers.origin, 'https://client.example')
+})
+
+test('websocket proxy forwards the client Origin header with a custom rewriteRequestHeaders', async (t) => {
+  const headers = await originTest(t, {
+    wsClientOptions: {
+      rewriteRequestHeaders: (headers) => ({ ...headers, 'x-custom': 'yes' })
+    }
+  }, 'https://client.example')
+  t.assert.strictEqual(headers.origin, 'https://client.example')
+  t.assert.strictEqual(headers['x-custom'], 'yes')
+})
+
+test('websocket proxy does not send an Origin header when the client did not', async (t) => {
+  const headers = await originTest(t, {}, undefined)
+  t.assert.strictEqual(headers.origin, undefined)
+})
+
+test('websocket proxy keeps the Origin set by wsClientOptions.origin', async (t) => {
+  const headers = await originTest(t, {
+    wsClientOptions: { origin: 'https://configured.example' }
+  }, 'https://client.example')
+  t.assert.strictEqual(headers.origin, 'https://configured.example')
+})
+
+test('websocket proxy keeps the Origin set by rewriteRequestHeaders', async (t) => {
+  const headers = await originTest(t, {
+    wsClientOptions: {
+      rewriteRequestHeaders: (headers) => ({ ...headers, Origin: 'https://rewritten.example' })
+    }
+  }, 'https://client.example')
+  t.assert.strictEqual(headers.origin, 'https://rewritten.example')
+})
+
+test('websocket proxy handles rewriteRequestHeaders returning undefined', async (t) => {
+  const headers = await originTest(t, {
+    wsClientOptions: { rewriteRequestHeaders: () => undefined }
+  }, 'https://client.example')
+  t.assert.strictEqual(headers.origin, 'https://client.example')
+})

@@ -614,6 +614,12 @@ class WebSocketProxy {
     const headers = rewriteRequestHeaders(headersToRewrite, request)
     const optionsWs = { ...this.wsClientOptions, headers }
 
+    // Forward the client's Origin so the upstream can still enforce its own
+    // origin checks, unless the application already provided one.
+    if (optionsWs.origin === undefined && request.headers.origin !== undefined && !hasOriginHeader(headers)) {
+      optionsWs.origin = request.headers.origin
+    }
+
     const target = new WebSocket(url, subprotocols, optionsWs)
     try {
       this.logger.debug({ url: url.href }, 'proxy websocket')
@@ -665,6 +671,16 @@ function defaultWsHeadersRewrite (headers, request) {
     return { ...headers, cookie: request.headers.cookie }
   }
   return { ...headers }
+}
+
+function hasOriginHeader (headers) {
+  for (const name of Object.keys(headers || {})) {
+    const lower = name.toLowerCase()
+    if (lower === 'origin' || lower === 'sec-websocket-origin') {
+      return true
+    }
+  }
+  return false
 }
 
 function generateRewritePrefix (prefix, opts) {
