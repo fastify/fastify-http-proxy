@@ -289,6 +289,22 @@ unless an `origin` option is set in `wsClientOptions` or the rewritten headers a
 Note that the upstream receives its own address in the `Host` header, so an upstream that requires `Origin`
 to match `Host` needs to allow the origins of the clients served by the proxy.
 
+### `wsHighWaterMark`
+
+(default: `1048576`, 1 MiB)
+
+The proxy applies backpressure to WebSocket links, in both directions. When more than `wsHighWaterMark` bytes
+of messages received from one side are still waiting to be written to the other side (because it is slower,
+or because the connection to the upstream is not established yet), the proxy stops reading from the sending
+side until the backlog is flushed. The sender is then slowed down by TCP flow control, instead of having its
+messages accumulate in the proxy memory.
+
+A message larger than `wsHighWaterMark` is still forwarded: reading is paused until it has been written.
+While a side is paused, the proxy does not see its control frames (ping, pong, close) nor its disconnection
+until reading resumes.
+
+Set it to `Infinity` to disable backpressure and buffer without limit.
+
 ### `wsReconnect`
 
 **Experimental.** (default: `disabled`)

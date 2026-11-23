@@ -71,6 +71,12 @@ interface FastifyHttpProxyWebsocketOptionsEnabled {
   wsUpstream?: string;
   wsHooks?: WebSocketHooks;
   wsReconnect?: WebSocketReconnectOptions;
+  /**
+   * Bytes that may be waiting to be written to one side of a WebSocket link
+   * before the other side is paused. `Infinity` disables backpressure.
+   * @default 1048576
+   */
+  wsHighWaterMark?: number;
 }
 
 interface FastifyHttpProxyWebsocketOptionsDisabled {

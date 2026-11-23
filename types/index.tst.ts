@@ -153,6 +153,7 @@ app.register(fastifyHttpProxy, {
     reconnectOnClose: true,
     logs: true
   },
+  wsHighWaterMark: 1024 * 1024,
   internalRewriteLocationHeader: true
 })
 

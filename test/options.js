@@ -4,7 +4,7 @@ const { test } = require('node:test')
 const assert = require('node:assert')
 const { validateOptions } = require('../src/options')
 const {
-  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS
+  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS, DEFAULT_WS_HIGH_WATER_MARK
 } = require('../src/options')
 
 test('validateOptions', (t) => {
@@ -45,6 +45,12 @@ test('validateOptions', (t) => {
 
   assert.throws(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: '1' } }), /wsReconnect.logs must be a boolean/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsReconnect: { logs: true } }))
+
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHighWaterMark: -1 }), /wsHighWaterMark must be a non-negative number/)
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHighWaterMark: '1' }), /wsHighWaterMark must be a non-negative number/)
+  assert.throws(() => validateOptions({ ...requiredOptions, wsHighWaterMark: NaN }), /wsHighWaterMark must be a non-negative number/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHighWaterMark: 0 }))
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHighWaterMark: Infinity }))
 
   assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: '1' } }), /wsHooks.onReconnect must be a function/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: () => { } } }))
@@ -90,6 +96,7 @@ test('validateOptions', (t) => {
       reconnectOnClose: DEFAULT_RECONNECT_ON_CLOSE,
       logs: DEFAULT_LOGS,
     },
+    wsHighWaterMark: DEFAULT_WS_HIGH_WATER_MARK,
     wsHooks: {
       onReconnect: undefined,
       onIncomingMessage: undefined,
