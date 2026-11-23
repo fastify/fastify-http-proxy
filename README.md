@@ -301,7 +301,9 @@ messages accumulate in the proxy memory.
 
 A message larger than `wsHighWaterMark` is still forwarded: reading is paused until it has been written.
 While a side is paused, the proxy does not see its control frames (ping, pong, close) nor its disconnection
-until reading resumes.
+until reading resumes. Pings coming from the other side are still forwarded to the paused side, but the answer
+is only read once reading resumes. With [`wsReconnect`](#wsreconnect), a paused target is not considered broken:
+its health check is suspended until it is read again.
 
 Set it to `Infinity` to disable backpressure and buffer without limit.
 

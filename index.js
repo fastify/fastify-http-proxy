@@ -86,7 +86,7 @@ function waitForConnection (target, timeout) {
 // slower than `from`), `from` is paused, so the pressure reaches its peer through
 // TCP flow control instead of piling up in the proxy memory. It is resumed when
 // enough of those bytes have been flushed.
-function createForwarder (from, to, highWaterMark) {
+function createForwarder (from, to, highWaterMark, onResume = noop) {
   let pending = 0
   let paused = false
   let released = false
@@ -104,6 +104,7 @@ function createForwarder (from, to, highWaterMark) {
         if (paused && pending <= highWaterMark) {
           paused = false
           from.resume()
+          onResume()
         }
       })
     })
@@ -317,7 +318,9 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams,
 function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, highWaterMark, isReconnecting = false) {
   const context = createContext(logger)
   const forwardToTarget = createForwarder(source, target, highWaterMark)
-  const forwardToSource = createForwarder(target, source, highWaterMark)
+  // A target paused by backpressure is not read, so a missing pong says nothing
+  // about its health: once resumed it gets a full ping interval to answer.
+  const forwardToSource = createForwarder(target, source, highWaterMark, () => { target.isAlive = true })
   // See proxyWebSockets: close() is reachable from both sockets and closes the
   // target before reaching the hook, so the teardown comes back around. A
   // reconnection re-enters this function with a fresh target and a fresh flag.
@@ -458,6 +461,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   waitConnection(target, () => {
     target.isAlive = true
     target.pingTimer = setInterval(() => {
+      if (target.isPaused) {
+        // Its pongs cannot be read: do not mistake backpressure for a broken link.
+        target.isAlive = true
+        return
+      }
       if (target.isAlive === false) {
         target.broken = true
         options.logs && logger.warn({ target: targetParams.url }, 'proxy ws connection is broken')

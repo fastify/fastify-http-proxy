@@ -254,3 +254,36 @@ test('resumes a paused client when the target fails to connect', async (t) => {
   await once(state.client, 'close')
   t.assert.strictEqual(state.source.isPaused, false)
 })
+
+test('does not reconnect a target paused for longer than the ping interval', async (t) => {
+  let targetSide
+  let connections = 0
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsReconnect: { pingInterval: 100, reconnectInterval: 100 },
+    onTargetConnection (ws) {
+      connections++
+      targetSide = ws
+    }
+  })
+  await until(() => link.target && targetSide, 'link')
+  const received = collect(client)
+  client.pause()
+
+  sendAll(targetSide)
+
+  await until(() => link.target.isPaused, 'target to be paused')
+  // several ping intervals without the proxy reading any pong
+  await wait(500)
+  t.assert.ok(link.target.isPaused)
+  t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
+
+  client.resume()
+
+  await until(() => received.length === MESSAGES, 'all messages to reach the client')
+  t.assert.deepStrictEqual(received, inOrder)
+  // the heartbeat keeps working once the target is read again
+  await wait(300)
+  t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
+  t.assert.strictEqual(connections, 1)
+})
