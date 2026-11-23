@@ -307,6 +307,26 @@ its health check is suspended until it is read again.
 
 Set it to `Infinity` to disable backpressure and buffer without limit.
 
+### `wsForwardPings`
+
+(default: `true`)
+
+By default ping and pong frames are relayed between the client and the upstream, so a heartbeat run by one of them
+is answered by the other, end to end.
+
+Set it to `false` to break that chain: the proxy answers the pings of the client and of the upstream itself, and
+relays no ping or pong to the other side. Each heartbeat then only checks its own connection to the proxy. In
+particular, the pings of a slow client keep being answered while the upstream is paused by
+[backpressure](#wshighwatermark), instead of waiting for a pong that the proxy is not reading.
+The pong is written after the messages already queued for that client, so it can be delayed by up to
+`wsHighWaterMark` bytes plus the socket buffers.
+
+`autoPong` is forced to `true` in `wsServerOptions` and `wsClientOptions`. With [`wsReconnect`](#wsreconnect), the
+proxy still pings the upstream and calls `onPong`, but that pong is not relayed to the client.
+
+A side that is itself paused (because the other one is slow) is not read, so its own pings are only answered
+once reading resumes, whatever the value of this option.
+
 ### `wsReconnect`
 
 **Experimental.** (default: `disabled`)

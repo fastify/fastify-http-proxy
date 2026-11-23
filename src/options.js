@@ -8,6 +8,7 @@ const DEFAULT_CONNECTION_TIMEOUT = 5_000
 const DEFAULT_RECONNECT_ON_CLOSE = false
 const DEFAULT_LOGS = false
 const DEFAULT_WS_HIGH_WATER_MARK = 1024 * 1024
+const DEFAULT_WS_FORWARD_PINGS = true
 
 function validateOptions (options) {
   if (!options.upstream && !options.websocket && !((options.upstream === '' || options.wsUpstream === '') && options.replyOptions && typeof options.replyOptions.getUpstream === 'function')) {
@@ -22,6 +23,11 @@ function validateOptions (options) {
     throw new Error('wsHighWaterMark must be a non-negative number')
   }
   options.wsHighWaterMark = options.wsHighWaterMark ?? DEFAULT_WS_HIGH_WATER_MARK
+
+  if (options.wsForwardPings !== undefined && typeof options.wsForwardPings !== 'boolean') {
+    throw new Error('wsForwardPings must be a boolean')
+  }
+  options.wsForwardPings = options.wsForwardPings ?? DEFAULT_WS_FORWARD_PINGS
 
   if (options.wsReconnect) {
     const wsReconnect = options.wsReconnect
@@ -102,4 +108,5 @@ module.exports = {
   DEFAULT_RECONNECT_ON_CLOSE,
   DEFAULT_LOGS,
   DEFAULT_WS_HIGH_WATER_MARK,
+  DEFAULT_WS_FORWARD_PINGS,
 }

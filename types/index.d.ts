@@ -77,6 +77,12 @@ interface FastifyHttpProxyWebsocketOptionsEnabled {
    * @default 1048576
    */
   wsHighWaterMark?: number;
+  /**
+   * Relay ping and pong frames between the client and the upstream. When
+   * `false`, the proxy answers the pings of each side itself and relays none.
+   * @default true
+   */
+  wsForwardPings?: boolean;
 }
 
 interface FastifyHttpProxyWebsocketOptionsDisabled {

@@ -4,7 +4,7 @@ const { test } = require('node:test')
 const assert = require('node:assert')
 const { validateOptions } = require('../src/options')
 const {
-  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS, DEFAULT_WS_HIGH_WATER_MARK
+  DEFAULT_PING_INTERVAL, DEFAULT_MAX_RECONNECTION_RETRIES, DEFAULT_RECONNECT_INTERVAL, DEFAULT_RECONNECT_DECAY, DEFAULT_CONNECTION_TIMEOUT, DEFAULT_RECONNECT_ON_CLOSE, DEFAULT_LOGS, DEFAULT_WS_HIGH_WATER_MARK, DEFAULT_WS_FORWARD_PINGS
 } = require('../src/options')
 
 test('validateOptions', (t) => {
@@ -52,6 +52,9 @@ test('validateOptions', (t) => {
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHighWaterMark: 0 }))
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHighWaterMark: Infinity }))
 
+  assert.throws(() => validateOptions({ ...requiredOptions, wsForwardPings: 'false' }), /wsForwardPings must be a boolean/)
+  assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsForwardPings: false }))
+
   assert.throws(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: '1' } }), /wsHooks.onReconnect must be a function/)
   assert.doesNotThrow(() => validateOptions({ ...requiredOptions, wsHooks: { onReconnect: () => { } } }))
 
@@ -97,6 +100,7 @@ test('validateOptions', (t) => {
       logs: DEFAULT_LOGS,
     },
     wsHighWaterMark: DEFAULT_WS_HIGH_WATER_MARK,
+    wsForwardPings: DEFAULT_WS_FORWARD_PINGS,
     wsHooks: {
       onReconnect: undefined,
       onIncomingMessage: undefined,

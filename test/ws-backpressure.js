@@ -12,7 +12,7 @@ const proxyPlugin = require('../')
 const MESSAGE_SIZE = 256 * 1024
 const MESSAGES = 128 // 32 MiB overall, far more than the kernel buffers can absorb
 
-async function setup (t, { wsHighWaterMark, wsReconnect, onTargetConnection }) {
+async function setup (t, { wsHighWaterMark, wsReconnect, wsForwardPings, onTargetConnection }) {
   const targetServer = createServer()
   const targetWs = new WebSocket.Server({ server: targetServer })
   targetWs.on('connection', onTargetConnection)
@@ -25,6 +25,7 @@ async function setup (t, { wsHighWaterMark, wsReconnect, onTargetConnection }) {
     websocket: true,
     wsHighWaterMark,
     wsReconnect,
+    wsForwardPings,
     wsHooks: {
       onConnect (_context, source, target) {
         link.source = source
@@ -286,4 +287,98 @@ test('does not reconnect a target paused for longer than the ping interval', asy
   await wait(300)
   t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
   t.assert.strictEqual(connections, 1)
+})
+
+for (const wsReconnect of [undefined, { pingInterval: 60_000 }]) {
+  const suffix = wsReconnect ? ' (with reconnection)' : ''
+
+  test(`answers pings itself and relays none when wsForwardPings is false${suffix}`, async (t) => {
+    let targetSide
+    const events = []
+    const { client, link } = await setup(t, {
+      wsForwardPings: false,
+      wsReconnect,
+      onTargetConnection (ws) {
+        targetSide = ws
+        ws.on('ping', (data) => events.push(`target ping ${data}`))
+        ws.on('pong', (data) => events.push(`target pong ${data}`))
+      }
+    })
+    await until(() => link.target && targetSide, 'link')
+    client.on('ping', (data) => events.push(`client ping ${data}`))
+    client.on('pong', (data) => events.push(`client pong ${data}`))
+
+    client.ping('from-client')
+    targetSide.ping('from-target')
+    // an unsolicited pong is not relayed either
+    client.pong('unsolicited')
+
+    await until(() => events.length >= 2, 'pongs')
+    await wait(200)
+    t.assert.deepStrictEqual(events.sort(), ['client pong from-client', 'target pong from-target'])
+
+    // messages still flow
+    targetSide.once('message', (data, binary) => targetSide.send(data, { binary }))
+    client.send('hello')
+    const [reply] = await once(client, 'message')
+    t.assert.strictEqual(reply.toString(), 'hello')
+  })
+}
+
+test('relays pings end to end by default', async (t) => {
+  let targetSide
+  const events = []
+  const { client, link } = await setup(t, {
+    onTargetConnection (ws) {
+      targetSide = ws
+      ws.on('ping', (data) => events.push(`target ping ${data}`))
+    }
+  })
+  await until(() => link.target && targetSide, 'link')
+  client.on('ping', (data) => events.push(`client ping ${data}`))
+
+  client.ping('from-client')
+  targetSide.ping('from-target')
+
+  await until(() => events.length === 2, 'pings')
+  t.assert.deepStrictEqual(events.sort(), ['client ping from-target', 'target ping from-client'])
+})
+
+test('keeps answering the pings of a slow client while the target is paused', async (t) => {
+  let targetSide
+  const events = []
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsForwardPings: false,
+    onTargetConnection (ws) {
+      targetSide = ws
+      ws.on('ping', (data) => events.push(`target ping ${data}`))
+    }
+  })
+  await until(() => link.target && targetSide, 'link')
+
+  // a client that keeps reading, but slower than the target writes
+  let received = 0
+  client.on('message', () => {
+    received++
+    client.pause()
+    setTimeout(() => client.resume(), 5)
+  })
+  let pong
+  client.on('pong', (data) => {
+    pong = { data: data.toString(), received, targetPaused: link.target.isPaused }
+  })
+
+  sendAll(targetSide)
+  await until(() => link.target.isPaused, 'target to be paused')
+
+  client.ping('still-there')
+
+  await until(() => pong, 'pong')
+  t.assert.strictEqual(pong.data, 'still-there')
+  t.assert.ok(pong.targetPaused, 'answered while the target is paused')
+  t.assert.ok(pong.received < MESSAGES, `answered after ${pong.received} of ${MESSAGES} messages`)
+
+  await until(() => received === MESSAGES, 'all messages to reach the client')
+  t.assert.deepStrictEqual(events, [])
 })

@@ -199,7 +199,7 @@ function createContext (logger) {
   return { log: logger }
 }
 
-function proxyWebSockets (logger, source, target, hooks, highWaterMark) {
+function proxyWebSockets (logger, source, target, hooks, highWaterMark, forwardPings) {
   const context = createContext(logger)
   const forwardToTarget = createForwarder(source, target, highWaterMark)
   const forwardToSource = createForwarder(target, source, highWaterMark)
@@ -234,10 +234,13 @@ function proxyWebSockets (logger, source, target, hooks, highWaterMark) {
     }
     forwardToTarget(data, binary)
   })
-  /* c8 ignore start */
-  source.on('ping', data => waitConnection(target, () => target.ping(data)))
-  source.on('pong', data => waitConnection(target, () => target.pong(data)))
-  /* c8 ignore stop */
+  // Without forwardPings each side has its pings answered by the proxy itself
+  // (ws autoPong), and nothing is relayed.
+  if (forwardPings) {
+    source.on('ping', data => waitConnection(target, () => target.ping(data)))
+    /* c8 ignore next */
+    source.on('pong', data => waitConnection(target, () => target.pong(data)))
+  }
   source.on('close', close)
   /* c8 ignore start */
   source.on('error', error => close(1011, error.message))
@@ -255,10 +258,10 @@ function proxyWebSockets (logger, source, target, hooks, highWaterMark) {
     }
     forwardToSource(data, binary)
   })
-  /* c8 ignore start */
-  target.on('ping', data => source.ping(data))
-  /* c8 ignore stop */
-  target.on('pong', data => source.pong(data))
+  if (forwardPings) {
+    target.on('ping', data => source.ping(data))
+    target.on('pong', data => source.pong(data))
+  }
   target.on('close', close)
   /* c8 ignore start */
   target.on('error', error => close(1011, error.message))
@@ -276,7 +279,7 @@ function proxyWebSockets (logger, source, target, hooks, highWaterMark) {
   }
 }
 
-async function reconnect (logger, source, reconnectOptions, hooks, targetParams, highWaterMark) {
+async function reconnect (logger, source, reconnectOptions, hooks, targetParams, highWaterMark, forwardPings) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
@@ -312,10 +315,10 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams,
   }
 
   reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams, highWaterMark, true)
+  proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams, highWaterMark, forwardPings, true)
 }
 
-function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, highWaterMark, isReconnecting = false) {
+function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, highWaterMark, forwardPings, isReconnecting = false) {
   const context = createContext(logger)
   const forwardToTarget = createForwarder(source, target, highWaterMark)
   // A target paused by backpressure is not read, so a missing pong says nothing
@@ -338,7 +341,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
       target.isAlive = false
       target.removeAllListeners()
 
-      reconnect(logger, source, options, hooks, targetParams, highWaterMark)
+      reconnect(logger, source, options, hooks, targetParams, highWaterMark, forwardPings)
       return
     }
 
@@ -379,11 +382,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   }
   function sourceOnPing (data) {
     source.isAlive = true
-    waitConnection(target, () => target.ping(data))
+    forwardPings && waitConnection(target, () => target.ping(data))
   }
   function sourceOnPong (data) {
     source.isAlive = true
-    waitConnection(target, () => target.pong(data))
+    forwardPings && waitConnection(target, () => target.pong(data))
   }
   function sourceOnClose (code, reason) {
     source.isAlive = false
@@ -429,7 +432,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   })
   target.on('ping', data => {
     target.isAlive = true
-    source.ping(data)
+    forwardPings && source.ping(data)
   })
   target.on('pong', data => {
     target.isAlive = true
@@ -440,7 +443,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onPong hook')
       }
     }
-    source.pong(data)
+    forwardPings && source.pong(data)
   })
   /* c8 ignore stop */
   target.on('close', (code, reason) => {
@@ -532,12 +535,17 @@ function handleUpgrade (fastify, rawRequest, socket, head) {
 }
 
 class WebSocketProxy {
-  constructor (fastify, { wsReconnect, wsHooks, wsHighWaterMark, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
+  constructor (fastify, { wsReconnect, wsHooks, wsHighWaterMark, wsForwardPings, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
     this.wsClientOptions = {
       rewriteRequestHeaders: defaultWsHeadersRewrite,
       headers: {},
       ...wsClientOptions
+    }
+    if (!wsForwardPings) {
+      // The proxy is the one answering the pings of both sides.
+      this.wsClientOptions.autoPong = true
+      wsServerOptions = { ...wsServerOptions, autoPong: true }
     }
     this.upstream = upstream ? convertUrlToWebSocket(upstream) : ''
     this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
@@ -545,6 +553,7 @@ class WebSocketProxy {
     this.wsReconnect = wsReconnect
     this.wsHooks = wsHooks
     this.wsHighWaterMark = wsHighWaterMark
+    this.wsForwardPings = wsForwardPings
     const wss = new WebSocket.Server({
       noServer: true,
       ...wsServerOptions
@@ -684,9 +693,9 @@ class WebSocketProxy {
 
       if (this.wsReconnect) {
         const targetParams = { url, subprotocols, optionsWs }
-        proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams, this.wsHighWaterMark)
+        proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams, this.wsHighWaterMark, this.wsForwardPings)
       } else {
-        proxyWebSockets(this.logger, source, target, this.wsHooks, this.wsHighWaterMark)
+        proxyWebSockets(this.logger, source, target, this.wsHooks, this.wsHighWaterMark, this.wsForwardPings)
       }
     } catch (err) {
       // The upstream client exists but its 'error' listener has not been wired
