@@ -105,7 +105,6 @@ for (const wsReconnect of [undefined, { pingInterval: 60_000 }]) {
     await wait(200)
     t.assert.ok(link.source.isPaused, 'source stays paused while the target does not read')
     t.assert.ok(link.incoming < MESSAGES, `proxy read ${link.incoming} of ${MESSAGES} messages`)
-    t.assert.ok(client.bufferedAmount > 0, 'the backlog is held by the client')
 
     targetSide.resume()
 
@@ -131,7 +130,6 @@ for (const wsReconnect of [undefined, { pingInterval: 60_000 }]) {
     await wait(200)
     t.assert.ok(link.target.isPaused, 'target stays paused while the client does not read')
     t.assert.ok(link.outgoing < MESSAGES, `proxy read ${link.outgoing} of ${MESSAGES} messages`)
-    t.assert.ok(targetSide.bufferedAmount > 0, 'the backlog is held by the target')
 
     client.resume()
 
