@@ -78,7 +78,7 @@ function collect (ws) {
   return received
 }
 
-async function setup (t, { wsHighWaterMark, wsBackpressureTimeout, wsReconnect, wsForwardPings, onPong, onDisconnect, onTargetConnection }) {
+async function setup (t, { wsHighWaterMark, wsBackpressureTimeout, wsReconnect, wsForwardPings, onPong, onDisconnect, onReconnect, onTargetConnection }) {
   const targetServer = createServer()
   const targetWs = new WebSocket.Server({ server: targetServer })
   targetWs.on('connection', onTargetConnection)
@@ -98,6 +98,11 @@ async function setup (t, { wsHighWaterMark, wsBackpressureTimeout, wsReconnect, 
     wsForwardPings,
     wsHooks: {
       onDisconnect,
+      onReconnect (context, source, target) {
+        observePauses(target)
+        link.target = target
+        onReconnect?.(context, source, target)
+      },
       onConnect (_context, source, target) {
         observePauses(source)
         observePauses(target)
@@ -457,45 +462,112 @@ test('keeps answering the pings of a slow client while the target is paused', as
   t.assert.deepStrictEqual(targetPings, [])
 })
 
-for (const wsReconnect of [undefined, { pingInterval: 60_000, reconnectOnClose: true }]) {
-  const suffix = wsReconnect ? ' (with reconnection)' : ''
+test('terminates a link whose upstream is stalled for longer than wsBackpressureTimeout', async (t) => {
+  // The timeout is driven by hand.
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const wsBackpressureTimeout = 5000
 
-  test(`terminates a link stalled for longer than wsBackpressureTimeout${suffix}`, async (t) => {
-    // The timeout is driven by hand.
-    t.mock.timers.enable({ apis: ['setTimeout'] })
-    const wsBackpressureTimeout = 5000
-
-    let connections = 0
-    let disconnects = 0
-    const { client, link } = await setup(t, {
-      wsHighWaterMark: MESSAGE_SIZE,
-      wsBackpressureTimeout,
-      wsReconnect,
-      onDisconnect () { disconnects++ },
-      onTargetConnection (ws) {
-        connections++
-        // an upstream that accepts the connection and never reads
-        ws.pause()
-      }
-    })
-    const clientClosed = once(client, 'close')
-    const sourceClosed = once(link.source, 'close')
-    const targetClosed = once(link.target, 'close')
-
-    sendAll(client)
-    await paused(link.source)
-
-    // nothing runs between these ticks, so nothing can be flushed meanwhile
-    t.mock.timers.tick(wsBackpressureTimeout - 1)
-    t.assert.strictEqual(link.source.readyState, WebSocket.OPEN)
-    t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
-    t.mock.timers.tick(1)
-
-    await Promise.all([clientClosed, sourceClosed, targetClosed])
-    t.assert.strictEqual(disconnects, 1)
-    t.assert.strictEqual(connections, 1, 'a stalled link is not reconnected')
+  let disconnects = 0
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsBackpressureTimeout,
+    onDisconnect () { disconnects++ },
+    // an upstream that accepts the connection and never reads
+    onTargetConnection (ws) { ws.pause() }
   })
-}
+  const clientClosed = once(client, 'close')
+  const sourceClosed = once(link.source, 'close')
+  const targetClosed = once(link.target, 'close')
+
+  sendAll(client)
+  await paused(link.source)
+
+  // nothing runs between these ticks, so nothing can be flushed meanwhile
+  t.mock.timers.tick(wsBackpressureTimeout - 1)
+  t.assert.strictEqual(link.source.readyState, WebSocket.OPEN)
+  t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
+  t.mock.timers.tick(1)
+
+  await Promise.all([clientClosed, sourceClosed, targetClosed])
+  t.assert.strictEqual(disconnects, 1)
+})
+
+test('reconnects an upstream stalled for longer than wsBackpressureTimeout', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const wsBackpressureTimeout = 5000
+
+  const upstream = new EventEmitter()
+  let connections = 0
+  let disconnects = 0
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsBackpressureTimeout,
+    wsReconnect: { pingInterval: 60_000, reconnectInterval: 100 },
+    onDisconnect () { disconnects++ },
+    onReconnect () { upstream.emit('reconnect') },
+    onTargetConnection (ws) {
+      if (++connections === 1) {
+        // the first upstream accepts the connection and never reads
+        ws.pause()
+      } else {
+        collect(ws)
+        ws.on('test:marker', (marker) => upstream.emit('marker', marker))
+      }
+    }
+  })
+  const stalledTarget = link.target
+  const stalledTargetClosed = once(stalledTarget, 'close')
+  const reconnected = once(upstream, 'reconnect')
+  const marker = once(upstream, 'marker')
+
+  sendAll(client)
+  await paused(link.source)
+  t.mock.timers.tick(wsBackpressureTimeout)
+
+  await stalledTargetClosed
+  await reconnected
+  t.assert.notStrictEqual(link.target, stalledTarget)
+  t.assert.strictEqual(connections, 2)
+
+  // the client was kept, and what it sends from now on reaches the new upstream
+  // (as without backpressure, what it sent during the reconnection is dropped)
+  client.send('still-connected')
+  t.assert.deepStrictEqual(await marker, ['still-connected'])
+  t.assert.strictEqual(client.readyState, WebSocket.OPEN)
+  t.assert.strictEqual(disconnects, 0)
+})
+
+test('terminates a link whose client is stalled, even with reconnection', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const wsBackpressureTimeout = 5000
+
+  let targetSide
+  let connections = 0
+  let disconnects = 0
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsBackpressureTimeout,
+    wsReconnect: { pingInterval: 60_000, reconnectInterval: 100, reconnectOnClose: true },
+    onDisconnect () { disconnects++ },
+    onTargetConnection (ws) {
+      connections++
+      targetSide = ws
+    }
+  })
+  const sourceClosed = once(link.source, 'close')
+  const targetClosed = once(link.target, 'close')
+  const upstreamClosed = once(targetSide, 'close')
+
+  // a client that stays connected and never reads
+  client.pause()
+  sendAll(targetSide)
+  await paused(link.target)
+  t.mock.timers.tick(wsBackpressureTimeout)
+
+  await Promise.all([sourceClosed, targetClosed, upstreamClosed])
+  t.assert.strictEqual(disconnects, 1)
+  t.assert.strictEqual(connections, 1, 'the upstream is not reconnected for a client that is gone')
+})
 
 test('a link that keeps flushing does not time out', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] })

@@ -312,8 +312,11 @@ Set it to `Infinity` to disable backpressure and buffer without limit.
 (default: `30000`, 30 seconds)
 
 The time in ms a side may stay paused by [backpressure](#wshighwatermark) without the other side flushing any data.
-Past it the link is considered stalled: both connections are terminated and `onDisconnect` is called, without
-attempting a reconnection.
+Past it the link is considered stalled: both connections are terminated and `onDisconnect` is called.
+
+With [`wsReconnect`](#wsreconnect), a stalled upstream is treated as a broken connection instead: only the upstream
+is terminated and the proxy reconnects to it, keeping the client connected and calling `onReconnect`. A stalled
+client still terminates the link.
 
 This is what releases a link whose receiving side stopped reading for good, since the proxy cannot see the paused
 side disconnecting. The timeout restarts every time some data is flushed, so a receiver that is slow but keeps

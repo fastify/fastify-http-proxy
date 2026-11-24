@@ -153,7 +153,7 @@ function createForwarder (from, to, { highWaterMark, timeout }, onStall, onResum
 // their 'close' events run the usual cleanup.
 function terminateStalledLink (logger, source, target) {
   logger.warn('proxy ws link terminated: no data flushed within wsBackpressureTimeout')
-  // a stalled link is not worth reconnecting
+  // the client is going away: nothing to reconnect for
   source.isAlive = false
   source.terminate()
   target.terminate()
@@ -371,7 +371,13 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams,
 function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, backpressure, forwardPings, isReconnecting = false) {
   const context = createContext(logger)
   const onStall = () => terminateStalledLink(logger, source, target)
-  const forwardToTarget = createForwarder(source, target, backpressure, onStall)
+  // A target that flushes nothing is as good as broken: replace it and keep the
+  // client, as a failed ping would. A client that flushes nothing is gone.
+  const forwardToTarget = createForwarder(source, target, backpressure, () => {
+    logger.warn({ target: targetParams.url }, 'proxy ws connection is broken: no data flushed within wsBackpressureTimeout')
+    target.broken = true
+    target.terminate()
+  })
   // A target paused by backpressure is not read, so a missing pong says nothing
   // about its health: once resumed it gets a full ping interval to answer.
   const forwardToSource = createForwarder(target, source, backpressure, onStall, () => { target.isAlive = true })
