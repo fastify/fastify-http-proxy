@@ -3,6 +3,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert')
 const { setTimeout: wait } = require('node:timers/promises')
+const { once } = require('node:events')
 const { waitForLogMessage, createTargetServer, createServices } = require('./helper/helper')
 
 test('should use ping/pong to verify connection is alive - from source (server on proxy) to target', async (t) => {
@@ -348,4 +349,34 @@ test('should call onDisconnect hook once per connection', async (t) => {
   await wait(500)
 
   assert.strictEqual(calls, 1)
+})
+
+test('should not leave a target connection open when the client leaves during the reconnection', async (t) => {
+  const wsReconnectOptions = { pingInterval: 60_000, reconnectInterval: 100, reconnectOnClose: true, logs: true }
+
+  const { target, client, loggerSpy } = await createServices({ t, wsReconnectOptions })
+
+  if (target.ws.clients.size === 0) {
+    await once(target.ws, 'connection')
+  }
+  const [first] = target.ws.clients
+  const later = []
+  target.ws.on('connection', (socket) => { later.push(socket) })
+
+  // the target closes: the proxy waits before reconnecting, and the client leaves meanwhile
+  const reconnecting = waitForLogMessage(loggerSpy, 'proxy ws reconnect in 100 ms')
+  first.close()
+  await reconnecting
+
+  const aborted = waitForLogMessage(loggerSpy, 'proxy ws abort reconnect due to source is closed')
+  client.terminate()
+  await aborted
+
+  // whether or not the proxy got to connect again, nothing is left open
+  for (const socket of later) {
+    if (socket.readyState !== socket.CLOSED) {
+      await once(socket, 'close')
+    }
+  }
+  assert.strictEqual(target.ws.clients.size, 0)
 })

@@ -37,6 +37,10 @@ function closeWebSocket (socket, code, reason) {
   socket.isAlive = false
   if (socket.readyState === WebSocket.OPEN) {
     socket.close(liftErrorCode(code), reason)
+  } else if (socket.readyState === WebSocket.CONNECTING) {
+    // The other side left before this one finished connecting: close it as
+    // soon as it opens, or it would stay open with nobody on the other end.
+    socket.once('open', () => socket.close(liftErrorCode(code), reason))
   }
 }
 
@@ -322,12 +326,20 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams,
     reconnectOptions.logs && logger.warn({ target: targetParams.url }, `proxy ws reconnect in ${reconnectWait} ms`)
     await wait(reconnectWait)
 
+    // the client left while waiting: there is nobody to connect the target for
+    if (!source.isAlive) {
+      break
+    }
+
     try {
       target = new WebSocket(url, subprotocols, optionsWs)
       await waitForConnection(target, reconnectOptions.connectionTimeout)
     } catch (err) {
       reconnectOptions.logs && logger.error({ target: targetParams.url, err, attempts }, 'proxy ws reconnect error')
       attempts++
+      // a connection that timed out may still complete later: do not leak it
+      target.on('error', noop)
+      target.terminate()
       target = undefined
     }
     // stop if the source connection is closed during the reconnection
@@ -336,6 +348,11 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams,
   /* c8 ignore start */
   if (!source.isAlive) {
     reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws abort reconnect due to source is closed')
+    // the client left while the target was connecting: do not leak the new connection
+    if (target) {
+      target.on('error', noop)
+      target.terminate()
+    }
     source.close()
     return
   }
