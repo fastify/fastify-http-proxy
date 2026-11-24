@@ -301,11 +301,25 @@ messages accumulate in the proxy memory.
 
 A message larger than `wsHighWaterMark` is still forwarded: reading is paused until it has been written.
 While a side is paused, the proxy does not see its control frames (ping, pong, close) nor its disconnection
-until reading resumes. Pings coming from the other side are still forwarded to the paused side, but the answer
+until reading resumes. See [`wsBackpressureTimeout`](#wsbackpressuretimeout) for what bounds that wait. Pings coming from the other side are still forwarded to the paused side, but the answer
 is only read once reading resumes. With [`wsReconnect`](#wsreconnect), a paused target is not considered broken:
 its health check is suspended until it is read again.
 
 Set it to `Infinity` to disable backpressure and buffer without limit.
+
+### `wsBackpressureTimeout`
+
+(default: `30000`, 30 seconds)
+
+The time in ms a side may stay paused by [backpressure](#wshighwatermark) without the other side flushing any data.
+Past it the link is considered stalled: both connections are terminated and `onDisconnect` is called, without
+attempting a reconnection.
+
+This is what releases a link whose receiving side stopped reading for good, since the proxy cannot see the paused
+side disconnecting. The timeout restarts every time some data is flushed, so a receiver that is slow but keeps
+making progress is not affected.
+
+Set it to `Infinity` to wait without limit.
 
 ### `wsForwardPings`
 

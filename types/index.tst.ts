@@ -154,6 +154,7 @@ app.register(fastifyHttpProxy, {
     logs: true
   },
   wsHighWaterMark: 1024 * 1024,
+  wsBackpressureTimeout: 30_000,
   wsForwardPings: false,
   internalRewriteLocationHeader: true
 })

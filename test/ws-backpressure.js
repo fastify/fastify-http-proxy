@@ -78,7 +78,7 @@ function collect (ws) {
   return received
 }
 
-async function setup (t, { wsHighWaterMark, wsReconnect, wsForwardPings, onPong, onTargetConnection }) {
+async function setup (t, { wsHighWaterMark, wsBackpressureTimeout, wsReconnect, wsForwardPings, onPong, onDisconnect, onTargetConnection }) {
   const targetServer = createServer()
   const targetWs = new WebSocket.Server({ server: targetServer })
   targetWs.on('connection', onTargetConnection)
@@ -93,9 +93,11 @@ async function setup (t, { wsHighWaterMark, wsReconnect, wsForwardPings, onPong,
     upstream: `ws://127.0.0.1:${targetServer.address().port}`,
     websocket: true,
     wsHighWaterMark,
+    wsBackpressureTimeout,
     wsReconnect,
     wsForwardPings,
     wsHooks: {
+      onDisconnect,
       onConnect (_context, source, target) {
         observePauses(source)
         observePauses(target)
@@ -453,4 +455,109 @@ test('keeps answering the pings of a slow client while the target is paused', as
   client.send('marker')
   await marker
   t.assert.deepStrictEqual(targetPings, [])
+})
+
+for (const wsReconnect of [undefined, { pingInterval: 60_000, reconnectOnClose: true }]) {
+  const suffix = wsReconnect ? ' (with reconnection)' : ''
+
+  test(`terminates a link stalled for longer than wsBackpressureTimeout${suffix}`, async (t) => {
+    // The timeout is driven by hand.
+    t.mock.timers.enable({ apis: ['setTimeout'] })
+    const wsBackpressureTimeout = 5000
+
+    let connections = 0
+    let disconnects = 0
+    const { client, link } = await setup(t, {
+      wsHighWaterMark: MESSAGE_SIZE,
+      wsBackpressureTimeout,
+      wsReconnect,
+      onDisconnect () { disconnects++ },
+      onTargetConnection (ws) {
+        connections++
+        // an upstream that accepts the connection and never reads
+        ws.pause()
+      }
+    })
+    const clientClosed = once(client, 'close')
+    const sourceClosed = once(link.source, 'close')
+    const targetClosed = once(link.target, 'close')
+
+    sendAll(client)
+    await paused(link.source)
+
+    // nothing runs between these ticks, so nothing can be flushed meanwhile
+    t.mock.timers.tick(wsBackpressureTimeout - 1)
+    t.assert.strictEqual(link.source.readyState, WebSocket.OPEN)
+    t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
+    t.mock.timers.tick(1)
+
+    await Promise.all([clientClosed, sourceClosed, targetClosed])
+    t.assert.strictEqual(disconnects, 1)
+    t.assert.strictEqual(connections, 1, 'a stalled link is not reconnected')
+  })
+}
+
+test('a link that keeps flushing does not time out', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const wsBackpressureTimeout = 5000
+  const count = 50
+
+  const targetMessages = new EventEmitter()
+  const received = []
+  const { client, link } = await setup(t, {
+    // every message is over the mark: the source stays paused until the last
+    // one of a burst is flushed, each flush restarting the timeout
+    wsHighWaterMark: 1,
+    wsBackpressureTimeout,
+    onTargetConnection (ws) {
+      ws.on('message', (data) => {
+        received.push(data.toString())
+        targetMessages.emit('message')
+      })
+    }
+  })
+  let pauses = 0
+  link.source.on('test:paused', () => pauses++)
+
+  // a single write, so that the proxy reads the whole burst at once
+  client._socket.cork()
+  for (let i = 0; i < count; i++) {
+    client.send(`message-${i}`)
+  }
+  client._socket.uncork()
+
+  await when(targetMessages, 'message', () => received.length === count)
+  t.assert.deepStrictEqual(received, Array.from({ length: count }, (_, i) => `message-${i}`))
+  t.assert.ok(pauses > 0, 'the source has been paused')
+
+  // once resumed, the timeout is disarmed
+  await resumed(link.source)
+  t.mock.timers.tick(wsBackpressureTimeout)
+  t.assert.strictEqual(link.source.readyState, WebSocket.OPEN)
+  t.assert.strictEqual(link.target.readyState, WebSocket.OPEN)
+})
+
+test('does not time out when wsBackpressureTimeout is Infinity', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+
+  let targetSide
+  let received
+  const { client, link } = await setup(t, {
+    wsHighWaterMark: MESSAGE_SIZE,
+    wsBackpressureTimeout: Infinity,
+    onTargetConnection (ws) {
+      targetSide = ws
+      received = collect(ws)
+      ws.pause()
+    }
+  })
+
+  sendAll(client)
+  await paused(link.source)
+  t.mock.timers.tick(24 * 60 * 60 * 1000)
+  t.assert.strictEqual(link.source.readyState, WebSocket.OPEN)
+
+  targetSide.resume()
+  await received.complete()
+  t.assert.deepStrictEqual(received, inOrder)
 })
