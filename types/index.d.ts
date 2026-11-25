@@ -71,6 +71,24 @@ interface FastifyHttpProxyWebsocketOptionsEnabled {
   wsUpstream?: string;
   wsHooks?: WebSocketHooks;
   wsReconnect?: WebSocketReconnectOptions;
+  /**
+   * Bytes that may be waiting to be written to one side of a WebSocket link
+   * before the other side is paused. `Infinity` disables backpressure.
+   * @default 1048576
+   */
+  wsHighWaterMark?: number;
+  /**
+   * Milliseconds a side may stay paused by backpressure without the other side
+   * flushing any data, before the link is terminated. `Infinity` disables it.
+   * @default 30000
+   */
+  wsBackpressureTimeout?: number;
+  /**
+   * Relay ping and pong frames between the client and the upstream. When
+   * `false`, the proxy answers the pings of each side itself and relays none.
+   * @default true
+   */
+  wsForwardPings?: boolean;
 }
 
 interface FastifyHttpProxyWebsocketOptionsDisabled {
