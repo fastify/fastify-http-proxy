@@ -1,4 +1,5 @@
 import fastify, {
+  type HTTPMethods,
   RawReplyDefaultExpression,
   RawRequestDefaultExpression,
   type FastifyRequest,
@@ -7,7 +8,7 @@ import fastify, {
 } from 'fastify'
 import { expect } from 'tstyche'
 import { type FastifyReplyFromHooks } from '@fastify/reply-from'
-import fastifyHttpProxy from '..'
+import fastifyHttpProxy, { defaultRoutes, defaultHttpMethods } from '..'
 
 const app = fastify()
 
@@ -183,3 +184,13 @@ app.register(fastifyHttpProxy, {
   websocket: false,
   internalRewriteLocationHeader: 'NON_BOOLEAN_VALUE'
 })
+
+app.register(fastifyHttpProxy, {
+  upstream: 'http://origin.asd',
+  httpMethods: 'GET'
+})
+
+expect(fastifyHttpProxy.defaultRoutes).type.toBe<string[]>()
+expect(fastifyHttpProxy.defaultHttpMethods).type.toBe<HTTPMethods[]>()
+expect(defaultRoutes).type.toBe<string[]>()
+expect(defaultHttpMethods).type.toBe<HTTPMethods[]>()

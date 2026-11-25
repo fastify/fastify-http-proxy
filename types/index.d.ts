@@ -4,6 +4,7 @@ import {
   FastifyPluginCallback,
   FastifyReply,
   FastifyRequest,
+  HTTPMethods,
   preHandlerHookHandler,
   preValidationHookHandler,
   RawServerBase,
@@ -99,7 +100,12 @@ interface FastifyHttpProxyWebsocketOptionsDisabled {
 type FastifyHttpProxy = FastifyPluginCallback<
   fastifyHttpProxy.FastifyHttpProxyOptions
   & (FastifyHttpProxyWebsocketOptionsEnabled | FastifyHttpProxyWebsocketOptionsDisabled)
->
+> & {
+  defaultRoutes: string[];
+  defaultHttpMethods: HTTPMethods[];
+  fastifyHttpProxy: FastifyHttpProxy;
+  default: FastifyHttpProxy;
+}
 
 declare namespace fastifyHttpProxy {
   type ProxyPreRewriteHookHandler = (
@@ -130,11 +136,13 @@ declare namespace fastifyHttpProxy {
     wsClientOptions?: ClientOptions & { queryString?: { [key: string]: unknown } | QueryStringFunction; };
     wsServerOptions?: ServerOptions;
     routes?: string[];
-    httpMethods?: string[];
+    httpMethods?: HTTPMethods | HTTPMethods[];
     constraints?: { [name: string]: any };
     internalRewriteLocationHeader?: boolean;
   }
 
+  export const defaultRoutes: string[]
+  export const defaultHttpMethods: HTTPMethods[]
   export const fastifyHttpProxy: FastifyHttpProxy
   export { fastifyHttpProxy as default }
 }
