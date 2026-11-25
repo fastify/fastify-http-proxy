@@ -380,3 +380,51 @@ test('should not leave a target connection open when the client leaves during th
   }
   assert.strictEqual(target.ws.clients.size, 0)
 })
+
+test('should not keep the source listeners of the previous target connections after a reconnection', async (t) => {
+  const reconnections = 3
+  const wsReconnectOptions = { pingInterval: 60_000, reconnectInterval: 100, reconnectOnClose: true }
+
+  let incoming = 0
+  let disconnects = 0
+  let onReconnected
+  let onDisconnected
+  const disconnected = new Promise((resolve) => { onDisconnected = resolve })
+  const wsHooks = {
+    onIncomingMessage: () => { incoming++ },
+    onReconnect: () => onReconnected(),
+    onDisconnect: () => {
+      disconnects++
+      onDisconnected()
+    }
+  }
+
+  const { target, client } = await createServices({ t, wsReconnectOptions, wsHooks })
+
+  if (target.ws.clients.size === 0) {
+    await once(target.ws, 'connection')
+  }
+  let [socket] = target.ws.clients
+
+  for (let i = 0; i < reconnections; i++) {
+    const reconnected = new Promise((resolve) => { onReconnected = resolve })
+    const connection = once(target.ws, 'connection')
+    socket.close()
+    ;[socket] = await connection
+    await reconnected
+  }
+
+  // the proxy listens to the client once, whatever the number of reconnections
+  socket.on('message', (data, binary) => socket.send(data, { binary }))
+  const echoed = once(client, 'message')
+  client.send('hello')
+  const [data] = await echoed
+  assert.strictEqual(data.toString(), 'hello')
+  assert.strictEqual(incoming, 1)
+
+  const closed = once(socket, 'close')
+  client.close()
+  await disconnected
+  await closed
+  assert.strictEqual(disconnects, 1)
+})

@@ -18,6 +18,7 @@ const kWsHead = Symbol('wsHead')
 const kWsRewritePrefix = Symbol('wsRewritePrefix')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
 const kWsPrefixes = Symbol('wsPrefixes')
+const kRemoveSourceListeners = Symbol('removeSourceListeners')
 
 function liftErrorCode (code) {
   /* c8 ignore start */
@@ -416,7 +417,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     closeWebSocket(target, code, reason)
   }
 
-  function removeSourceListeners (source) {
+  function removeSourceListeners () {
     source.off('message', sourceOnMessage)
     source.off('ping', sourceOnPing)
     source.off('pong', sourceOnPong)
@@ -462,8 +463,12 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   }
   /* c8 ignore stop */
 
-  // need to specify the listeners to remove
-  removeSourceListeners(source)
+  // Each call binds its own listeners to the source: on a reconnection, the ones
+  // of the previous target connection have to go, or they pile up and every
+  // message and close is handled once per reconnection. They are kept until now
+  // so that a client leaving during the reconnection is still noticed.
+  source[kRemoveSourceListeners]?.()
+  source[kRemoveSourceListeners] = removeSourceListeners
   // source is alive since it is created by the proxy service
   // the pinger is not set since we can't reconnect from here
   source.isAlive = true
