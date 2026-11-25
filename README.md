@@ -289,6 +289,61 @@ unless an `origin` option is set in `wsClientOptions` or the rewritten headers a
 Note that the upstream receives its own address in the `Host` header, so an upstream that requires `Origin`
 to match `Host` needs to allow the origins of the clients served by the proxy.
 
+### `wsHighWaterMark`
+
+(default: `1048576`, 1 MiB)
+
+The proxy applies backpressure to WebSocket links, in both directions. When more than `wsHighWaterMark` bytes
+of messages received from one side are still waiting to be written to the other side (because it is slower,
+or because the connection to the upstream is not established yet), the proxy stops reading from the sending
+side until the backlog is flushed. The sender is then slowed down by TCP flow control, instead of having its
+messages accumulate in the proxy memory.
+
+A message larger than `wsHighWaterMark` is still forwarded: reading is paused until it has been written.
+While a side is paused, the proxy does not see its control frames (ping, pong, close) nor its disconnection
+until reading resumes. See [`wsBackpressureTimeout`](#wsbackpressuretimeout) for what bounds that wait. Pings coming from the other side are still forwarded to the paused side, but the answer
+is only read once reading resumes. With [`wsReconnect`](#wsreconnect), a paused target is not considered broken:
+its health check is suspended until it is read again.
+
+Set it to `Infinity` to disable backpressure and buffer without limit.
+
+### `wsBackpressureTimeout`
+
+(default: `30000`, 30 seconds)
+
+The time in ms a side may stay paused by [backpressure](#wshighwatermark) without the other side flushing any data.
+Past it the link is considered stalled: both connections are terminated and `onDisconnect` is called.
+
+With [`wsReconnect`](#wsreconnect), a stalled upstream is treated as a broken connection instead: only the upstream
+is terminated and the proxy reconnects to it, keeping the client connected and calling `onReconnect`. A stalled
+client still terminates the link.
+
+This is what releases a link whose receiving side stopped reading for good, since the proxy cannot see the paused
+side disconnecting. The timeout restarts every time some data is flushed, so a receiver that is slow but keeps
+making progress is not affected.
+
+Set it to `Infinity` to wait without limit.
+
+### `wsForwardPings`
+
+(default: `true`)
+
+By default ping and pong frames are relayed between the client and the upstream, so a heartbeat run by one of them
+is answered by the other, end to end.
+
+Set it to `false` to break that chain: the proxy answers the pings of the client and of the upstream itself, and
+relays no ping or pong to the other side. Each heartbeat then only checks its own connection to the proxy. In
+particular, the pings of a slow client keep being answered while the upstream is paused by
+[backpressure](#wshighwatermark), instead of waiting for a pong that the proxy is not reading.
+The pong is written after the messages already queued for that client, so it can be delayed by up to
+`wsHighWaterMark` bytes plus the socket buffers.
+
+`autoPong` is forced to `true` in `wsServerOptions` and `wsClientOptions`. With [`wsReconnect`](#wsreconnect), the
+proxy still pings the upstream and calls `onPong`, but that pong is not relayed to the client.
+
+A side that is itself paused (because the other one is slow) is not read, so its own pings are only answered
+once reading resumes, whatever the value of this option.
+
 ### `wsReconnect`
 
 **Experimental.** (default: `disabled`)

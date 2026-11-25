@@ -18,6 +18,7 @@ const kWsHead = Symbol('wsHead')
 const kWsRewritePrefix = Symbol('wsRewritePrefix')
 const kWsUpgradeListener = Symbol('wsUpgradeListener')
 const kWsPrefixes = Symbol('wsPrefixes')
+const kRemoveSourceListeners = Symbol('removeSourceListeners')
 
 function liftErrorCode (code) {
   /* c8 ignore start */
@@ -37,6 +38,10 @@ function closeWebSocket (socket, code, reason) {
   socket.isAlive = false
   if (socket.readyState === WebSocket.OPEN) {
     socket.close(liftErrorCode(code), reason)
+  } else if (socket.readyState === WebSocket.CONNECTING) {
+    // The other side left before this one finished connecting: close it as
+    // soon as it opens, or it would stay open with nobody on the other end.
+    socket.once('open', () => socket.close(liftErrorCode(code), reason))
   }
 }
 
@@ -79,6 +84,80 @@ function waitForConnection (target, timeout) {
     }
     /* c8 ignore stop */
   })
+}
+
+// Forwards messages from `from` to `to`, applying backpressure: once more than
+// `highWaterMark` bytes are waiting to be written to `to` (still connecting, or
+// slower than `from`), `from` is paused, so the pressure reaches its peer through
+// TCP flow control instead of piling up in the proxy memory. It is resumed when
+// enough of those bytes have been flushed.
+//
+// A paused socket is not read, so its disconnection goes unnoticed. If `to`
+// flushes nothing for `timeout` ms while `from` is paused, the link is stalled
+// and `onStall` is called to tear it down.
+function createForwarder (from, to, { highWaterMark, timeout }, onStall, onResume = noop) {
+  let pending = 0
+  let paused = false
+  let released = false
+  let stallTimer
+
+  function watchStall () {
+    clearTimeout(stallTimer)
+    if (timeout !== Infinity) {
+      stallTimer = setTimeout(onStall, timeout).unref()
+    }
+  }
+
+  function forward (data, binary) {
+    const size = data.byteLength
+    pending += size
+    if (!paused && !released && pending > highWaterMark) {
+      paused = true
+      from.pause()
+      watchStall()
+    }
+    waitConnection(to, () => {
+      to.send(data, { binary }, () => {
+        pending -= size
+        if (!paused) {
+          return
+        }
+        if (pending <= highWaterMark) {
+          paused = false
+          clearTimeout(stallTimer)
+          from.resume()
+          onResume()
+        } else {
+          // progress: the timeout only counts time without any flush
+          watchStall()
+        }
+      })
+    })
+  }
+
+  // Stops applying backpressure: a paused socket does not process the close
+  // handshake, so the link must let go of it before being torn down or replaced.
+  forward.release = function () {
+    released = true
+    clearTimeout(stallTimer)
+    if (paused) {
+      paused = false
+      from.resume()
+    }
+  }
+
+  return forward
+}
+
+// Tears down a link whose paused side has been waiting for too long: neither
+// side can be trusted to complete a close handshake, so both are terminated and
+// their 'close' events run the usual cleanup.
+function terminateStalledLink (logger, source, target) {
+  logger.warn('proxy ws link terminated: no data flushed within wsBackpressureTimeout')
+  // the client is going away: nothing to reconnect for
+  source.isAlive = false
+  source.terminate()
+  target.terminate()
 }
 
 function isExternalUrl (url) {
@@ -157,13 +236,18 @@ function createContext (logger) {
   return { log: logger }
 }
 
-function proxyWebSockets (logger, source, target, hooks) {
+function proxyWebSockets (logger, source, target, hooks, backpressure, forwardPings) {
   const context = createContext(logger)
+  const onStall = () => terminateStalledLink(logger, source, target)
+  const forwardToTarget = createForwarder(source, target, backpressure, onStall)
+  const forwardToSource = createForwarder(target, source, backpressure, onStall)
   // close() is bound to the close/error events of both sockets and closes the
   // other side itself, so tearing the link down re-enters it. The link is only
   // disconnected once, so the hook is only called once.
   let disconnected = false
   function close (code, reason) {
+    forwardToTarget.release()
+    forwardToSource.release()
     if (hooks.onDisconnect && !disconnected) {
       disconnected = true
       waitConnection(target, () => {
@@ -186,12 +270,15 @@ function proxyWebSockets (logger, source, target, hooks) {
         logger.error({ err }, 'proxy ws error from onIncomingMessage hook')
       }
     }
-    waitConnection(target, () => target.send(data, { binary }))
+    forwardToTarget(data, binary)
   })
-  /* c8 ignore start */
-  source.on('ping', data => waitConnection(target, () => target.ping(data)))
-  source.on('pong', data => waitConnection(target, () => target.pong(data)))
-  /* c8 ignore stop */
+  // Without forwardPings each side has its pings answered by the proxy itself
+  // (ws autoPong), and nothing is relayed.
+  if (forwardPings) {
+    source.on('ping', data => waitConnection(target, () => target.ping(data)))
+    /* c8 ignore next */
+    source.on('pong', data => waitConnection(target, () => target.pong(data)))
+  }
   source.on('close', close)
   /* c8 ignore start */
   source.on('error', error => close(1011, error.message))
@@ -207,12 +294,12 @@ function proxyWebSockets (logger, source, target, hooks) {
         logger.error({ err }, 'proxy ws error from onOutgoingMessage hook')
       }
     }
-    source.send(data, { binary })
+    forwardToSource(data, binary)
   })
-  /* c8 ignore start */
-  target.on('ping', data => source.ping(data))
-  /* c8 ignore stop */
-  target.on('pong', data => source.pong(data))
+  if (forwardPings) {
+    target.on('ping', data => source.ping(data))
+    target.on('pong', data => source.pong(data))
+  }
   target.on('close', close)
   /* c8 ignore start */
   target.on('error', error => close(1011, error.message))
@@ -230,7 +317,7 @@ function proxyWebSockets (logger, source, target, hooks) {
   }
 }
 
-async function reconnect (logger, source, reconnectOptions, hooks, targetParams) {
+async function reconnect (logger, source, reconnectOptions, hooks, targetParams, backpressure, forwardPings) {
   const { url, subprotocols, optionsWs } = targetParams
 
   let attempts = 0
@@ -240,12 +327,20 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
     reconnectOptions.logs && logger.warn({ target: targetParams.url }, `proxy ws reconnect in ${reconnectWait} ms`)
     await wait(reconnectWait)
 
+    // the client left while waiting: there is nobody to connect the target for
+    if (!source.isAlive) {
+      break
+    }
+
     try {
       target = new WebSocket(url, subprotocols, optionsWs)
       await waitForConnection(target, reconnectOptions.connectionTimeout)
     } catch (err) {
       reconnectOptions.logs && logger.error({ target: targetParams.url, err, attempts }, 'proxy ws reconnect error')
       attempts++
+      // a connection that timed out may still complete later: do not leak it
+      target.on('error', noop)
+      target.terminate()
       target = undefined
     }
     // stop if the source connection is closed during the reconnection
@@ -254,6 +349,11 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
   /* c8 ignore start */
   if (!source.isAlive) {
     reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws abort reconnect due to source is closed')
+    // the client left while the target was connecting: do not leak the new connection
+    if (target) {
+      target.on('error', noop)
+      target.terminate()
+    }
     source.close()
     return
   }
@@ -266,16 +366,29 @@ async function reconnect (logger, source, reconnectOptions, hooks, targetParams)
   }
 
   reconnectOptions.logs && logger.info({ target: targetParams.url, attempts }, 'proxy ws reconnected')
-  proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams, true)
+  proxyWebSocketsWithReconnection(logger, source, target, reconnectOptions, hooks, targetParams, backpressure, forwardPings, true)
 }
 
-function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, isReconnecting = false) {
+function proxyWebSocketsWithReconnection (logger, source, target, options, hooks, targetParams, backpressure, forwardPings, isReconnecting = false) {
   const context = createContext(logger)
+  const onStall = () => terminateStalledLink(logger, source, target)
+  // A target that flushes nothing is as good as broken: replace it and keep the
+  // client, as a failed ping would. A client that flushes nothing is gone.
+  const forwardToTarget = createForwarder(source, target, backpressure, () => {
+    logger.warn({ target: targetParams.url }, 'proxy ws connection is broken: no data flushed within wsBackpressureTimeout')
+    target.broken = true
+    target.terminate()
+  })
+  // A target paused by backpressure is not read, so a missing pong says nothing
+  // about its health: once resumed it gets a full ping interval to answer.
+  const forwardToSource = createForwarder(target, source, backpressure, onStall, () => { target.isAlive = true })
   // See proxyWebSockets: close() is reachable from both sockets and closes the
   // target before reaching the hook, so the teardown comes back around. A
   // reconnection re-enters this function with a fresh target and a fresh flag.
   let disconnected = false
   function close (code, reason) {
+    forwardToTarget.release()
+    forwardToSource.release()
     target.pingTimer && clearInterval(target.pingTimer)
     target.pingTimer = undefined
     closeWebSocket(target, code, reason)
@@ -286,7 +399,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
       target.isAlive = false
       target.removeAllListeners()
 
-      reconnect(logger, source, options, hooks, targetParams)
+      reconnect(logger, source, options, hooks, targetParams, backpressure, forwardPings)
       return
     }
 
@@ -304,7 +417,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
     closeWebSocket(target, code, reason)
   }
 
-  function removeSourceListeners (source) {
+  function removeSourceListeners () {
     source.off('message', sourceOnMessage)
     source.off('ping', sourceOnPing)
     source.off('pong', sourceOnPong)
@@ -323,15 +436,15 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onIncomingMessage hook')
       }
     }
-    waitConnection(target, () => target.send(data, { binary }))
+    forwardToTarget(data, binary)
   }
   function sourceOnPing (data) {
     source.isAlive = true
-    waitConnection(target, () => target.ping(data))
+    forwardPings && waitConnection(target, () => target.ping(data))
   }
   function sourceOnPong (data) {
     source.isAlive = true
-    waitConnection(target, () => target.pong(data))
+    forwardPings && waitConnection(target, () => target.pong(data))
   }
   function sourceOnClose (code, reason) {
     source.isAlive = false
@@ -350,8 +463,12 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   }
   /* c8 ignore stop */
 
-  // need to specify the listeners to remove
-  removeSourceListeners(source)
+  // Each call binds its own listeners to the source: on a reconnection, the ones
+  // of the previous target connection have to go, or they pile up and every
+  // message and close is handled once per reconnection. They are kept until now
+  // so that a client leaving during the reconnection is still noticed.
+  source[kRemoveSourceListeners]?.()
+  source[kRemoveSourceListeners] = removeSourceListeners
   // source is alive since it is created by the proxy service
   // the pinger is not set since we can't reconnect from here
   source.isAlive = true
@@ -373,11 +490,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onOutgoingMessage hook')
       }
     }
-    source.send(data, { binary })
+    forwardToSource(data, binary)
   })
   target.on('ping', data => {
     target.isAlive = true
-    source.ping(data)
+    forwardPings && source.ping(data)
   })
   target.on('pong', data => {
     target.isAlive = true
@@ -388,7 +505,7 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
         logger.error({ target: targetParams.url, err }, 'proxy ws error from onPong hook')
       }
     }
-    source.pong(data)
+    forwardPings && source.pong(data)
   })
   /* c8 ignore stop */
   target.on('close', (code, reason) => {
@@ -409,6 +526,11 @@ function proxyWebSocketsWithReconnection (logger, source, target, options, hooks
   waitConnection(target, () => {
     target.isAlive = true
     target.pingTimer = setInterval(() => {
+      if (target.isPaused) {
+        // Its pongs cannot be read: do not mistake backpressure for a broken link.
+        target.isAlive = true
+        return
+      }
       if (target.isAlive === false) {
         target.broken = true
         options.logs && logger.warn({ target: targetParams.url }, 'proxy ws connection is broken')
@@ -475,18 +597,25 @@ function handleUpgrade (fastify, rawRequest, socket, head) {
 }
 
 class WebSocketProxy {
-  constructor (fastify, { wsReconnect, wsHooks, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
+  constructor (fastify, { wsReconnect, wsHooks, wsHighWaterMark, wsBackpressureTimeout, wsForwardPings, wsServerOptions, wsClientOptions, upstream, wsUpstream, replyOptions: { getUpstream } = {} }) {
     this.logger = fastify.log
     this.wsClientOptions = {
       rewriteRequestHeaders: defaultWsHeadersRewrite,
       headers: {},
       ...wsClientOptions
     }
+    if (!wsForwardPings) {
+      // The proxy is the one answering the pings of both sides.
+      this.wsClientOptions.autoPong = true
+      wsServerOptions = { ...wsServerOptions, autoPong: true }
+    }
     this.upstream = upstream ? convertUrlToWebSocket(upstream) : ''
     this.wsUpstream = wsUpstream ? convertUrlToWebSocket(wsUpstream) : ''
     this.getUpstream = getUpstream
     this.wsReconnect = wsReconnect
     this.wsHooks = wsHooks
+    this.wsBackpressure = { highWaterMark: wsHighWaterMark, timeout: wsBackpressureTimeout }
+    this.wsForwardPings = wsForwardPings
     const wss = new WebSocket.Server({
       noServer: true,
       ...wsServerOptions
@@ -626,9 +755,9 @@ class WebSocketProxy {
 
       if (this.wsReconnect) {
         const targetParams = { url, subprotocols, optionsWs }
-        proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams)
+        proxyWebSocketsWithReconnection(this.logger, source, target, this.wsReconnect, this.wsHooks, targetParams, this.wsBackpressure, this.wsForwardPings)
       } else {
-        proxyWebSockets(this.logger, source, target, this.wsHooks)
+        proxyWebSockets(this.logger, source, target, this.wsHooks, this.wsBackpressure, this.wsForwardPings)
       }
     } catch (err) {
       // The upstream client exists but its 'error' listener has not been wired
@@ -790,6 +919,7 @@ async function fastifyHttpProxy (fastify, opts) {
     fastify.addHook('preValidation', opts.preValidation)
   } else if (opts.proxyPayloads !== false) {
     fastify.addContentTypeParser('application/json', bodyParser)
+    fastify.addContentTypeParser('text/plain', bodyParser)
     fastify.addContentTypeParser('*', bodyParser)
   }
 
