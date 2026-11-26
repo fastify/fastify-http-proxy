@@ -197,6 +197,18 @@ See [Config](https://fastify.dev/docs/latest/Reference/Routes/#config) in the Fa
 documentation for information on this option. Note: this is merged with other
 configuration passed to the route.
 
+### `constraints`
+
+The [route constraints](https://fastify.dev/docs/latest/Reference/Routes/#constraints) applied to the proxied routes. Default: `{}`.
+
+```js
+// only requests for api.example.com are proxied
+server.register(proxy, {
+  upstream: 'http://my-api.example.com',
+  constraints: { host: 'api.example.com' }
+})
+```
+
 ### `replyOptions`
 
 Object with [reply options](https://github.com/fastify/fastify-reply-from#replyfromsource-opts) for `@fastify/reply-from`.
@@ -212,7 +224,7 @@ Note that the [rewriteHeaders](https://github.com/fastify/fastify-reply-from#rew
 
 ### `httpMethods`
 
-An array that contains the types of the methods. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
+An HTTP method or an array of HTTP methods to proxy. Default: `['DELETE', 'GET', 'HEAD', 'PATCH', 'POST', 'PUT', 'OPTIONS']`.
 
 Methods that are already registered for one of the proxied routes are skipped (a `debug` log entry lists the skipped methods). This allows plugins such as [`@fastify/cors`](https://github.com/fastify/fastify-cors), which registers an `OPTIONS /*` route to answer preflight requests, to be used together with this plugin. Such plugins must be registered **before** `@fastify/http-proxy`:
 
@@ -228,6 +240,17 @@ If you register them in the opposite order, remove `OPTIONS` from `httpMethods` 
 ### `routes`
 
 An array that contains the routes to handle. Default: `['/', '/*']`.
+
+The default values of `httpMethods` and `routes` are exported as `defaultHttpMethods` and `defaultRoutes`, so they can be extended instead of copied:
+
+```js
+const proxy = require('@fastify/http-proxy')
+
+server.register(proxy, {
+  upstream: 'http://my-api.example.com',
+  httpMethods: [...proxy.defaultHttpMethods, 'TRACE']
+})
+```
 
 ### `preRewrite`
 
@@ -282,6 +305,20 @@ The options passed to the [`WebSocket` constructor](https://github.com/websocket
 It also supports an additional `rewriteRequestHeaders(headers, request)` function that can be used to write the headers before
 opening the WebSocket connection. This function should return an object with the given headers.
 The default implementation forwards the `cookie` header.
+
+It also supports a `queryString` option to replace the query string sent to the upstream, which by default is the one
+of the client request. It can be an object, or a function `queryString(search, reqUrl, request)` returning the new
+query string without the leading `?` (`search` is the original one, including the leading `?`).
+
+```js
+server.register(proxy, {
+  upstream: 'http://my-api.example.com',
+  websocket: true,
+  wsClientOptions: {
+    queryString: { token: 'abc' }
+  }
+})
+```
 
 The client's `Origin` header is always forwarded to the upstream, so that the upstream can enforce its own
 origin checks (e.g. against cross-site WebSocket hijacking). This happens regardless of `rewriteRequestHeaders`,
